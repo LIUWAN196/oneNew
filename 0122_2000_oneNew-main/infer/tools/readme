@@ -1,0 +1,1 @@
+输入脚本 gen_and_show_one.sh 的 onnx 路径，现在只支持绝对路径，使用相对路径，会导致 malloc 错误
