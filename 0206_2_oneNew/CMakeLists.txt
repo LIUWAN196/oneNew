@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.16.1)
+set(PROJECTNAME oneNew)
+project(${PROJECTNAME})
+set(CMAKE_BUILD_TYPE DEBUG)
+add_subdirectory(host/op)
+add_subdirectory(device)
