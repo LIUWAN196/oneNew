@@ -1,0 +1,22 @@
+# 0  description: this is runtime args of one new
+
+# 1  follow args you need fill
+do_preprocess4img: yes
+do_postprocess4net: yes
+one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/one_model/yolov8m_seg.one
+input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/xinxin2.jpg
+in_operand_name: images
+out_operand_name: onnx::Reshape_540;onnx::Reshape_525;onnx::Reshape_510;onnx::Reshape_486;onnx::Reshape_472;onnx::Reshape_458
+
+dump_output4each_node: yes
+ofmap_folder: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/ofmap4debug/yolov8m_seg/
+
+# if you want to do postprocess, please fill this args classification or detection
+postprocess_type: segmentation
+
+# 2  you need fill follow args, if you want to do ostprocess and the net is classification
+crop_shapes: [640, 640]
+resize_shapes: [640, 640]
+normal_mean: [0.0f, 0.0f, 0.0f]
+normal_std: [1.0f, 1.0f, 1.0f]
+

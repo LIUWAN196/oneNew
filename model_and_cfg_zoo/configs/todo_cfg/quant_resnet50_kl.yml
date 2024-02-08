@@ -1,0 +1,43 @@
+# 0  description: this is runtime args of one new
+
+# 1  follow args you need fill
+do_preprocess4img: YEs
+do_postprocess4net: YEs
+one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/one_model/resnet50.one
+quant_one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/one_model/kl_quant_resnet50.one
+input_data_path: /home/wanzai/桌面/oneNew/test/run_onnx/dog.jpeg
+dump_output4each_node: NO
+in_operand_name: input.1
+imagenet_label_txt_path: /home/wanzai/桌面/imagenet_label.txt
+calibrate_img_path: /home/wanzai/桌面/imageNet/
+img_num: 512
+# option: percent / kl / mse
+quant_type: kl
+
+# if you want do postprocess, please fill this args classification or detection
+postprocess_type: classification
+
+
+# 2  you need fill follow args, if you want do postprocess and the net is classification
+resize_shapes: [256, 256]
+crop_shapes: [224, 224]
+normal_mean: [0.485ff, 0.456ff, 0.406ff]
+normal_std: [0.229f, 0.224f, 0.225f]
+
+
+# 3  you need fill follow args, if you want do postprocess and the net is classification
+topk: 5
+
+
+# 4  you need fill follow args, if you want do postprocess and the net is detection
+detect_net: yolov5
+ifmap_num: 3
+anchor_num: 3
+# anchor_scale_table:[116, 90, 156, 198, 373, 326], [30, 61, 62, 5, 59, 119], [10, 13, 16, 30, 33, 23]
+anchor_scale_table:
+cls_num: 80
+max_boxes_per_class: 100
+max_boxes_per_batch: 210
+score_threshold: 0.3f
+iou_threshold: 0.7f
+

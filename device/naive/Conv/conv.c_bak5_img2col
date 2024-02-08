@@ -1,0 +1,863 @@
+#include "conv.h"
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdio.h>
+#include "pad_conv.h"
+#include "stdint.h"
+
+#include <immintrin.h>
+#include <stdio.h>
+
+int im2col(float *input_col_ptr, float *input_ptr, OPERAND_S *in_tensor, OPERAND_S *out_tensor, OPERAND_S *weight_tensor,
+           CONV_CONFIG_S *cfg) {
+    int32_t kernel_c = weight_tensor->shape.C;
+    int32_t kernel_h = weight_tensor->shape.H;
+    int32_t kernel_w = weight_tensor->shape.W;
+    int32_t in_n = in_tensor->shape.N;
+    int32_t in_c = in_tensor->shape.C;
+    int32_t in_h = in_tensor->shape.H;
+    int32_t in_w = in_tensor->shape.W;
+
+    int32_t out_h = out_tensor->shape.H;
+    int32_t out_w = out_tensor->shape.W;
+
+    int32_t stride_x = cfg->strides[0];
+    int32_t stride_y = cfg->strides[1];
+
+    for (int col_h = 0; col_h < out_h * out_w; ++col_h) {
+        for (int col_w0 = 0; col_w0 < in_c; ++col_w0) {
+            for (int col_w1 = 0; col_w1 < kernel_h; ++col_w1) {
+                for (int col_w2 = 0; col_w2 < kernel_w; ++col_w2) {
+                    input_col_ptr[col_w1 * kernel_w + col_w2] = input_ptr[(col_h / out_w + col_w1 * stride_x) * out_w +
+                                                                          (col_h + col_w2 * stride_y) % out_w];
+
+//                    input_col_ptr[col_h * in_c * kernel_h * kernel_w + col_w0 * kernel_h * kernel_w +
+//                                  col_w1 * kernel_w + col_w2] = input_ptr[in_c * in_h * in_w +
+//                                                                          (col_h / out_w + col_w1 * stride_x) * out_w +
+//                                                                          (col_h + col_w2 * stride_y) % out_w];
+
+                }
+            }
+        }
+    }
+
+    return 0;
+
+}
+
+
+int eval_1x1j1_avx(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+
+    CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
+//    printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
+
+    float *input_ptr = (float *) (inputs[0].addr);
+    float *weight_ptr = (float *) (inputs[1].addr);
+
+    float *bias_ptr;
+    if (cfg->has_bias){
+        bias_ptr = (float *) (inputs[2].addr);
+    }
+
+    float *output_ptr = (float *) (outputs[0].addr);
+
+    OPERAND_S *in_tensor = (OPERAND_S *) (params[1].addr);
+    OPERAND_S *out_tensor = (OPERAND_S *) (params[2].addr);
+    OPERAND_S *weight_tensor = (OPERAND_S *) (params[3].addr);
+    OPERAND_S *bias_tensor;
+
+    if (cfg->has_bias){
+        bias_tensor = (OPERAND_S *) (params[4].addr);
+    }
+
+    int32_t in_n = in_tensor->shape.N;
+    int32_t in_c = in_tensor->shape.C;
+    int32_t in_h = in_tensor->shape.H;
+    int32_t in_w = in_tensor->shape.W;
+
+    int32_t out_n = out_tensor->shape.N;
+    int32_t out_c = out_tensor->shape.C;
+    int32_t out_h = out_tensor->shape.H;
+    int32_t out_w = out_tensor->shape.W;
+
+    void *src_pad_ptr;
+    if (cfg->pads[0] != 0){
+        // do pad
+        src_pad_ptr = malloc(in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float ));
+        PAD_INNER_CONFIG_S pad_cfg;
+        pad_cfg.h = cfg->pads[0];
+        pad_cfg.w = cfg->pads[0];
+
+        in_h = in_h + 2 * cfg->pads[0];
+        in_w = in_w + 2 * cfg->pads[0];
+
+        do_pad_conv(src_pad_ptr, input_ptr, in_tensor, &pad_cfg);
+        input_ptr = (float *)src_pad_ptr;
+    }
+
+    // loop params
+    register float psum0_reg, psum1_reg, psum2_reg, psum3_reg;
+    register float psum4_reg, psum5_reg, psum6_reg, psum7_reg;
+
+    // gemm
+    float psum;
+    float *in_data_ptr;
+    float *w0_ptr, *w1_ptr, *w2_ptr, *w3_ptr;
+    float *w4_ptr, *w5_ptr, *w6_ptr, *w7_ptr;
+    register float in_data;
+
+    __m256 sum0, sum1, sum2, sum3;
+    __m256 sum4, sum5, sum6, sum7;
+// todo: maybe the out_c % 8 != 0
+    for (int hw_i = 0; hw_i < out_h * out_w; ++hw_i) {
+        for (int outc_i = 0; outc_i < out_c; outc_i += 8) {  // todo: maybe the out_c % 8 != 0
+            psum0_reg = 0, psum1_reg = 0, psum2_reg = 0, psum3_reg = 0;
+            psum4_reg = 0, psum5_reg = 0, psum6_reg = 0, psum7_reg = 0;
+            w0_ptr = weight_ptr + outc_i * in_c;
+            w1_ptr = w0_ptr + in_c;
+            w2_ptr = w0_ptr + 2 * in_c;
+            w3_ptr = w0_ptr + 3 * in_c;
+            w4_ptr = w0_ptr + 4 * in_c;
+            w5_ptr = w0_ptr + 5 * in_c;
+            w6_ptr = w0_ptr + 6 * in_c;
+            w7_ptr = w0_ptr + 7 * in_c;
+            for (int inc_i = 0; inc_i < in_c; inc_i += 8) {  // todo: maybe the in_c % 8 != 0
+                in_data_ptr = input_ptr + inc_i;
+                __m256 indata = _mm256_loadu_ps(in_data_ptr);
+                sum0 = _mm256_add_ps(sum0, _mm256_mul_ps(_mm256_loadu_ps(w0_ptr),indata));
+                sum1 = _mm256_add_ps(sum1, _mm256_mul_ps(_mm256_loadu_ps(w1_ptr),indata));
+                sum2 = _mm256_add_ps(sum2, _mm256_mul_ps(_mm256_loadu_ps(w2_ptr),indata));
+                sum3 = _mm256_add_ps(sum3, _mm256_mul_ps(_mm256_loadu_ps(w3_ptr),indata));
+                sum4 = _mm256_add_ps(sum4, _mm256_mul_ps(_mm256_loadu_ps(w4_ptr),indata));
+                sum5 = _mm256_add_ps(sum5, _mm256_mul_ps(_mm256_loadu_ps(w5_ptr),indata));
+                sum6 = _mm256_add_ps(sum6, _mm256_mul_ps(_mm256_loadu_ps(w6_ptr),indata));
+                sum7 = _mm256_add_ps(sum7, _mm256_mul_ps(_mm256_loadu_ps(w7_ptr),indata));
+
+//                psum0_reg += *w0_ptr++ * *in_data_ptr;
+//                psum1_reg += *w1_ptr++ * *in_data_ptr;
+//                psum2_reg += *w2_ptr++ * *in_data_ptr;
+//                psum3_reg += *w3_ptr++ * *in_data_ptr;
+//                psum4_reg += *w4_ptr++ * *in_data_ptr;
+//                psum5_reg += *w5_ptr++ * *in_data_ptr;
+//                psum6_reg += *w6_ptr++ * *in_data_ptr;
+//                psum7_reg += *w7_ptr++ * *in_data_ptr;
+            }
+            _mm256_storeu_ps(output_ptr + outc_i * in_h * in_w + hw_i, sum0);
+            _mm256_storeu_ps(output_ptr + (outc_i + 1) * in_h * in_w + hw_i, sum1);
+            _mm256_storeu_ps(output_ptr + (outc_i + 2) * in_h * in_w + hw_i, sum2);
+            _mm256_storeu_ps(output_ptr + (outc_i + 3) * in_h * in_w + hw_i, sum3);
+            _mm256_storeu_ps(output_ptr + (outc_i + 4) * in_h * in_w + hw_i, sum4);
+            _mm256_storeu_ps(output_ptr + (outc_i + 5) * in_h * in_w + hw_i, sum5);
+            _mm256_storeu_ps(output_ptr + (outc_i + 6) * in_h * in_w + hw_i, sum6);
+            _mm256_storeu_ps(output_ptr + (outc_i + 7) * in_h * in_w + hw_i, sum7);
+
+
+//            output_ptr[outc_i * in_h * in_w + hw_i] = psum0_reg + bias_ptr[outc_i];
+//            output_ptr[(outc_i + 1) * in_h * in_w + hw_i] = psum1_reg + bias_ptr[outc_i + 1];
+//            output_ptr[(outc_i + 2) * in_h * in_w + hw_i] = psum2_reg + bias_ptr[outc_i + 2];
+//            output_ptr[(outc_i + 3) * in_h * in_w + hw_i] = psum3_reg + bias_ptr[outc_i + 3];
+//            output_ptr[(outc_i + 4) * in_h * in_w + hw_i] = psum4_reg + bias_ptr[outc_i + 4];
+//            output_ptr[(outc_i + 5) * in_h * in_w + hw_i] = psum5_reg + bias_ptr[outc_i + 5];
+//            output_ptr[(outc_i + 6) * in_h * in_w + hw_i] = psum6_reg + bias_ptr[outc_i + 6];
+//            output_ptr[(outc_i + 7) * in_h * in_w + hw_i] = psum7_reg + bias_ptr[outc_i + 7];
+        }
+    }
+
+
+    return 0;
+}
+
+int eval_1x1j1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+
+    CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
+//    printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
+
+    float *input_ptr = (float *) (inputs[0].addr);
+    float *weight_ptr = (float *) (inputs[1].addr);
+
+    float *bias_ptr;
+    if (cfg->has_bias){
+        bias_ptr = (float *) (inputs[2].addr);
+    }
+
+    float *output_ptr = (float *) (outputs[0].addr);
+
+    OPERAND_S *in_tensor = (OPERAND_S *) (params[1].addr);
+    OPERAND_S *out_tensor = (OPERAND_S *) (params[2].addr);
+    OPERAND_S *weight_tensor = (OPERAND_S *) (params[3].addr);
+    OPERAND_S *bias_tensor;
+
+    if (cfg->has_bias){
+        bias_tensor = (OPERAND_S *) (params[4].addr);
+    }
+
+    int32_t in_n = in_tensor->shape.N;
+    int32_t in_c = in_tensor->shape.C;
+    int32_t in_h = in_tensor->shape.H;
+    int32_t in_w = in_tensor->shape.W;
+
+    int32_t out_n = out_tensor->shape.N;
+    int32_t out_c = out_tensor->shape.C;
+    int32_t out_h = out_tensor->shape.H;
+    int32_t out_w = out_tensor->shape.W;
+
+    void *src_pad_ptr;
+    if (cfg->pads[0] != 0){
+        // do pad
+        src_pad_ptr = malloc(in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float ));
+        PAD_INNER_CONFIG_S pad_cfg;
+        pad_cfg.h = cfg->pads[0];
+        pad_cfg.w = cfg->pads[0];
+
+        in_h = in_h + 2 * cfg->pads[0];
+        in_w = in_w + 2 * cfg->pads[0];
+
+        do_pad_conv(src_pad_ptr, input_ptr, in_tensor, &pad_cfg);
+        input_ptr = (float *)src_pad_ptr;
+    }
+
+    // loop params
+    register float psum0_reg, psum1_reg, psum2_reg, psum3_reg;
+    register float psum4_reg, psum5_reg, psum6_reg, psum7_reg;
+
+    // gemm
+    float psum;
+    float *w0_ptr, *w1_ptr, *w2_ptr, *w3_ptr;
+    float *w4_ptr, *w5_ptr, *w6_ptr, *w7_ptr;
+    register float in_data;
+
+//    for (int hw_i = 0; hw_i < out_h * out_w; ++hw_i) {
+//        for (int outc_i = 0; outc_i < out_c; ++outc_i) {
+//            psum_reg = 0;
+//            w_ptr = weight_ptr + outc_i * in_c;
+//            for (int inc_i = 0; inc_i < in_c; ++inc_i) {
+//                psum_reg += *w_ptr++ * input_ptr[inc_i * in_h * in_w + hw_i];
+//            }
+//            output_ptr[outc_i * in_h * in_w + hw_i] = psum_reg + bias_ptr[outc_i];
+//        }
+//    }
+
+// todo: maybe the out_c % 8 != 0
+    for (int hw_i = 0; hw_i < out_h * out_w; ++hw_i) {
+        for (int outc_i = 0; outc_i < out_c; outc_i += 8) {  // todo: maybe the out_c % 8 != 0
+            psum0_reg = 0, psum1_reg = 0, psum2_reg = 0, psum3_reg = 0;
+            psum4_reg = 0, psum5_reg = 0, psum6_reg = 0, psum7_reg = 0;
+            w0_ptr = weight_ptr + outc_i * in_c;
+            w1_ptr = w0_ptr + in_c;
+            w2_ptr = w0_ptr + 2 * in_c;
+            w3_ptr = w0_ptr + 3 * in_c;
+            w4_ptr = w0_ptr + 4 * in_c;
+            w5_ptr = w0_ptr + 5 * in_c;
+            w6_ptr = w0_ptr + 6 * in_c;
+            w7_ptr = w0_ptr + 7 * in_c;
+            for (int inc_i = 0; inc_i < in_c; ++inc_i) {
+                in_data = input_ptr[inc_i * in_h * in_w + hw_i];
+                psum0_reg += *w0_ptr++ * in_data;
+                psum1_reg += *w1_ptr++ * in_data;
+                psum2_reg += *w2_ptr++ * in_data;
+                psum3_reg += *w3_ptr++ * in_data;
+                psum4_reg += *w4_ptr++ * in_data;
+                psum5_reg += *w5_ptr++ * in_data;
+                psum6_reg += *w6_ptr++ * in_data;
+                psum7_reg += *w7_ptr++ * in_data;
+            }
+            output_ptr[outc_i * in_h * in_w + hw_i] = psum0_reg + bias_ptr[outc_i];
+            output_ptr[(outc_i + 1) * in_h * in_w + hw_i] = psum1_reg + bias_ptr[outc_i + 1];
+            output_ptr[(outc_i + 2) * in_h * in_w + hw_i] = psum2_reg + bias_ptr[outc_i + 2];
+            output_ptr[(outc_i + 3) * in_h * in_w + hw_i] = psum3_reg + bias_ptr[outc_i + 3];
+            output_ptr[(outc_i + 4) * in_h * in_w + hw_i] = psum4_reg + bias_ptr[outc_i + 4];
+            output_ptr[(outc_i + 5) * in_h * in_w + hw_i] = psum5_reg + bias_ptr[outc_i + 5];
+            output_ptr[(outc_i + 6) * in_h * in_w + hw_i] = psum6_reg + bias_ptr[outc_i + 6];
+            output_ptr[(outc_i + 7) * in_h * in_w + hw_i] = psum7_reg + bias_ptr[outc_i + 7];
+        }
+    }
+
+
+    return 0;
+}
+
+int eval_mxn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+
+    CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
+//    printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
+
+    int32_t stride_x = cfg->strides[0];
+    int32_t stride_y = cfg->strides[1];
+
+    float *input_ptr = (float *) (inputs[0].addr);
+    float *weight_ptr = (float *) (inputs[1].addr);
+
+    float *bias_ptr;
+    if (cfg->has_bias){
+        bias_ptr = (float *) (inputs[2].addr);
+    }
+
+    float *output_ptr = (float *) (outputs[0].addr);
+
+    OPERAND_S *in_tensor = (OPERAND_S *) (params[1].addr);
+    OPERAND_S *out_tensor = (OPERAND_S *) (params[2].addr);
+    OPERAND_S *weight_tensor = (OPERAND_S *) (params[3].addr);
+    OPERAND_S *bias_tensor;
+
+    if (cfg->has_bias){
+        bias_tensor = (OPERAND_S *) (params[4].addr);
+    }
+
+    int32_t kernel_c = weight_tensor->shape.C;
+    int32_t kernel_h = weight_tensor->shape.H;
+    int32_t kernel_w = weight_tensor->shape.W;
+
+    int32_t in_n = in_tensor->shape.N;
+    int32_t in_c = in_tensor->shape.C;
+    int32_t in_h = in_tensor->shape.H;
+    int32_t in_w = in_tensor->shape.W;
+
+    int32_t out_n = out_tensor->shape.N;
+    int32_t out_c = out_tensor->shape.C;
+    int32_t out_h = out_tensor->shape.H;
+    int32_t out_w = out_tensor->shape.W;
+
+    OPERAND_S new_in_tensor;
+    memcpy(&new_in_tensor, in_tensor, sizeof(OPERAND_S));
+    in_tensor = &new_in_tensor;
+
+    void *src_pad_ptr;
+    if (cfg->pads[0] != 0){
+        // do pad
+        src_pad_ptr = malloc(in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float ));
+        PAD_INNER_CONFIG_S pad_cfg;
+        pad_cfg.h = cfg->pads[0];
+        pad_cfg.w = cfg->pads[0];
+
+        in_h = in_h + 2 * cfg->pads[0];
+        in_w = in_w + 2 * cfg->pads[0];
+
+        do_pad_conv(src_pad_ptr, input_ptr, in_tensor, &pad_cfg);
+        input_ptr = (float *)src_pad_ptr;
+        in_tensor->shape.H = in_h;
+        in_tensor->shape.W = in_w;
+    }
+
+    // step 1: im 2 col
+    float *input_col_ptr = malloc(kernel_w * kernel_h * in_c * out_h * out_w);
+//    im2col(input_col_ptr, input_ptr, in_tensor, out_tensor, weight_tensor, cfg);
+//    input_ptr = input_col_ptr;
+
+    register float psum0, psum1, psum2, psum3, psum4, psum5, psum6, psum7;
+
+
+    float *cur_weight0_ptr, *cur_weight1_ptr, *cur_weight2_ptr, *cur_weight3_ptr;
+    float *cur_weight4_ptr, *cur_weight5_ptr, *cur_weight6_ptr, *cur_weight7_ptr;
+    float *cur_input_ptr;
+
+//    if (out_c % 8 != 0) {
+//        return 0;
+//    }
+    for (int out_c_i = 0; out_c_i < out_c; out_c_i += 8) {
+        for (int out_hw_i = 0; out_hw_i < out_h * out_w; ++out_hw_i) {
+            psum0 = 0, psum1 = 0, psum2 = 0, psum3 = 0;
+            psum4 = 0, psum5 = 0, psum6 = 0, psum7 = 0;
+            cur_weight0_ptr = weight_ptr + out_c_i * kernel_w * kernel_h * in_c;
+            cur_weight1_ptr = weight_ptr + (out_c_i + 1) * kernel_w * kernel_h * in_c;
+            cur_weight2_ptr = weight_ptr + (out_c_i + 2) * kernel_w * kernel_h * in_c;
+            cur_weight3_ptr = weight_ptr + (out_c_i + 3) * kernel_w * kernel_h * in_c;
+
+            cur_weight4_ptr = weight_ptr + (out_c_i + 4) * kernel_w * kernel_h * in_c;
+            cur_weight5_ptr = weight_ptr + (out_c_i + 5) * kernel_w * kernel_h * in_c;
+            cur_weight6_ptr = weight_ptr + (out_c_i + 6) * kernel_w * kernel_h * in_c;
+            cur_weight7_ptr = weight_ptr + (out_c_i + 7) * kernel_w * kernel_h * in_c;
+            cur_input_ptr = input_ptr;
+//            cur_input_ptr = input_ptr + out_hw_i * kernel_w * kernel_h * in_c;
+            for (int k_i = 0; k_i < kernel_w * kernel_h * in_c; ++k_i) {
+                psum0 += *cur_weight0_ptr++ * *cur_input_ptr++;
+                psum1 += *cur_weight1_ptr++ * *cur_input_ptr++;
+                psum2 += *cur_weight2_ptr++ * *cur_input_ptr++;
+                psum3 += *cur_weight3_ptr++ * *cur_input_ptr++;
+
+                psum4 += *cur_weight4_ptr++ * *cur_input_ptr++;
+                psum5 += *cur_weight5_ptr++ * *cur_input_ptr++;
+                psum6 += *cur_weight6_ptr++ * *cur_input_ptr++;
+                psum7 += *cur_weight7_ptr++ * *cur_input_ptr++;
+            }
+            int32_t aa = 2;
+//            printf("%f\n", psum7);
+
+//            input_col_ptr[out_c_i * aa] = (float)psum7 + 1.0f;
+            input_col_ptr[out_c_i * aa] = (float)psum0 + 1.0f;
+            input_ptr[(out_c_i + 1) * aa + out_hw_i] = psum1 + bias_ptr[out_c_i + 1];
+            input_ptr[(out_c_i + 2) * aa + out_hw_i] = psum2 + bias_ptr[out_c_i + 2];
+            input_ptr[(out_c_i + 3) * aa + out_hw_i] = psum3 + bias_ptr[out_c_i + 3];
+            input_ptr[(out_c_i + 4) * aa + out_hw_i] = psum4 + bias_ptr[out_c_i + 4];
+            input_ptr[(out_c_i + 5) * aa + out_hw_i] = psum5 + bias_ptr[out_c_i + 5];
+            input_ptr[(out_c_i + 6) * aa + out_hw_i] = psum6 + bias_ptr[out_c_i + 6];
+            input_ptr[(out_c_i + 7) * aa + out_hw_i] = psum7 + bias_ptr[out_c_i + 7];
+
+//            output_ptr[out_c_i * out_h * out_w + out_hw_i] = psum0 + bias_ptr[out_c_i];
+//            output_ptr[(out_c_i + 1) * out_h * out_w + out_hw_i] = psum1 + bias_ptr[out_c_i + 1];
+//            output_ptr[(out_c_i + 2) * out_h * out_w + out_hw_i] = psum2 + bias_ptr[out_c_i + 2];
+//            output_ptr[(out_c_i + 3) * out_h * out_w + out_hw_i] = psum3 + bias_ptr[out_c_i + 3];
+//            output_ptr[(out_c_i + 4) * out_h * out_w + out_hw_i] = psum4 + bias_ptr[out_c_i + 4];
+//            output_ptr[(out_c_i + 5) * out_h * out_w + out_hw_i] = psum5 + bias_ptr[out_c_i + 5];
+//            output_ptr[(out_c_i + 6) * out_h * out_w + out_hw_i] = psum6 + bias_ptr[out_c_i + 6];
+//            output_ptr[(out_c_i + 7) * out_h * out_w + out_hw_i] = psum7 + bias_ptr[out_c_i + 7];
+        }
+    }
+
+
+
+
+//    // loop params
+//    float *tmp_input_ptr;
+//    float *cur_input_ptr;
+//
+//    float *tmp0_weight_ptr;
+//    float *tmp1_weight_ptr;
+//    float *tmp2_weight_ptr;
+//    float *tmp3_weight_ptr;
+//    float *tmp4_weight_ptr;
+//    float *tmp5_weight_ptr;
+//    float *tmp6_weight_ptr;
+//    float *tmp7_weight_ptr;
+//
+//    float *cur0_weight_ptr;
+//    float *cur1_weight_ptr;
+//    float *cur2_weight_ptr;
+//    float *cur3_weight_ptr;
+//    float *cur4_weight_ptr;
+//    float *cur5_weight_ptr;
+//    float *cur6_weight_ptr;
+//    float *cur7_weight_ptr;
+//
+//    float *tmp_output_ptr;
+//
+//    float *output_batch_ptr;
+//
+//    float *cur_output_ptr;
+//
+//    register float psum0, psum1, psum2, psum3, psum4, psum5, psum6, psum7;
+//
+//    register float in_data;
+//
+//    for (int n_i = 0; n_i < out_n; ++n_i) {
+//        output_batch_ptr = output_ptr + n_i * out_c * out_h * out_w;
+//        for (int c_i = 0; c_i < out_c; c_i += 8) {  // todo: maybe the out_c % 8 != 0
+//            for (int h_i = 0; h_i < out_h; ++h_i) {
+//                for (int w_i = 0; w_i < out_w; ++w_i) {
+//                    tmp_input_ptr = input_ptr + h_i * stride_y * in_w + w_i * stride_x;
+//                    tmp0_weight_ptr = weight_ptr + c_i * kernel_c * kernel_h * kernel_w;
+//                    tmp1_weight_ptr = tmp0_weight_ptr + 1 * kernel_c * kernel_h * kernel_w;
+//                    tmp2_weight_ptr = tmp0_weight_ptr + 2 * kernel_c * kernel_h * kernel_w;
+//                    tmp3_weight_ptr = tmp0_weight_ptr + 3 * kernel_c * kernel_h * kernel_w;
+//                    tmp4_weight_ptr = tmp0_weight_ptr + 4 * kernel_c * kernel_h * kernel_w;
+//                    tmp5_weight_ptr = tmp0_weight_ptr + 5 * kernel_c * kernel_h * kernel_w;
+//                    tmp6_weight_ptr = tmp0_weight_ptr + 6 * kernel_c * kernel_h * kernel_w;
+//                    tmp7_weight_ptr = tmp0_weight_ptr + 7 * kernel_c * kernel_h * kernel_w;
+//                    psum0 = 0, psum1 = 0, psum2 = 0, psum3 = 0;
+//                    psum4 = 0, psum5 = 0, psum6 = 0, psum7 = 0;
+//                    for (int k_c = 0; k_c < kernel_c; ++k_c) {
+//                        cur0_weight_ptr = tmp0_weight_ptr + k_c * kernel_h * kernel_w;
+//                        cur1_weight_ptr = tmp1_weight_ptr + k_c * kernel_h * kernel_w;
+//                        cur2_weight_ptr = tmp2_weight_ptr + k_c * kernel_h * kernel_w;
+//                        cur3_weight_ptr = tmp3_weight_ptr + k_c * kernel_h * kernel_w;
+//                        cur4_weight_ptr = tmp4_weight_ptr + k_c * kernel_h * kernel_w;
+//                        cur5_weight_ptr = tmp5_weight_ptr + k_c * kernel_h * kernel_w;
+//                        cur6_weight_ptr = tmp6_weight_ptr + k_c * kernel_h * kernel_w;
+//                        cur7_weight_ptr = tmp7_weight_ptr + k_c * kernel_h * kernel_w;
+//                        cur_input_ptr = tmp_input_ptr + k_c * in_h * in_w;
+//                        for (int k_h = 0; k_h < kernel_h; ++k_h) {
+//                            for (int k_w = 0; k_w < kernel_w; ++k_w) {
+//                                in_data = cur_input_ptr[k_h * in_w + k_w];
+//                                psum0 += *cur0_weight_ptr++ * in_data;
+//                                psum1 += *cur1_weight_ptr++ * in_data;
+//                                psum2 += *cur2_weight_ptr++ * in_data;
+//                                psum3 += *cur3_weight_ptr++ * in_data;
+//                                psum4 += *cur4_weight_ptr++ * in_data;
+//                                psum5 += *cur5_weight_ptr++ * in_data;
+//                                psum6 += *cur6_weight_ptr++ * in_data;
+//                                psum7 += *cur7_weight_ptr++ * in_data;
+//                            }
+//                        }
+//                    }
+//                    output_batch_ptr[c_i * out_h * out_w + h_i * out_w + w_i] = psum0 + bias_ptr[c_i];
+//                    output_batch_ptr[(c_i + 1) * out_h * out_w + h_i * out_w + w_i] = psum1 + bias_ptr[c_i + 1];
+//                    output_batch_ptr[(c_i + 2) * out_h * out_w + h_i * out_w + w_i] = psum2 + bias_ptr[c_i + 2];
+//                    output_batch_ptr[(c_i + 3) * out_h * out_w + h_i * out_w + w_i] = psum3 + bias_ptr[c_i + 3];
+//                    output_batch_ptr[(c_i + 4) * out_h * out_w + h_i * out_w + w_i] = psum4 + bias_ptr[c_i + 4];
+//                    output_batch_ptr[(c_i + 5) * out_h * out_w + h_i * out_w + w_i] = psum5 + bias_ptr[c_i + 5];
+//                    output_batch_ptr[(c_i + 6) * out_h * out_w + h_i * out_w + w_i] = psum6 + bias_ptr[c_i + 6];
+//                    output_batch_ptr[(c_i + 7) * out_h * out_w + h_i * out_w + w_i] = psum7 + bias_ptr[c_i + 7];
+//                }
+//            }
+//        }
+//    }
+//
+//
+//    return 0;
+//
+//    //    // write_bin(replace_char(cfg->out_operand_name[0]), out_n * out_c * out_h * out_w * sizeof(float), output_ptr);
+//
+//    int c = 101;
+    return 0;
+}
+
+
+int eval_mxn_old(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+
+    CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
+//    printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
+
+    int32_t stride_x = cfg->strides[0];
+    int32_t stride_y = cfg->strides[1];
+
+    float *input_ptr = (float *) (inputs[0].addr);
+    float *weight_ptr = (float *) (inputs[1].addr);
+
+    float *bias_ptr;
+    if (cfg->has_bias){
+        bias_ptr = (float *) (inputs[2].addr);
+    }
+
+    float *output_ptr = (float *) (outputs[0].addr);
+
+    OPERAND_S *in_tensor = (OPERAND_S *) (params[1].addr);
+    OPERAND_S *out_tensor = (OPERAND_S *) (params[2].addr);
+    OPERAND_S *weight_tensor = (OPERAND_S *) (params[3].addr);
+    OPERAND_S *bias_tensor;
+
+    if (cfg->has_bias){
+        bias_tensor = (OPERAND_S *) (params[4].addr);
+    }
+
+    int32_t kernel_c = weight_tensor->shape.C;
+    int32_t kernel_h = weight_tensor->shape.H;
+    int32_t kernel_w = weight_tensor->shape.W;
+
+    int32_t in_n = in_tensor->shape.N;
+    int32_t in_c = in_tensor->shape.C;
+    int32_t in_h = in_tensor->shape.H;
+    int32_t in_w = in_tensor->shape.W;
+
+    int32_t out_n = out_tensor->shape.N;
+    int32_t out_c = out_tensor->shape.C;
+    int32_t out_h = out_tensor->shape.H;
+    int32_t out_w = out_tensor->shape.W;
+
+    void *src_pad_ptr;
+    if (cfg->pads[0] != 0){
+        // do pad
+        src_pad_ptr = malloc(in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float ));
+        PAD_INNER_CONFIG_S pad_cfg;
+        pad_cfg.h = cfg->pads[0];
+        pad_cfg.w = cfg->pads[0];
+
+        in_h = in_h + 2 * cfg->pads[0];
+        in_w = in_w + 2 * cfg->pads[0];
+
+        do_pad_conv(src_pad_ptr, input_ptr, in_tensor, &pad_cfg);
+        input_ptr = (float *)src_pad_ptr;
+    }
+
+    // loop params
+    float *tmp_input_ptr;
+    float *cur_input_ptr;
+
+    float *tmp0_weight_ptr;
+    float *tmp1_weight_ptr;
+    float *tmp2_weight_ptr;
+    float *tmp3_weight_ptr;
+    float *tmp4_weight_ptr;
+    float *tmp5_weight_ptr;
+    float *tmp6_weight_ptr;
+    float *tmp7_weight_ptr;
+
+    float *cur0_weight_ptr;
+    float *cur1_weight_ptr;
+    float *cur2_weight_ptr;
+    float *cur3_weight_ptr;
+    float *cur4_weight_ptr;
+    float *cur5_weight_ptr;
+    float *cur6_weight_ptr;
+    float *cur7_weight_ptr;
+
+    float *tmp_output_ptr;
+
+    float *output_batch_ptr;
+
+    float *cur_output_ptr;
+
+    register float psum0, psum1, psum2, psum3, psum4, psum5, psum6, psum7;
+
+    register float in_data;
+
+    for (int n_i = 0; n_i < out_n; ++n_i) {
+        output_batch_ptr = output_ptr + n_i * out_c * out_h * out_w;
+        for (int c_i = 0; c_i < out_c; c_i += 8) {  // todo: maybe the out_c % 8 != 0
+            for (int h_i = 0; h_i < out_h; ++h_i) {
+                for (int w_i = 0; w_i < out_w; ++w_i) {
+                    tmp_input_ptr = input_ptr + h_i * stride_y * in_w + w_i * stride_x;
+                    tmp0_weight_ptr = weight_ptr + c_i * kernel_c * kernel_h * kernel_w;
+                    tmp1_weight_ptr = tmp0_weight_ptr + 1 * kernel_c * kernel_h * kernel_w;
+                    tmp2_weight_ptr = tmp0_weight_ptr + 2 * kernel_c * kernel_h * kernel_w;
+                    tmp3_weight_ptr = tmp0_weight_ptr + 3 * kernel_c * kernel_h * kernel_w;
+                    tmp4_weight_ptr = tmp0_weight_ptr + 4 * kernel_c * kernel_h * kernel_w;
+                    tmp5_weight_ptr = tmp0_weight_ptr + 5 * kernel_c * kernel_h * kernel_w;
+                    tmp6_weight_ptr = tmp0_weight_ptr + 6 * kernel_c * kernel_h * kernel_w;
+                    tmp7_weight_ptr = tmp0_weight_ptr + 7 * kernel_c * kernel_h * kernel_w;
+                    psum0 = 0, psum1 = 0, psum2 = 0, psum3 = 0;
+                    psum4 = 0, psum5 = 0, psum6 = 0, psum7 = 0;
+                    for (int k_c = 0; k_c < kernel_c; ++k_c) {
+                        cur0_weight_ptr = tmp0_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur1_weight_ptr = tmp1_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur2_weight_ptr = tmp2_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur3_weight_ptr = tmp3_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur4_weight_ptr = tmp4_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur5_weight_ptr = tmp5_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur6_weight_ptr = tmp6_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur7_weight_ptr = tmp7_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur_input_ptr = tmp_input_ptr + k_c * in_h * in_w;
+                        for (int k_h = 0; k_h < kernel_h; ++k_h) {
+                            for (int k_w = 0; k_w < kernel_w; ++k_w) {
+                                in_data = cur_input_ptr[k_h * in_w + k_w];
+                                psum0 += *cur0_weight_ptr++ * in_data;
+                                psum1 += *cur1_weight_ptr++ * in_data;
+                                psum2 += *cur2_weight_ptr++ * in_data;
+                                psum3 += *cur3_weight_ptr++ * in_data;
+                                psum4 += *cur4_weight_ptr++ * in_data;
+                                psum5 += *cur5_weight_ptr++ * in_data;
+                                psum6 += *cur6_weight_ptr++ * in_data;
+                                psum7 += *cur7_weight_ptr++ * in_data;
+                            }
+                        }
+                    }
+                    output_batch_ptr[c_i * out_h * out_w + h_i * out_w + w_i] = psum0 + bias_ptr[c_i];
+                    output_batch_ptr[(c_i + 1) * out_h * out_w + h_i * out_w + w_i] = psum1 + bias_ptr[c_i + 1];
+                    output_batch_ptr[(c_i + 2) * out_h * out_w + h_i * out_w + w_i] = psum2 + bias_ptr[c_i + 2];
+                    output_batch_ptr[(c_i + 3) * out_h * out_w + h_i * out_w + w_i] = psum3 + bias_ptr[c_i + 3];
+                    output_batch_ptr[(c_i + 4) * out_h * out_w + h_i * out_w + w_i] = psum4 + bias_ptr[c_i + 4];
+                    output_batch_ptr[(c_i + 5) * out_h * out_w + h_i * out_w + w_i] = psum5 + bias_ptr[c_i + 5];
+                    output_batch_ptr[(c_i + 6) * out_h * out_w + h_i * out_w + w_i] = psum6 + bias_ptr[c_i + 6];
+                    output_batch_ptr[(c_i + 7) * out_h * out_w + h_i * out_w + w_i] = psum7 + bias_ptr[c_i + 7];
+                }
+            }
+        }
+    }
+
+
+    return 0;
+
+    //    // write_bin(replace_char(cfg->out_operand_name[0]), out_n * out_c * out_h * out_w * sizeof(float), output_ptr);
+
+    int c = 101;
+    return 0;
+}
+
+int eval_3x3_avx(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+
+    CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
+//    printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
+
+    int32_t stride_x = cfg->strides[0];
+    int32_t stride_y = cfg->strides[1];
+
+    float *input_ptr = (float *) (inputs[0].addr);
+    float *weight_ptr = (float *) (inputs[1].addr);
+
+    float *bias_ptr;
+    if (cfg->has_bias){
+        bias_ptr = (float *) (inputs[2].addr);
+    }
+
+    float *output_ptr = (float *) (outputs[0].addr);
+
+    OPERAND_S *in_tensor = (OPERAND_S *) (params[1].addr);
+    OPERAND_S *out_tensor = (OPERAND_S *) (params[2].addr);
+    OPERAND_S *weight_tensor = (OPERAND_S *) (params[3].addr);
+    OPERAND_S *bias_tensor;
+
+    if (cfg->has_bias){
+        bias_tensor = (OPERAND_S *) (params[4].addr);
+    }
+
+    int32_t kernel_c = weight_tensor->shape.C;
+    int32_t kernel_h = weight_tensor->shape.H;
+    int32_t kernel_w = weight_tensor->shape.W;
+
+    int32_t in_n = in_tensor->shape.N;
+    int32_t in_c = in_tensor->shape.C;
+    int32_t in_h = in_tensor->shape.H;
+    int32_t in_w = in_tensor->shape.W;
+
+    int32_t out_n = out_tensor->shape.N;
+    int32_t out_c = out_tensor->shape.C;
+    int32_t out_h = out_tensor->shape.H;
+    int32_t out_w = out_tensor->shape.W;
+
+    void *src_pad_ptr;
+    if (cfg->pads[0] != 0){
+        // do pad
+        src_pad_ptr = malloc(in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float ));
+        PAD_INNER_CONFIG_S pad_cfg;
+        pad_cfg.h = cfg->pads[0];
+        pad_cfg.w = cfg->pads[0];
+
+        in_h = in_h + 2 * cfg->pads[0];
+        in_w = in_w + 2 * cfg->pads[0];
+
+        do_pad_conv(src_pad_ptr, input_ptr, in_tensor, &pad_cfg);
+        input_ptr = (float *)src_pad_ptr;
+    }
+
+    // loop params
+    float *tmp_input_ptr;
+    float *cur_input_ptr;
+
+    float *tmp0_weight_ptr;
+    float *tmp1_weight_ptr;
+    float *tmp2_weight_ptr;
+    float *tmp3_weight_ptr;
+    float *tmp4_weight_ptr;
+    float *tmp5_weight_ptr;
+    float *tmp6_weight_ptr;
+    float *tmp7_weight_ptr;
+
+    float *cur0_weight_ptr;
+    float *cur1_weight_ptr;
+    float *cur2_weight_ptr;
+    float *cur3_weight_ptr;
+    float *cur4_weight_ptr;
+    float *cur5_weight_ptr;
+    float *cur6_weight_ptr;
+    float *cur7_weight_ptr;
+
+    float *tmp_output_ptr;
+
+    float *output_batch_ptr;
+
+    float *cur_output_ptr;
+
+    register float psum0, psum1, psum2, psum3, psum4, psum5, psum6, psum7;
+
+    register float in_data;
+
+    __m256 sum0, sum1, sum2, sum3;
+    __m256 sum4, sum5, sum6, sum7;
+
+    for (int n_i = 0; n_i < out_n; ++n_i) {
+        output_batch_ptr = output_ptr + n_i * out_c * out_h * out_w;
+        for (int c_i = 0; c_i < out_c; c_i += 8) {  // todo: maybe the out_c % 8 != 0
+            for (int h_i = 0; h_i < out_h; ++h_i) {
+                for (int w_i = 0; w_i < out_w; ++w_i) {
+                    tmp_input_ptr = input_ptr + h_i * stride_y * in_w + w_i * stride_x;
+                    tmp0_weight_ptr = weight_ptr + c_i * kernel_c * kernel_h * kernel_w;
+                    tmp1_weight_ptr = tmp0_weight_ptr + 1 * kernel_c * kernel_h * kernel_w;
+                    tmp2_weight_ptr = tmp0_weight_ptr + 2 * kernel_c * kernel_h * kernel_w;
+                    tmp3_weight_ptr = tmp0_weight_ptr + 3 * kernel_c * kernel_h * kernel_w;
+                    tmp4_weight_ptr = tmp0_weight_ptr + 4 * kernel_c * kernel_h * kernel_w;
+                    tmp5_weight_ptr = tmp0_weight_ptr + 5 * kernel_c * kernel_h * kernel_w;
+                    tmp6_weight_ptr = tmp0_weight_ptr + 6 * kernel_c * kernel_h * kernel_w;
+                    tmp7_weight_ptr = tmp0_weight_ptr + 7 * kernel_c * kernel_h * kernel_w;
+                    psum0 = 0, psum1 = 0, psum2 = 0, psum3 = 0;
+                    psum4 = 0, psum5 = 0, psum6 = 0, psum7 = 0;
+                    for (int k_c = 0; k_c < kernel_c; k_c += 8) {
+                        cur0_weight_ptr = tmp0_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur1_weight_ptr = tmp1_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur2_weight_ptr = tmp2_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur3_weight_ptr = tmp3_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur4_weight_ptr = tmp4_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur5_weight_ptr = tmp5_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur6_weight_ptr = tmp6_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur7_weight_ptr = tmp7_weight_ptr + k_c * kernel_h * kernel_w;
+                        cur_input_ptr = tmp_input_ptr + k_c * in_h * in_w;
+                        for (int k_h = 0; k_h < kernel_h; ++k_h) {
+                            for (int k_w = 0; k_w < kernel_w; ++k_w) {
+                                float * in_data_ptr = cur_input_ptr + k_h;
+                                __m256 indata = _mm256_loadu_ps(in_data_ptr);
+                                sum0 = _mm256_add_ps(sum0, _mm256_mul_ps(_mm256_loadu_ps(cur0_weight_ptr),indata));
+                                sum1 = _mm256_add_ps(sum1, _mm256_mul_ps(_mm256_loadu_ps(cur1_weight_ptr),indata));
+                                sum2 = _mm256_add_ps(sum2, _mm256_mul_ps(_mm256_loadu_ps(cur2_weight_ptr),indata));
+                                sum3 = _mm256_add_ps(sum3, _mm256_mul_ps(_mm256_loadu_ps(cur3_weight_ptr),indata));
+
+                                sum4 = _mm256_add_ps(sum4, _mm256_mul_ps(_mm256_loadu_ps(cur4_weight_ptr),indata));
+                                sum5 = _mm256_add_ps(sum5, _mm256_mul_ps(_mm256_loadu_ps(cur5_weight_ptr),indata));
+                                sum6 = _mm256_add_ps(sum6, _mm256_mul_ps(_mm256_loadu_ps(cur6_weight_ptr),indata));
+                                sum7 = _mm256_add_ps(sum7, _mm256_mul_ps(_mm256_loadu_ps(cur7_weight_ptr),indata));
+
+//                                in_data = cur_input_ptr[k_h * in_w + k_w];
+//                                psum0 += *cur0_weight_ptr++ * in_data;
+//                                psum1 += *cur1_weight_ptr++ * in_data;
+//                                psum2 += *cur2_weight_ptr++ * in_data;
+//                                psum3 += *cur3_weight_ptr++ * in_data;
+//                                psum4 += *cur4_weight_ptr++ * in_data;
+//                                psum5 += *cur5_weight_ptr++ * in_data;
+//                                psum6 += *cur6_weight_ptr++ * in_data;
+//                                psum7 += *cur7_weight_ptr++ * in_data;
+
+                            }
+                        }
+                    }
+                    _mm256_storeu_ps(output_batch_ptr + c_i * out_h * out_w + h_i * out_w + w_i, sum0);
+                    _mm256_storeu_ps(output_batch_ptr + (c_i + 1) * out_h * out_w + h_i * out_w + w_i, sum1);
+                    _mm256_storeu_ps(output_batch_ptr + (c_i + 2) * out_h * out_w + h_i * out_w + w_i, sum2);
+                    _mm256_storeu_ps(output_batch_ptr + (c_i + 3) * out_h * out_w + h_i * out_w + w_i, sum3);
+
+                    _mm256_storeu_ps(output_batch_ptr + (c_i + 4) * out_h * out_w + h_i * out_w + w_i, sum4);
+                    _mm256_storeu_ps(output_batch_ptr + (c_i + 5) * out_h * out_w + h_i * out_w + w_i, sum5);
+                    _mm256_storeu_ps(output_batch_ptr + (c_i + 5) * out_h * out_w + h_i * out_w + w_i, sum6);
+                    _mm256_storeu_ps(output_batch_ptr + (c_i + 5) * out_h * out_w + h_i * out_w + w_i, sum7);
+
+
+//                    output_batch_ptr[c_i * out_h * out_w + h_i * out_w + w_i] = psum0 + bias_ptr[c_i];
+//                    output_batch_ptr[(c_i + 1) * out_h * out_w + h_i * out_w + w_i] = psum1 + bias_ptr[c_i + 1];
+//                    output_batch_ptr[(c_i + 2) * out_h * out_w + h_i * out_w + w_i] = psum2 + bias_ptr[c_i + 2];
+//                    output_batch_ptr[(c_i + 3) * out_h * out_w + h_i * out_w + w_i] = psum3 + bias_ptr[c_i + 3];
+//                    output_batch_ptr[(c_i + 4) * out_h * out_w + h_i * out_w + w_i] = psum4 + bias_ptr[c_i + 4];
+//                    output_batch_ptr[(c_i + 5) * out_h * out_w + h_i * out_w + w_i] = psum5 + bias_ptr[c_i + 5];
+//                    output_batch_ptr[(c_i + 6) * out_h * out_w + h_i * out_w + w_i] = psum6 + bias_ptr[c_i + 6];
+//                    output_batch_ptr[(c_i + 7) * out_h * out_w + h_i * out_w + w_i] = psum7 + bias_ptr[c_i + 7];
+                }
+            }
+        }
+    }
+
+
+    return 0;
+
+    //    // write_bin(replace_char(cfg->out_operand_name[0]), out_n * out_c * out_h * out_w * sizeof(float), output_ptr);
+
+    int c = 101;
+    return 0;
+}
+
+int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+
+    CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
+
+    OPERAND_S *weight_tensor = (OPERAND_S *) (params[3].addr);
+
+    int32_t kernel_c = weight_tensor->shape.C;
+    int32_t kernel_h = weight_tensor->shape.H;
+    int32_t kernel_w = weight_tensor->shape.W;
+
+
+//    eval_mxn(params, inputs, outputs);
+
+    if (cfg->kernel_shape[0] == 3 && cfg->kernel_shape[1] == 3){
+        eval_mxn(params, inputs, outputs);
+//        eval_3x3_avx(params, inputs, outputs);
+    } else if (cfg->kernel_shape[0] == 1 && cfg->kernel_shape[1] == 1 && cfg->strides[0] == 1 && cfg->strides[1] == 1){
+//        eval_1x1j1(params, inputs, outputs);
+        eval_1x1j1_avx(params, inputs, outputs);
+    } else {
+        eval_mxn(params, inputs, outputs);
+    }
+
+//    // write_bin(replace_char(cfg->out_operand_name[0]), out_n * out_c * out_h * out_w * sizeof(float), output_ptr);
+
+    int c = 101;
+    return 0;
+}
+
+
+
+
+
