@@ -41,6 +41,7 @@ public:
     int new_output_buf();
 
     int prof_impl(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
+    int impl_with_tracing(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
 
     int impl(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
 
@@ -410,18 +411,18 @@ int extractor::prof_impl(std::unordered_map<std::string, std::vector<float>> &io
         op.get()->forward(operand_buf_map, net_ptr->operand_stu_map, net_ptr->init_operands_list);
 //        std::cout << "=== end this op type is:" << op->op_type << ", op_idx is: " << op_idx << std::endl;
 //
-        // dump output, if necessary
-        if (cfg_info_map["dump_output4each_node"] == "yes") {
-            if (!op.get()->out_operands.empty()) {
-                std::string omap_name = op.get()->out_operands[0];
-                char* omap_name_c = (char*)omap_name.c_str();
-                std::vector<float>* omap_vec = &operand_buf_map[omap_name];
-                char* ofmap_ptr = (char *)(&operand_buf_map[omap_name][0]);
-                std::string ofmap_name(replace_char(omap_name_c));
-                std::string ofmap_path = ofmap_folder + ofmap_name;
-                write_bin(ofmap_path.c_str(), omap_vec->size() * sizeof(float), ofmap_ptr);
-            }
-        }
+//        // dump output, if necessary
+//        if (cfg_info_map["dump_output4each_node"] == "yes") {
+//            if (!op.get()->out_operands.empty()) {
+//                std::string omap_name = op.get()->out_operands[0];
+//                char* omap_name_c = (char*)omap_name.c_str();
+//                std::vector<float>* omap_vec = &operand_buf_map[omap_name];
+//                char* ofmap_ptr = (char *)(&operand_buf_map[omap_name][0]);
+//                std::string ofmap_name(replace_char(omap_name_c));
+//                std::string ofmap_path = ofmap_folder + ofmap_name;
+//                write_bin(ofmap_path.c_str(), omap_vec->size() * sizeof(float), ofmap_ptr);
+//            }
+//        }
 
         gettimeofday(&end, 0);
 
@@ -463,6 +464,82 @@ int extractor::prof_impl(std::unordered_map<std::string, std::vector<float>> &io
     return 0;
 }
 
+int extractor::impl_with_tracing(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
+
+    std::vector<std::vector<std::string>> op_with_tracing;
+    op_with_tracing.resize(net_ptr->op_exec_order.size() + 1);
+    const int inner_size = 5;   // op name / op type / op start / op end / computation
+    for (auto& row : op_with_tracing) {
+        row.resize(inner_size);
+    }
+    op_with_tracing[0].resize(12);
+    op_with_tracing[1].resize(12);
+
+    op_with_tracing[0][0] = "op_name";
+    op_with_tracing[0][1] = "op_type";
+    op_with_tracing[0][2] = "op_st";
+    op_with_tracing[0][3] = "op_ed";
+    op_with_tracing[0][4] = "op_computation";
+
+    op_with_tracing[0][6] = "cpu";
+    op_with_tracing[0][7] = "cpu_hw_info";
+    op_with_tracing[0][8] = "gpu";
+    op_with_tracing[0][9] = "gpu_hw_info";
+    op_with_tracing[0][10] = "hw_computing_power (GOPS)";
+    op_with_tracing[0][11] = "model name";
+
+    op_with_tracing[1][6] = cfg_info_map["cpu"];
+    op_with_tracing[1][7] = cfg_info_map["cpu_hw_info"];
+    op_with_tracing[1][8] = cfg_info_map["gpu"];
+    op_with_tracing[1][9] = cfg_info_map["gpu_hw_info"];
+    op_with_tracing[1][10] = cfg_info_map["hw_computing_power (GOPS)"];
+    op_with_tracing[1][11] = cfg_info_map["model name"];
+
+    for (auto input:io_buf_map) {
+        operand_buf_map[input.first] = input.second;
+    }
+
+    std::string ofmap_folder = cfg_info_map["ofmap_folder"];
+    // 依次执行 net 中排好序的 op
+    int op_idx = 0;
+    double model_st_tamp = omp_get_wtime();
+    for (auto op : net_ptr->op_exec_order) {
+
+        double op_st = omp_get_wtime();
+
+        op.get()->forward(operand_buf_map, net_ptr->operand_stu_map, net_ptr->init_operands_list);
+
+        double op_ed = omp_get_wtime();
+        op_with_tracing[1 + op_idx][0] = op.get()->op_name;
+        op_with_tracing[1 + op_idx][1] = op.get()->op_type;
+
+        double st_stamp = (op_st - model_st_tamp) * 1e6;
+        double ed_stamp = (op_ed - model_st_tamp) * 1e6;
+        op_with_tracing[1 + op_idx][2] = std::to_string(st_stamp);
+        op_with_tracing[1 + op_idx][3] = std::to_string(ed_stamp);
+        op_with_tracing[1 + op_idx][4] = std::to_string(op->get_computation());
+        op_idx++;
+    }
+
+    // 将 out 数据放到 io_buf_map 中
+    for (auto op : net_ptr->op_exec_order) {
+        if (std::string(op.get()->op_type) == "io" && op.get()->out_operands.empty()){
+            io_buf_map[op.get()->in_operands[0]] = operand_buf_map[op.get()->in_operands[0]];
+        }
+    }
+
+    std::string csv_file = cfg_info_map["csv_file"];
+    std::ofstream file(csv_file.c_str());
+    for (const auto& row : op_with_tracing) {
+        for (size_t i = 0; i < row.size(); i++) {
+            file << row[i];
+            if (i < row.size() - 1) file << ",";
+        }
+        file << "\n";
+    }
+
+    return 0;
+}
 
 
 int extractor::impl(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {

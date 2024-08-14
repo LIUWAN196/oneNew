@@ -200,6 +200,8 @@ int main(int argc, char **argv)
 
     if (cfg_info_map["dump_output4each_node"] == "yes") {
         exe_net->prof_impl(io_buf_map, cfg_info_map);
+    } else if (cfg_info_map["dump_output4each_node"] == "dump_tracing") {
+        exe_net->impl_with_tracing(io_buf_map, cfg_info_map);
     } else {
         exe_net->impl(io_buf_map, cfg_info_map);
     }

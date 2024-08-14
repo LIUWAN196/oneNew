@@ -112,11 +112,11 @@ int yml2map(std::unordered_map<std::string, std::string>& cfg_info_map, const st
 
     }
 
-    if (str2lower_str(cfg_info_map["dump_output4each_node"]) != "yes" &&
-        str2lower_str(cfg_info_map["dump_output4each_node"]) != "no") {
-        std::cerr << "the args: dump_output4each_node must be set, and the value must be yes or no" << std::endl;
-        return -1;
-    }
+//    if (str2lower_str(cfg_info_map["dump_output4each_node"]) != "yes" &&
+//        str2lower_str(cfg_info_map["dump_output4each_node"]) != "no") {
+//        std::cerr << "the args: dump_output4each_node must be set, and the value must be yes or no" << std::endl;
+//        return -1;
+//    }
 
 //    if (cfg_info_map["input_path"].empty()) {
 //        std::cerr << "the args: input_path must be set, and the value are the absolute path" << std::endl;

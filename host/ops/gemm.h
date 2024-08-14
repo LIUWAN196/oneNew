@@ -152,6 +152,25 @@ inputs_vec.resize(in_operands.size());
         return 0;
     }
 
+    virtual double get_computation() override {
+        int32_t out_elem_size = 1;
+        OPERAND_S* ifmap = (OPERAND_S*)params_vec[1].addr;
+        OPERAND_S* ofmap = (OPERAND_S*)params_vec[1 + this->in_operands.size()].addr;
+        for (int i = 0; i < SHAPE_LEN; ++i) {
+            out_elem_size *= ofmap->shapes[i];
+        }
+
+        int32_t in_last_dim_size = 1;
+        for (int i = SHAPE_LEN - 1; i >= 0; --i) {
+            if (ifmap->shapes[i] != 1) {
+                in_last_dim_size = ifmap->shapes[i];
+                break;
+            }
+        }
+        int32_t mac = 2; // mul and add, so is 2 computation
+        return (double)(out_elem_size * mac * in_last_dim_size);
+    };
+
 };
 
 OP_REGISTER_GLOBAL(Gemm, Gemm::create_instance, sizeof(GEMM_CONFIG_S));

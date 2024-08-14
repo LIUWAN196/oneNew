@@ -145,6 +145,17 @@ public:
         return 0;
     }
 
+    virtual double get_computation() override {
+        int32_t out_elem_size = 1;
+        OPERAND_S* ifmap = (OPERAND_S*)params_vec[1].addr;
+        OPERAND_S* ofmap = (OPERAND_S*)params_vec[1 + this->in_operands.size()].addr;
+        for (int i = 0; i < SHAPE_LEN; ++i) {
+            out_elem_size *= ofmap->shapes[i];
+        }
+
+        return (double)(out_elem_size);
+    };
+
 };
 
 OP_REGISTER_GLOBAL(Mul, Mul::create_instance, sizeof(MUL_CONFIG_S));

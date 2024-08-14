@@ -52,7 +52,7 @@ public:
                 1;
 
         params_vec.resize(1 + in_operands.size() + out_operands.size());
-inputs_vec.resize(in_operands.size());
+        inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&max_pool_cfg);
         params_vec[0] = params;
@@ -86,6 +86,18 @@ inputs_vec.resize(in_operands.size());
 
         return 0;
     }
+
+    virtual double get_computation() override {
+        int32_t out_elem_size = 1;
+        OPERAND_S* ifmap = (OPERAND_S*)params_vec[1].addr;
+        OPERAND_S* ofmap = (OPERAND_S*)params_vec[1 + this->in_operands.size()].addr;
+        for (int i = 0; i < SHAPE_LEN; ++i) {
+            out_elem_size *= ofmap->shapes[i];
+        }
+
+        return (double)(out_elem_size * max_pool_cfg.kernel_shape[0] * max_pool_cfg.kernel_shape[1]);
+    };
+
 };
 
 OP_REGISTER_GLOBAL(MaxPool, MaxPool::create_instance, sizeof(MAX_POOL_CONFIG_S));

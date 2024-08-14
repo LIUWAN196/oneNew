@@ -11,7 +11,7 @@ in_operand_name: images
 
 dump_ifmap&ofmap: yes
 
-dump_output4each_node: no
+dump_output4each_node: dump_tracing
 ofmap_folder: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_ofmap_path/yolov5s/
 
 # 2  you need fill follow args, if you want to do ostprocess and the net is classification
@@ -19,5 +19,11 @@ crop_shapes: [640, 640]
 resize_shapes: [640, 640]
 normal_mean: [0.0f, 0.0f, 0.0f]
 normal_std: [1.0f, 1.0f, 1.0f]
+
+cpu: 12400F
+cpu_hw_info: 2.5g * 8thread * 8 (avx2 = 8 * float32)
+hw_computing_power (GOPS): 160
+model name: yolov5s
+csv_file: /home/wanzai/桌面/oneNew/tools/timeline_tracing/yolov5s.csv
 
 

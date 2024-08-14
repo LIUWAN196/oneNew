@@ -168,6 +168,24 @@ public:
         int c = 101;
         return 0;
     }
+
+    virtual double get_computation() override {
+        int32_t out_elem_size = 1;
+        OPERAND_S* ifmap = (OPERAND_S*)params_vec[1].addr;
+        OPERAND_S* ofmap = (OPERAND_S*)params_vec[1 + this->in_operands.size()].addr;
+        for (int i = 0; i < SHAPE_LEN; ++i) {
+            out_elem_size *= ofmap->shapes[i];
+        }
+
+        int32_t each_ofmap_elem_computation = 1;
+        int32_t in_c = ifmap->shapes[1];
+        int32_t mac = 2; // mul and add, so is 2 computation
+        each_ofmap_elem_computation = mac * in_c * conv_cfg.kernel_shape[0] * conv_cfg.kernel_shape[1];
+
+        return (double)(out_elem_size * each_ofmap_elem_computation);
+    };
+
+
 };
 
 OP_REGISTER_GLOBAL(Conv, Conv::create_instance, sizeof(CONV_CONFIG_S));

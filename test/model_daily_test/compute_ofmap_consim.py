@@ -98,12 +98,15 @@ if __name__ == '__main__':
 model_name = os.path.splitext(os.path.basename(sys.argv[1]))[0]
 con_sim_threshold = 0.99
 if min_cos_sim > con_sim_threshold:
-    part1 = model_name + " daily test SUCCESS"
-    part2 = "min cosine similarity of ofmap is: " + str(min_cos_sim)
-    print("{:<52} {:<56}".format(part1, part2))
+    part1 = model_name
+    part2 = " daily test SUCCESS"
+    part3 = "min cosine similarity of ofmap is: " + str(min_cos_sim)
+    print("{:<36} {:<36} {:<56}".format(part1, part2, part3))
 else:
-    part1 = "==========  " + model_name + " daily test FAIL"
-    part2 = "min cosine similarity of ofmap is: " + str(min_cos_sim)
-    print("{:<52} {:<56}".format(part1, part2))
+    part0 = "==========  "
+    part1 = model_name
+    part2 = " daily test FAIL"
+    part3 = "min cosine similarity of ofmap is: " + str(min_cos_sim)
+    print("{:<36} {:<30} {:<36} {:<56}".format(part0, part1, part2, part3))
 
 

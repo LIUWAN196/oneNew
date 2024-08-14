@@ -4,7 +4,7 @@
 do_preprocess4img: yes
 do_postprocess4net: no
 one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/one_model/yolov10s.one
-input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/xinxin.jpg
+input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/dog.png
 in_operand_name: images
 out_operand_name: /model.24/m.2/Conv_output_0;/model.24/m.1/Conv_output_0;/model.24/m.0/Conv_output_0
 

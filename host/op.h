@@ -138,6 +138,11 @@ public:
     virtual int prepare_init_operand_data() { return 0; };
 
 
+    virtual double get_computation() {
+
+        return 0;
+    }
+
     virtual int forward() {
 //        std::cout << "start forward. " << std::endl;
 
