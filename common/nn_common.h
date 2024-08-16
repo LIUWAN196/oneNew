@@ -4,7 +4,7 @@
 #include "stdint.h"
 #include <stdlib.h>
 #include <stdio.h>
-
+#include "log.h"
 //#define OP_LIB_DIR "/home/wanzai/桌面/"
 
 #define OP_NAIVE_LIB_DIR "/home/wanzai/桌面/oneNew/cmake-build-debug/device/naive/"
@@ -545,6 +545,28 @@ char* replace_char(char* str) {
         i++;
     }
     return str;
+}
+
+void print_base_op(BUFFER_INFO_S *params) {
+    BASE_CONFIG_S *base_op = (BASE_CONFIG_S *) (params[0].addr);
+    LOG_MSG("====================================== start print %s op info ===============================", base_op->op_name);
+    LOG_MSG("cur op_type is %s, op_name is %s ", base_op->op_type, base_op->op_name);
+    for (int ifmap_i = 0; ifmap_i < base_op->in_operand_num; ++ifmap_i) {
+        OPERAND_S *ifmap = (OPERAND_S *) (params[ifmap_i + 1].addr);
+        LOG_MSG("the %dth ifmap name is %s, dim is %d, shapes is: [%d, %d, %d, %d, %d, %d, %d, %d]",
+                ifmap_i, base_op->in_operand_name[ifmap_i], ifmap->dim_num_of_shapes,
+                ifmap->shapes[0], ifmap->shapes[1], ifmap->shapes[2], ifmap->shapes[3],
+                ifmap->shapes[4], ifmap->shapes[5], ifmap->shapes[6], ifmap->shapes[7]);
+    }
+    for (int ofmap_i = 0; ofmap_i < base_op->out_operand_num; ++ofmap_i) {
+        OPERAND_S *ofmap = (OPERAND_S *) (params[ofmap_i + 1 + base_op->in_operand_num].addr);
+        LOG_MSG("the %dth ifmap name is %s, dim is %d, shapes is: [%d, %d, %d, %d, %d, %d, %d, %d]",
+                ofmap_i, base_op->out_operand_name[ofmap_i], ofmap->dim_num_of_shapes,
+                ofmap->shapes[0], ofmap->shapes[1], ofmap->shapes[2], ofmap->shapes[3],
+                ofmap->shapes[4], ofmap->shapes[5], ofmap->shapes[6], ofmap->shapes[7]);
+    }
+    LOG_MSG("====================================== end   print %s op info ===============================", base_op->op_name);
+    LOG_MSG("");
 }
 
 #endif // _NN_COMMON_H__

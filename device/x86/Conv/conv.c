@@ -1764,6 +1764,7 @@ int eval_mxn_naive_gemm_c(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_I
 
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+    print_base_op(params);
 
     CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
 

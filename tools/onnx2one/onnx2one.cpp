@@ -19,31 +19,7 @@ void print_dim(const ::onnx::TensorShapeProto_Dimension &dim)
 		std::cout << dim.dim_value();
 		break;
 	default:
-		assert(false && "should never happen");
-	}
-}
-
-void print_io_info(const ::google::protobuf::RepeatedPtrField<::onnx::ValueInfoProto> &info)
-{
-	for (auto input_data : info)
-	{
-		auto shape = input_data.type().tensor_type().shape();
-		auto type = input_data.type().tensor_type().elem_type();
-		std::cout << " the input data type is: " << type << ":";
-
-		std::cout << "  " << input_data.name() << ":";
-		std::cout << "[";
-		if (shape.dim_size() != 0)
-		{
-			int size = shape.dim_size();
-			for (int i = 0; i < size - 1; ++i)
-			{
-				print_dim(shape.dim(i));
-				std::cout << ",";
-			}
-			print_dim(shape.dim(size - 1));
-		}
-		std::cout << "]\n";
+        CHECK(false && "should never happen");
 	}
 }
 
@@ -129,7 +105,7 @@ int get_align_cfg_size(const ::google::protobuf::RepeatedPtrField<::onnx::NodePr
 
 		if (m.Opmap.find(op_type) == m.Opmap.end())
 		{
-			std::cout << "op: " << op_type << " is not implemented!" << std::endl;
+            LOG_ERR("sorry, op: %s is not implemented!", op_type.c_str());
 			return -1;
 		}
 
@@ -194,28 +170,6 @@ void get_align_init_size(const ::google::protobuf::RepeatedPtrField<::onnx::Node
 		++init_cnt;
 	}
 	return;
-}
-
-static std::vector<int> get_node_attr_ai(const onnx::NodeProto& node, const char* key)
-{
-    std::vector<int> v;
-
-    for (int i = 0; i < node.attribute_size(); i++)
-    {
-        const onnx::AttributeProto& attr = node.attribute(i);
-        if (attr.name() == key)
-        {
-            v.resize(attr.ints_size());
-            for (int j = 0; j < attr.ints_size(); j++)
-            {
-                v[j] = std::max(std::min(attr.ints(j), (::google::protobuf::int64)INT_MAX), (::google::protobuf::int64)INT_MIN);
-            }
-
-            break;
-        }
-    }
-
-    return v;
 }
 
 void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto> &nodes,
@@ -360,7 +314,7 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
             }
             else
             {
-                std::cout << "err: the op: " << base_cfg->op_name << " requires at least 2 inputs, currently only " << in_i << " input." << std::endl;
+                LOG_ERR("this op is %s, requires at least 2 inputs, currently only %d input.", base_cfg->op_name, in_i);
             }
 
             // Conv other attributes
@@ -425,7 +379,7 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
             }
             else
             {
-                std::cout << "err: the op: " << base_cfg->op_name << " requires at least 2 inputs, currently only " << in_i << " input." << std::endl;
+                LOG_ERR("this op is %s, requires at least 2 inputs, currently only %d input.", base_cfg->op_name, in_i);
             }
 
             // conv_transpose_cfg other attributes
@@ -658,24 +612,6 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
                 }
             }
 
-//            // first in_operand is ifmap; second is roi; third is scales; fourth is sizes
-//            std::string resize_scales_name = std::string(base_cfg->in_operand_name[2]);
-//            OPERAND_S* scales_operand = init_info_map[resize_scales_name];
-//            if (scales_operand == NULL) {
-//                resize_cfg->scales_num = 4;
-//                resize_cfg->scales[0] = 1;
-//                resize_cfg->scales[1] = 1;
-//                resize_cfg->scales[2] = 2;
-//                resize_cfg->scales[3] = 2;
-//            } else {
-//                float * scales_data_ptr = (float*)((char*)scales_operand + sizeof(OPERAND_S));
-//
-//                resize_cfg->scales_num = operand_elem_size(scales_operand);
-//                for (int i = 0; i < resize_cfg->scales_num; ++i) {
-//                    resize_cfg->scales[i] = scales_data_ptr[i];
-//                }
-//            }
-
             // first in_operand is ifmap; second is roi; third is scales; fourth is sizes
             std::string resize_scales_name = std::string(base_cfg->in_operand_name[2]);
             OPERAND_S* scales_operand = init_info_map[resize_scales_name];
@@ -684,29 +620,15 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
             if ((scales_operand == NULL || operand_elem_size(scales_operand) == 0) && sizes_operand != NULL) {
                 // using sizes
                 int64_t * sizes_data_ptr = (int64_t*)((char*)sizes_operand + sizeof(OPERAND_S));
-//                printf("sizes_data_ptr is %d\n", sizes_data_ptr[0]);
                 resize_cfg->scales_num = operand_elem_size(sizes_operand);
-//                std::cout << "size name is: " << sizes_operand->operand_name << std::endl;
-//                printf("resize_cfg->scales_num is %d\n", resize_cfg->scales_num);
                 for (int i = 0; i < resize_cfg->scales_num; ++i) {
                     resize_cfg->sizes[i] = sizes_data_ptr[i];
-//                    printf("resize_cfg->sizes is %d\n", resize_cfg->sizes[i]);
                 }
             } else if (scales_operand != NULL) {
                 float * scales_data_ptr = (float*)((char*)scales_operand + sizeof(OPERAND_S));
-
-//                for (int i = 0; i < 4; ++i) {
-//                    printf("hhhh data is %f\n", scales_data_ptr[i]);
-//                }
-//                printf("init_size is %d\n", init_size);
-//                int a = 101;
-//                int b = 102;
-
                 resize_cfg->scales_num = operand_elem_size(scales_operand);
-//                printf("e22222resize_cfg->scales_num is %d\n", resize_cfg->scales_num);
                 for (int i = 0; i < resize_cfg->scales_num; ++i) {
                     resize_cfg->scales[i] = scales_data_ptr[i];
-//                    printf("resize_cfg->scales is %f\n", resize_cfg->scales[i]);
                 }
             } else {
                 resize_cfg->scales_num = 4;
@@ -715,8 +637,6 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
                 resize_cfg->scales[2] = 2;
                 resize_cfg->scales[3] = 2;
             }
-
-
         }
         else if (op_type == "Reshape")
         {
@@ -732,8 +652,6 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
             for (int i = 0; i < reshape_cfg->dst_shape_num; ++i) {
                 reshape_cfg->dst_shape[i] = dst_shape_data_ptr[i];
             }
-
-            int a = 101;
         }
         else if (op_type == "Slice")
         {
@@ -922,20 +840,6 @@ void fill_init_info(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto
             continue;
         }
 
-//        // 获取到 Constant 算子输出 operand 的名称
-//        auto c = node.output()[0];
-//        auto ofmap = node.output();
-//        for (auto ofmap_i : node.output()) {
-//            auto name1 = ofmap_i.c_str();
-//            int c = 101;
-//            auto a = ofmap_i.size();
-////            ofmap_i.
-//
-//            int ccc = 111;
-//
-//        }
-
-
         // 开始填充 constant 数据
         int32_t operand_idx = 0;
         for (auto attr: node.attribute()) {
@@ -946,12 +850,6 @@ void fill_init_info(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto
             std::string cur_operand_name = node.output()[operand_idx++];
             strcpy(operand_ptr->operand_name, cur_operand_name.c_str());
             operand_ptr->is_fixed_val = TRUE;
-
-            if (std::strcmp(cur_operand_name.c_str(), "/model.11/Constant_output_0") == 0) {
-
-                int a = 101;
-                int b = 102;
-            }
 
             auto constant_tensor = attr.t();
             auto data_type = constant_tensor.data_type();
@@ -972,38 +870,11 @@ void fill_init_info(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto
                 operand_ptr->shapes[i] = vec_dim[i];
             }
 
-//            if (vec_dim.size() == 1)
-//            {
-//                operand_ptr->shapes[0] = vec_dim[0];
-//            }
-//            else if (vec_dim.size() == 2)
-//            {
-//                operand_ptr->shapes[2] = vec_dim[0];
-//                operand_ptr->shapes[3] = vec_dim[1];
-//            }
-//            else if (vec_dim.size() == 4)
-//            {
-//                operand_ptr->shapes[0] = vec_dim[0];
-//                operand_ptr->shapes[1] = vec_dim[1];
-//                operand_ptr->shapes[2] = vec_dim[2];
-//                operand_ptr->shapes[3] = vec_dim[3];
-//            }
-
             auto raw_data = constant_tensor.raw_data();
             char *data_ptr = (char *)raw_data.c_str(); // read raw_data
             char *init_data_ptr = (char *)(cur_init_info_ptr + sizeof(OPERAND_S));
             int init_size = operand_buf_size(operand_ptr);
             memcpy(init_data_ptr, data_ptr, init_size * sizeof(int8_t));
-
-//            if (std::strcmp(cur_operand_name.c_str(), "/mobilevit/encoder/layer.4/Concat_output_0") == 0) {
-//                float* ptr = (float *)data_ptr;
-//                for (int i = 0; i < 4; ++i) {
-//                    printf("xxxxxdata is %f\n", ptr[i]);
-//                }
-//                printf("init_size is %d\n", init_size);
-//                int a = 101;
-//                int b = 102;
-//            }
 
             // update cur_init_info_ptr
             cur_init_info_ptr += align_buf_size(sizeof(OPERAND_S) + init_size);
@@ -1016,16 +887,6 @@ void fill_init_info(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto
 		OPERAND_S *operand_ptr = (OPERAND_S *)cur_init_info_ptr;
 		strcpy(operand_ptr->operand_name, init_.name().c_str());
 		operand_ptr->is_fixed_val = TRUE;
-
-        if (strcmp((operand_ptr->operand_name), "/model.17/Concat_1_output_0") == 0) {
-            int a = 101;
-            a = 101;
-            a = 101;
-            a = 101;
-            a = 101;
-            a = 101;
-            a = 101;
-        }
 
 		auto data_type = init_.data_type();
 		operand_ptr->data_type = (ELEM_TYPE_E)data_type;
@@ -1041,7 +902,6 @@ void fill_init_info(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto
         for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
             operand_ptr->shapes[dim_i] = 1;
         }
-//        memset(&operand_ptr->shapes[0], 1, SHAPE_LEN * sizeof(int32_t));
         if (vec_dim.size() == 0)
         {
             operand_ptr->dim_num_of_shapes = 1; // only one scalar
@@ -1050,39 +910,11 @@ void fill_init_info(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto
         for (int i = 0; i < vec_dim.size(); ++i) {
             operand_ptr->shapes[i] = vec_dim[i];
         }
-
-//        if (vec_dim.size() == 1)
-//        {
-//            operand_ptr->shapes[0] = vec_dim[0];
-//        }
-//        else if (vec_dim.size() == 2)
-//        {
-//            operand_ptr->shapes[2] = vec_dim[0];
-//            operand_ptr->shapes[3] = vec_dim[1];
-//        }
-//		else if (vec_dim.size() == 4)
-//		{
-//            operand_ptr->shapes[0] = vec_dim[0];
-//            operand_ptr->shapes[1] = vec_dim[1];
-//            operand_ptr->shapes[2] = vec_dim[2];
-//            operand_ptr->shapes[3] = vec_dim[3];
-//		}
-
 		auto raw_data = init_.raw_data();
 		char *data_ptr = (char *)raw_data.c_str(); // read raw_data
 		char *init_data_ptr = (char *)(cur_init_info_ptr + sizeof(OPERAND_S));
 		int init_size = operand_buf_size(operand_ptr);
 		memcpy(init_data_ptr, data_ptr, init_size * sizeof(int8_t));
-
-//        if (strcmp((operand_ptr->operand_name), "/model.17/Concat_1_output_0") == 0) {
-//            int64_t* ptr = (int64_t *)data_ptr;
-//                for (int i = 0; i < 4; ++i) {
-//                    printf("data is %d\n", ptr[i]);
-//                }
-//                printf("init_size is %d\n", init_size);
-//                int a = 101;
-//                int b = 102;
-//        }
 
         // 有的特殊的 init 数据，是放在 int64_data 而不是 raw_data 中
         if (raw_data.size() == 0) {
@@ -1093,16 +925,6 @@ void fill_init_info(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto
                 init_data_s64_ptr[i] = tmp_raw_data[i];
             }
         }
-
-//        if (strcmp((operand_ptr->operand_name), "/mobilevit/encoder/layer.4/Concat_output_0") == 0) {
-//            int64_t* ptr = (int64_t *)data_ptr;
-//            for (int i = 0; i < 4; ++i) {
-//                printf("qqqqqqdata is %d\n", ptr[i]);
-//            }
-//            printf("init_size is %d\n", init_size);
-//            int a = 101;
-//            int b = 102;
-//        }
 
 		// update cur_init_info_ptr
 		cur_init_info_ptr += align_buf_size(sizeof(OPERAND_S) + init_size);
@@ -1119,7 +941,6 @@ int insert_unique(std::vector<NODE_INFO_S>& vec, NODE_INFO_S& value) {
     // 若元素不存在，则插入新元素
     vec.push_back(value);
 }
-
 
 int fill_producer_and_consumer(char* one_file_buf) {
 
@@ -1162,7 +983,6 @@ int fill_producer_and_consumer(char* one_file_buf) {
             std::string key = cur_op_ptr->out_operand_name[out_operand_i];
             NODE_INFO_S val = cur_op_type_name;
             insert_unique(operands_producer_map[key], val);
-            int b = 101;
         }
     }
 
@@ -1173,7 +993,6 @@ int fill_producer_and_consumer(char* one_file_buf) {
 
         memcpy(&cur_io_type_name, cur_io_ptr, OP_TYPE_LEN);
         memcpy((char*)&cur_io_type_name + OP_TYPE_LEN, cur_io_ptr->operand.operand_name, OP_NAME_LEN);
-//        memcpy(&cur_io_type_name, cur_io_ptr, sizeof(NODE_INFO_S));
 
         std::string key = cur_io_ptr->operand.operand_name;
         NODE_INFO_S val = cur_io_type_name;
@@ -1183,7 +1002,7 @@ int fill_producer_and_consumer(char* one_file_buf) {
         } else if (strcmp(cur_io_ptr->op_name, "output") == 0) {
             insert_unique(operands_consumer_map[key], val);
         } else {
-            std::cerr << "error: the io type should be input or output" << std::endl;
+            LOG_ERR("the io type should be input or output\n");
         }
 
         // update cur_io_cfg_ptr
@@ -1202,41 +1021,9 @@ int fill_producer_and_consumer(char* one_file_buf) {
         init_info_ptr += align_buf_size(sizeof(OPERAND_S) + init_size);
     }
 
-
-    // 步骤 3： 最后一次遍历所有的 node_cfg_ptr，以该 op 的 in_operands 值作 key，去 operands_producer_map 就能查到是哪些 op 生产
-//    // 了该 operands，这些 op 就是本个 op 的 producer，把这些 op 填充到 base_op_cfg 的 producer 中; 同理用同样的方法填充 consumer
-//    for (int node_i = 0; node_i < node_cnt; ++node_i) {
-//        BASE_CONFIG_S* cur_op_ptr = (BASE_CONFIG_S*)base_op_vec[node_i];
-//
-//        // 遍历本个 op 的输入操作数，并且到 operands_producer_map 中去取这个输入操作数的 node，写到本个 op 的 producer 中
-//        for (int in_operand_i = 0; in_operand_i < cur_op_ptr->in_operand_num ; ++in_operand_i) {
-//            char* cur_in_operand = cur_op_ptr->in_operand_name[in_operand_i];
-//
-//            if (init_operands_set.find(cur_in_operand) == init_operands_set.end()) {
-//                auto in_operand_vec = operands_producer_map[cur_in_operand];
-//                int32_t producer_num = operands_producer_map[cur_in_operand].size();
-//                memcpy(cur_op_ptr->producer[cur_op_ptr->producer_num].op_type, in_operand_vec[0].op_type, producer_num * sizeof(NODE_INFO_S));
-//                cur_op_ptr->producer_num += producer_num;
-//            }
-//        }
-//
-//        // 遍历本个 op 的输出操作数，并且到 operands_consumer_map 中去取这个输出操作数的 node，写到本个 op 的 consumer 中
-//        for (int out_operand_i = 0; out_operand_i < cur_op_ptr->out_operand_num ; ++out_operand_i) {
-//            char* cur_out_operand = cur_op_ptr->out_operand_name[out_operand_i];
-//
-//            if (init_operands_set.find(cur_out_operand) == init_operands_set.end()) {
-//                auto out_operand_vec = operands_consumer_map[cur_out_operand];
-//                int32_t consumer_num = operands_consumer_map[cur_out_operand].size();
-//                memcpy(cur_op_ptr->consumer[cur_op_ptr->consumer_num].op_type, out_operand_vec[0].op_type, consumer_num * sizeof(NODE_INFO_S));
-//                cur_op_ptr->consumer_num += consumer_num;
-//            }
-//        }
-//    }
-
-    // 了该 operands，这些 op 就是本个 op 的 producer，把这些 op 填充到 base_op_cfg 的 producer 中; 同理用同样的方法填充 consumer
+    // 这些 op 就是本个 op 的 producer，把这些 op 填充到 base_op_cfg 的 producer 中; 同理用同样的方法填充 consumer
     for (int node_i = 0; node_i < node_cnt; ++node_i) {
         BASE_CONFIG_S* cur_op_ptr = (BASE_CONFIG_S*)base_op_vec[node_i];
-
 
         std::vector<NODE_INFO_S> cur_op_producer_vec;
         std::vector<NODE_INFO_S> cur_op_consumer_vec;
@@ -1247,7 +1034,6 @@ int fill_producer_and_consumer(char* one_file_buf) {
             if (init_operands_set.find(cur_in_operand) == init_operands_set.end()) {
                 auto in_operand_vec = operands_producer_map[cur_in_operand];
                 int32_t producer_num = operands_producer_map[cur_in_operand].size();
-//                cur_op_producer_vec.insert(cur_op_producer_vec.end(), in_operand_vec.begin(), in_operand_vec.end());
                 memcpy(cur_op_ptr->producer[cur_op_ptr->producer_num].op_type, in_operand_vec[0].op_type, producer_num * sizeof(NODE_INFO_S));
                 cur_op_ptr->producer_num += producer_num;
             }
@@ -1260,18 +1046,11 @@ int fill_producer_and_consumer(char* one_file_buf) {
             if (init_operands_set.find(cur_out_operand) == init_operands_set.end()) {
                 auto out_operand_vec = operands_consumer_map[cur_out_operand];
                 int32_t consumer_num = operands_consumer_map[cur_out_operand].size();
-//                cur_op_consumer_vec.insert(cur_op_consumer_vec.end(), out_operand_vec.begin(), out_operand_vec.end());
                 memcpy(cur_op_ptr->consumer[cur_op_ptr->consumer_num].op_type, out_operand_vec[0].op_type, consumer_num * sizeof(NODE_INFO_S));
                 cur_op_ptr->consumer_num += consumer_num;
             }
         }
-
-//        // 对 cur_op_producer_vec 和 cur_op_consumer_vec 按照 op type 排序 (便于后续融合算子好和子图 op 的 producer 和 consumer 去匹配)
-//        std::sort(cur_op_producer_vec.begin(), cur_op_producer_vec.end(), compareNodeWithType);
-//        std::sort(cur_op_consumer_vec.begin(), cur_op_consumer_vec.end(), compareNodeWithType);
     }
-
-
     return 0;
 }
 
@@ -1323,16 +1102,11 @@ int main(int argc, char **argv)
 	model.ParseFromArray(buffer.data(), onnx_size);
 	auto graph = model.graph();
 
-//	std::cout << "input\n";
-//	print_io_info(graph.input());
-//	std::cout << "output\n";
-//	print_io_info(graph.output());
-
 	// step 3: get node size of this onnx model, and traverse each node to get op cfg size
 	int32_t node_cnt, align_cfg_size;
 	if (get_align_cfg_size(graph.node(), node_cnt, align_cfg_size) != 0)
 	{
-		std::cout << "failed: some op not being implemented temporarily!" << std::endl;
+        LOG_ERR("failed: some op not being implemented temporarily!");
 		return -1;
 	}
 
@@ -1352,7 +1126,7 @@ int main(int argc, char **argv)
 
 	if (one_file_buf == NULL)
 	{
-		std::cout << "failed: malloc for one file" << std::endl;
+        LOG_ERR("failed: malloc for one file");
 		return -1;
 	}
 
@@ -1384,7 +1158,6 @@ int main(int argc, char **argv)
 	FILE *file_p = fopen(one_path, "w");
 	fwrite((void *)one_file_buf, 1, one_file_size, file_p);
 	fclose(file_p);
-
 
     free(one_file_buf);
     onnx_file.close();
