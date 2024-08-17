@@ -27,6 +27,6 @@ cpu: 12400F
 cpu_hw_info: 2.5g * 8thread * 8 (avx2 = 8 * float32)
 hw_computing_power (GOPS): 160
 model name: vit_b
-csv_file: /home/wanzai/桌面/oneNew/tools/timeline_tracing/vit_b.csv
+csv_file: /home/wanzai/桌面/oneNew/tools/timeline_tracing/timeline_csv_json/vit_b.csv
 
 

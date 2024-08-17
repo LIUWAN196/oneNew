@@ -1,18 +1,18 @@
 # 0  description: this is runtime args of one new
 
 ### 1  follow args you need fill
-#one_file_path: /home/wanzai/桌面/oneNew/tools/liu_resnet18.one
-#quant_one_file_path: /home/wanzai/桌面/oneNew/tools/optimize_liu_resnet18.one
+#one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/resnet18.one
+#quant_one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/opt_resnet18.one
+
+##### 1  follow args you need fill
+#one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/yolov5s.one
+#quant_one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/opt_yolov5s.one
+
+### 1  follow args you need fill
+#one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/vit_b.one
+#quant_one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/opt_vit_b.one
 
 ## 1  follow args you need fill
-#one_file_path: /home/wanzai/桌面/oneNew/tools/liu_yolov8_seg.one
-#quant_one_file_path: /home/wanzai/桌面/oneNew/tools/optimize_liu_yolov8_seg.one
-
-## 1  follow args you need fill
-#one_file_path: /home/wanzai/桌面/oneNew/tools/yolov8m_seg.one
-#quant_one_file_path: /home/wanzai/桌面/oneNew/tools/optimize_yolov8m_seg.one
-
-# 1  follow args you need fill
-one_file_path: /home/wanzai/桌面/oneNew/tools/yolov8m_pose_export_6_tensor.one
-quant_one_file_path: /home/wanzai/桌面/oneNew/tools/optimize_yolov8m_pose_export_6_tensor.one
+one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/swin_t.one
+quant_one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/opt_swin_t.one
 

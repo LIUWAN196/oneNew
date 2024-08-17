@@ -1764,7 +1764,6 @@ int eval_mxn_naive_gemm_c(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_I
 
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-    print_base_op(params);
 
     CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
 
@@ -1813,8 +1812,25 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
             output_ptr[elem_i] = output_ptr[elem_i] > 0 ? output_ptr[elem_i] : 0;
         }
     } else if (cfg->act_type == SILU) {
+//        for (int elem_i = 0; elem_i < ofmap_elem_size; ++elem_i) {
+//            output_ptr[elem_i] = output_ptr[elem_i] / (1 + expf(-1 * output_ptr[elem_i]));
+//        }
+
+        float *silu_lut = (float *) (inputs[BUF_MAXNUM - 1].addr);
+        float single_limit = 8.0f;
+        float inv_single_limit = -1 * single_limit;
+        float step = 1.0f / 512;
+        float inv_step = 1.0f / step;
         for (int elem_i = 0; elem_i < ofmap_elem_size; ++elem_i) {
-            output_ptr[elem_i] = output_ptr[elem_i] / (1 + expf(-1 * output_ptr[elem_i]));
+            float cur_val = output_ptr[elem_i];
+            if (cur_val < inv_single_limit) {
+                output_ptr[elem_i] = 0;
+            } else if (cur_val >= single_limit) {
+                ;
+            } else if (cur_val >= inv_single_limit && cur_val < single_limit) {
+                int idx = (int)((cur_val + single_limit) * inv_step);
+                output_ptr[elem_i] = silu_lut[idx];
+            }
         }
     }
 

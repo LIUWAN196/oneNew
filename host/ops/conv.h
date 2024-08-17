@@ -2,6 +2,7 @@
 #define OP_CONV_H
 
 #include "op.h"
+#include "math.h"
 // #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
 // namespace one_new {
@@ -11,6 +12,7 @@ public:
     CONV_CONFIG_S conv_cfg;
     std::vector<std::vector<float>> initial_datas;  // weight and bias
     std::vector<OPERAND_S> initial_operands;  // weight and bias
+    std::vector<float> lut;
 //    std::vector<float> weight;
 //    std::vector<float> bias;
 //    OPERAND_S weight_operand_desc;
@@ -55,7 +57,8 @@ public:
                 1;
 
         params_vec.resize(1 + in_operands.size() + out_operands.size());
-        inputs_vec.resize(in_operands.size());
+        inputs_vec.resize(BUF_MAXNUM);
+//        inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&conv_cfg);
         params_vec[0] = params;
@@ -185,7 +188,23 @@ public:
         return (double)(out_elem_size * each_ofmap_elem_computation);
     };
 
+    int other_prepare() override {
+        if (conv_cfg.act_type == SILU) {
+            float single_limit = 8.0f;
+            float step = 1.0 / 512;
+            int32_t lut_len = (int32_t)(2.0f * single_limit / step);
+            lut.resize(lut_len);
+            for (int lut_i = 0; lut_i < lut_len; ++lut_i) {
+                float x_val = lut_i * step - single_limit;
+                float x_silu_val = x_val / (1 + expf(-x_val));
+                lut[lut_i] = x_silu_val;
+            }
 
+            BUFFER_INFO_S lut_buf;
+            lut_buf.addr = (int64_t) (&lut[0]);
+            inputs_vec[BUF_MAXNUM - 1] = lut_buf;
+        }
+    }
 };
 
 OP_REGISTER_GLOBAL(Conv, Conv::create_instance, sizeof(CONV_CONFIG_S));

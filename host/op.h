@@ -45,6 +45,7 @@ public:
     BUFFER_GROUP_S outputs = {0};
 
     op() {
+        inputs_vec.resize(BUF_MAXNUM);
         return;
     };
 
@@ -136,7 +137,6 @@ public:
     }
 
     virtual int prepare_init_operand_data() { return 0; };
-
 
     virtual double get_computation() {
 

@@ -25,4 +25,4 @@ cpu: 12400F
 cpu_hw_info: 2.5g * 8thread * 8 (avx2 = 8 * float32)
 hw_computing_power (GOPS): 160
 model name: resnet50
-csv_file: /home/wanzai/桌面/oneNew/tools/timeline_tracing/resnet50.csv
+csv_file: /home/wanzai/桌面/oneNew/tools/timeline_tracing/timeline_csv_json/resnet50.csv

@@ -411,18 +411,18 @@ int extractor::prof_impl(std::unordered_map<std::string, std::vector<float>> &io
         op.get()->forward(operand_buf_map, net_ptr->operand_stu_map, net_ptr->init_operands_list);
 //        std::cout << "=== end this op type is:" << op->op_type << ", op_idx is: " << op_idx << std::endl;
 //
-//        // dump output, if necessary
-//        if (cfg_info_map["dump_output4each_node"] == "yes") {
-//            if (!op.get()->out_operands.empty()) {
-//                std::string omap_name = op.get()->out_operands[0];
-//                char* omap_name_c = (char*)omap_name.c_str();
-//                std::vector<float>* omap_vec = &operand_buf_map[omap_name];
-//                char* ofmap_ptr = (char *)(&operand_buf_map[omap_name][0]);
-//                std::string ofmap_name(replace_char(omap_name_c));
-//                std::string ofmap_path = ofmap_folder + ofmap_name;
-//                write_bin(ofmap_path.c_str(), omap_vec->size() * sizeof(float), ofmap_ptr);
-//            }
-//        }
+        // dump output, if necessary
+        if (cfg_info_map["dump_output4each_node"] == "yes") {
+            if (!op.get()->out_operands.empty()) {
+                std::string omap_name = op.get()->out_operands[0];
+                char* omap_name_c = (char*)omap_name.c_str();
+                std::vector<float>* omap_vec = &operand_buf_map[omap_name];
+                char* ofmap_ptr = (char *)(&operand_buf_map[omap_name][0]);
+                std::string ofmap_name(replace_char(omap_name_c));
+                std::string ofmap_path = ofmap_folder + ofmap_name;
+                write_bin(ofmap_path.c_str(), omap_vec->size() * sizeof(float), ofmap_ptr);
+            }
+        }
 
         gettimeofday(&end, 0);
 

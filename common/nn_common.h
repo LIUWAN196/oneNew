@@ -11,6 +11,7 @@
 #define OP_X86_LIB_DIR "/home/wanzai/桌面/oneNew/cmake-build-debug/device/x86/"
 #define OP_CU_LIB_DIR "/home/wanzai/桌面/oneNew/cmake-build-debug/device/cuda/"
 
+#define EPSILON (1e-20)
 #define BUF_MAXNUM 12
 #define OPERAND_MAXNUM 8
 
@@ -29,7 +30,6 @@ typedef struct
     int32_t io_cfg_cnt;
     int32_t io_cfg_offset;
 } ONE_MODEL_DESC_S;
-
 
 typedef struct
 {
@@ -87,13 +87,13 @@ typedef struct {
     float y_max;
 } BOX_INFO_S;
 
-typedef enum
-{
-    NOT_FUSION_OP = 0,
-    CONV_ACT = 1,
-    LAYER_NORM = 2,
-    MHA = 3,    // multi head attention
-} FUSION_OP_TYPE_E;
+//typedef enum
+//{
+//    NOT_FUSION_OP = 0,
+//    CONV_ACT = 1,
+//    LAYER_NORM = 2,
+//    MHA = 3,    // multi head attention
+//} FUSION_OP_TYPE_E;
 
 typedef enum
 {
@@ -145,11 +145,10 @@ typedef struct
     int32_t consumer_num;
 
     // used to mark whether fusion is required
-    FUSION_OP_TYPE_E fusion_op_type;
+    int32_t fusion_op_type;
     int64_t fusion_op_cnt_in_entire_net;    // 如果融合，那么融合后的融合算子这是整个网络的第几个融合算子
     int64_t cur_op_cnt_in_fusion_op;        // 如果融合，那么当前这个算子是融合算子的第几个子算子
 } BASE_CONFIG_S;
-
 
 typedef struct
 {
@@ -266,6 +265,11 @@ typedef struct
 typedef struct
 {
     BASE_CONFIG_S op_base_cfg;
+} GELU_CONFIG_S;
+
+typedef struct
+{
+    BASE_CONFIG_S op_base_cfg;
 } GLOBAL_AVGPOOL_CONFIG_S;
 
 typedef struct
@@ -280,6 +284,14 @@ typedef struct
     BASE_CONFIG_S op_base_cfg;
     float alpha;
 } LEAKYRELU_CONFIG_S;
+
+typedef struct
+{
+    BASE_CONFIG_S op_base_cfg;
+    int32_t axes[8];
+    int32_t axes_num;
+    int32_t keepdims;
+} LAYERNORM_CONFIG_S;
 
 typedef struct
 {
@@ -560,7 +572,7 @@ void print_base_op(BUFFER_INFO_S *params) {
     }
     for (int ofmap_i = 0; ofmap_i < base_op->out_operand_num; ++ofmap_i) {
         OPERAND_S *ofmap = (OPERAND_S *) (params[ofmap_i + 1 + base_op->in_operand_num].addr);
-        LOG_MSG("the %dth ifmap name is %s, dim is %d, shapes is: [%d, %d, %d, %d, %d, %d, %d, %d]",
+        LOG_MSG("the %dth ofmap name is %s, dim is %d, shapes is: [%d, %d, %d, %d, %d, %d, %d, %d]",
                 ofmap_i, base_op->out_operand_name[ofmap_i], ofmap->dim_num_of_shapes,
                 ofmap->shapes[0], ofmap->shapes[1], ofmap->shapes[2], ofmap->shapes[3],
                 ofmap->shapes[4], ofmap->shapes[5], ofmap->shapes[6], ofmap->shapes[7]);

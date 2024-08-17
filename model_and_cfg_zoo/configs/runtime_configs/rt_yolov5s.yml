@@ -3,7 +3,7 @@
 # 1  follow args you need fill
 do_preprocess4img: yes
 do_postprocess4net: yes
-one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/yolov5s.one
+one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/opt_yolov5s.one
 #one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/one_model/yolov5s.one
 input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/dog.png
 in_operand_name: images

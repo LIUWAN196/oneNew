@@ -5,7 +5,7 @@ onnx_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg
 # 1  follow args you need fill
 do_preprocess4img: yes
 do_postprocess4net: no
-one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/yolov5s/yolov5s.one
+one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/opt_yolov5s.one
 input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/dog.png
 in_operand_name: images
 
@@ -24,6 +24,6 @@ cpu: 12400F
 cpu_hw_info: 2.5g * 8thread * 8 (avx2 = 8 * float32)
 hw_computing_power (GOPS): 160
 model name: yolov5s
-csv_file: /home/wanzai/桌面/oneNew/tools/timeline_tracing/yolov5s.csv
+csv_file: /home/wanzai/桌面/oneNew/tools/timeline_tracing/timeline_csv_json/yolov5s.csv
 
 

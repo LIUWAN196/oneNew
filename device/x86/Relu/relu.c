@@ -19,16 +19,6 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
     for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
         in_elem_size *= in_tensor->shapes[dim_i];
     }
-//    int32_t in_elem_size = operand_elem_size(in_tensor);
-
-//    for (int i = 0; i < in_elem_size; ++i) {
-//        input_ptr[i] = i / 45 - 56 + i % 32 + i;
-//    }
-
-
-//    for (int i = 0; i < in_elem_size; ++i) {
-//        output_ptr[i] = (input_ptr[i] > 0.f) ? input_ptr[i] : 0.f;
-//    }
 
 
     __m256 _zero_avx = _mm256_setzero_ps();
@@ -64,25 +54,6 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
     {
         output_ptr[i] = (input_ptr[i] > 0) ? input_ptr[i] : 0;
     }
-
-
-    // write_bin(replace_char(cfg->out_operand_name[0]), in_elem_size * sizeof(float), output_ptr);
-
-
-//    for (int i = 0; i < in_elem_size; ++i) {
-//        if (i % 32 == 0){
-//            printf("\n");
-//        }
-//        printf("%f  ", input_ptr[i]);
-//    }
-//
-//    printf("===========================\n");
-//    for (int i = 0; i < in_elem_size; ++i) {
-//        if (i % 32 == 0){
-//            printf("\n");
-//        }
-//        printf("%f  ", output_ptr[i]);
-//    }
 
     return 0;
 }

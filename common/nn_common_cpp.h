@@ -13,7 +13,7 @@
 #include "algorithm"
 #include "cctype"
 
-static int32_t fused_cfg_size_vec[] = {0, sizeof(CONV_CONFIG_S)};
+//static int32_t fused_cfg_size_vec[] = {0, sizeof(CONV_CONFIG_S)};
 
 
 template <class T>
@@ -97,13 +97,13 @@ int yml2map(std::unordered_map<std::string, std::string>& cfg_info_map, const st
         }
     }
 
-    // step 3: parameter check
-    std::string a = str2lower_str(cfg_info_map["do_preprocess4img"]);
-    if (str2lower_str(cfg_info_map["do_preprocess4img"]) != "yes" &&
-        str2lower_str(cfg_info_map["do_preprocess4img"]) != "no") {
-        std::cerr << "the args: do_preprocess4img must be set, and the value must be yes or no" << std::endl;
-        return -1;
-    }
+//    // step 3: parameter check
+//    std::string a = str2lower_str(cfg_info_map["do_preprocess4img"]);
+//    if (str2lower_str(cfg_info_map["do_preprocess4img"]) != "yes" &&
+//        str2lower_str(cfg_info_map["do_preprocess4img"]) != "no") {
+//        std::cerr << "the args: do_preprocess4img must be set, and the value must be yes or no" << std::endl;
+//        return -1;
+//    }
 
     if (str2lower_str(cfg_info_map["do_postprocess4net"]) != "yes" &&
         str2lower_str(cfg_info_map["do_postprocess4net"]) != "no") {
