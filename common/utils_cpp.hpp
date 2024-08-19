@@ -13,9 +13,6 @@
 #include "algorithm"
 #include "cctype"
 
-//static int32_t fused_cfg_size_vec[] = {0, sizeof(CONV_CONFIG_S)};
-
-
 template <class T>
 std::vector<T> str2number(const std::string& str)
 {
@@ -105,12 +102,12 @@ int yml2map(std::unordered_map<std::string, std::string>& cfg_info_map, const st
 //        return -1;
 //    }
 
-    if (str2lower_str(cfg_info_map["do_postprocess4net"]) != "yes" &&
-        str2lower_str(cfg_info_map["do_postprocess4net"]) != "no") {
-        std::cerr << "the args: do_postprocess4net must be set, and the value must be yes or no" << std::endl;
-        return -1;
-
-    }
+//    if (str2lower_str(cfg_info_map["do_postprocess4net"]) != "yes" &&
+//        str2lower_str(cfg_info_map["do_postprocess4net"]) != "no") {
+//        std::cerr << "the args: do_postprocess4net must be set, and the value must be yes or no" << std::endl;
+//        return -1;
+//
+//    }
 
 //    if (str2lower_str(cfg_info_map["dump_output4each_node"]) != "yes" &&
 //        str2lower_str(cfg_info_map["dump_output4each_node"]) != "no") {

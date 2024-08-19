@@ -193,159 +193,6 @@ int eval_1x1j1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outp
     return 0;
 }
 
-int eval_mxn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-
-    CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
-//    // printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
-
-    int32_t stride_x = cfg->strides[0];
-    int32_t stride_y = cfg->strides[1];
-
-    float *input_ptr = (float *) (inputs[0].addr);
-    float *weight_ptr = (float *) (inputs[1].addr);
-
-    float *bias_ptr;
-    if (cfg->has_bias) {
-        bias_ptr = (float *) (inputs[2].addr);
-    }
-
-    float *output_ptr = (float *) (outputs[0].addr);
-
-    OPERAND_S *in_tensor = (OPERAND_S *) (params[1].addr);
-    OPERAND_S *out_tensor = (OPERAND_S *) (params[2].addr);
-    OPERAND_S *weight_tensor = (OPERAND_S *) (params[3].addr);
-    OPERAND_S *bias_tensor;
-
-    if (cfg->has_bias) {
-        bias_tensor = (OPERAND_S *) (params[4].addr);
-    }
-
-    int32_t kernel_c = weight_tensor->shapes[1];
-    int32_t kernel_h = weight_tensor->shapes[2];
-    int32_t kernel_w = weight_tensor->shapes[3];
-
-    int32_t in_n = in_tensor->shapes[0];
-    int32_t in_c = in_tensor->shapes[1];
-    int32_t in_h = in_tensor->shapes[2];
-    int32_t in_w = in_tensor->shapes[3];
-
-    int32_t out_n = out_tensor->shapes[0];
-    int32_t out_c = out_tensor->shapes[1];
-    int32_t out_h = out_tensor->shapes[2];
-    int32_t out_w = out_tensor->shapes[3];
-
-    void *src_pad_ptr;
-    if (cfg->pads[0] != 0) {
-        // do pad
-        src_pad_ptr = malloc(in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float));
-        PAD_INNER_CONFIG_S pad_cfg;
-        pad_cfg.h = cfg->pads[0];
-        pad_cfg.w = cfg->pads[0];
-
-        in_h = in_h + 2 * cfg->pads[0];
-        in_w = in_w + 2 * cfg->pads[0];
-
-        do_pad_conv(src_pad_ptr, input_ptr, in_tensor, &pad_cfg);
-        input_ptr = (float *) src_pad_ptr;
-    }
-
-    const int th_num = 1;
-    const int outc_per_th = out_c / th_num;
-
-//// // #pragma omp parallel for num_threads(8)
-    for (int th_i = 0; th_i < th_num; ++th_i) {
-        // loop params
-        float *tmp_input_ptr;
-        float *cur_input_ptr;
-
-        float *tmp0_weight_ptr;
-        float *tmp1_weight_ptr;
-        float *tmp2_weight_ptr;
-        float *tmp3_weight_ptr;
-        float *tmp4_weight_ptr;
-        float *tmp5_weight_ptr;
-        float *tmp6_weight_ptr;
-        float *tmp7_weight_ptr;
-
-        float *cur0_weight_ptr;
-        float *cur1_weight_ptr;
-        float *cur2_weight_ptr;
-        float *cur3_weight_ptr;
-        float *cur4_weight_ptr;
-        float *cur5_weight_ptr;
-        float *cur6_weight_ptr;
-        float *cur7_weight_ptr;
-
-        float *output_batch_ptr;
-        float psum0, psum1, psum2, psum3, psum4, psum5, psum6, psum7;
-
-        float in_data;
-        for (int c_i = outc_per_th * th_i;
-             c_i < outc_per_th * (th_i + 1); c_i += 8) {  // todo: maybe the out_c % 8 != 0
-            output_batch_ptr = output_ptr + 0 * out_c * out_h * out_w;
-
-            for (int h_i = 0; h_i < out_h; ++h_i) {
-                for (int w_i = 0; w_i < out_w; ++w_i) {
-                    tmp_input_ptr = input_ptr + h_i * stride_y * in_w + w_i * stride_x;
-                    tmp0_weight_ptr = weight_ptr + c_i * kernel_c * kernel_h * kernel_w;
-                    tmp1_weight_ptr = tmp0_weight_ptr + 1 * kernel_c * kernel_h * kernel_w;
-                    tmp2_weight_ptr = tmp0_weight_ptr + 2 * kernel_c * kernel_h * kernel_w;
-                    tmp3_weight_ptr = tmp0_weight_ptr + 3 * kernel_c * kernel_h * kernel_w;
-                    tmp4_weight_ptr = tmp0_weight_ptr + 4 * kernel_c * kernel_h * kernel_w;
-                    tmp5_weight_ptr = tmp0_weight_ptr + 5 * kernel_c * kernel_h * kernel_w;
-                    tmp6_weight_ptr = tmp0_weight_ptr + 6 * kernel_c * kernel_h * kernel_w;
-                    tmp7_weight_ptr = tmp0_weight_ptr + 7 * kernel_c * kernel_h * kernel_w;
-                    psum0 = 0, psum1 = 0, psum2 = 0, psum3 = 0;
-                    psum4 = 0, psum5 = 0, psum6 = 0, psum7 = 0;
-                    for (int k_c = 0; k_c < kernel_c; ++k_c) {
-                        cur0_weight_ptr = tmp0_weight_ptr + k_c * kernel_h * kernel_w;
-                        cur1_weight_ptr = tmp1_weight_ptr + k_c * kernel_h * kernel_w;
-                        cur2_weight_ptr = tmp2_weight_ptr + k_c * kernel_h * kernel_w;
-                        cur3_weight_ptr = tmp3_weight_ptr + k_c * kernel_h * kernel_w;
-                        cur4_weight_ptr = tmp4_weight_ptr + k_c * kernel_h * kernel_w;
-                        cur5_weight_ptr = tmp5_weight_ptr + k_c * kernel_h * kernel_w;
-                        cur6_weight_ptr = tmp6_weight_ptr + k_c * kernel_h * kernel_w;
-                        cur7_weight_ptr = tmp7_weight_ptr + k_c * kernel_h * kernel_w;
-                        cur_input_ptr = tmp_input_ptr + k_c * in_h * in_w;
-                        for (int k_h = 0; k_h < kernel_h; ++k_h) {
-                            for (int k_w = 0; k_w < kernel_w; ++k_w) {
-                                in_data = cur_input_ptr[k_h * in_w + k_w];
-                                psum0 += *cur0_weight_ptr++ * in_data;
-                                psum1 += *cur1_weight_ptr++ * in_data;
-                                psum2 += *cur2_weight_ptr++ * in_data;
-                                psum3 += *cur3_weight_ptr++ * in_data;
-                                psum4 += *cur4_weight_ptr++ * in_data;
-                                psum5 += *cur5_weight_ptr++ * in_data;
-                                psum6 += *cur6_weight_ptr++ * in_data;
-                                psum7 += *cur7_weight_ptr++ * in_data;
-                            }
-                        }
-                    }
-                    output_batch_ptr[c_i * out_h * out_w + h_i * out_w + w_i] = psum0 + bias_ptr[c_i];
-                    output_batch_ptr[(c_i + 1) * out_h * out_w + h_i * out_w + w_i] = psum1 + bias_ptr[c_i + 1];
-                    output_batch_ptr[(c_i + 2) * out_h * out_w + h_i * out_w + w_i] = psum2 + bias_ptr[c_i + 2];
-                    output_batch_ptr[(c_i + 3) * out_h * out_w + h_i * out_w + w_i] = psum3 + bias_ptr[c_i + 3];
-                    output_batch_ptr[(c_i + 4) * out_h * out_w + h_i * out_w + w_i] = psum4 + bias_ptr[c_i + 4];
-                    output_batch_ptr[(c_i + 5) * out_h * out_w + h_i * out_w + w_i] = psum5 + bias_ptr[c_i + 5];
-                    output_batch_ptr[(c_i + 6) * out_h * out_w + h_i * out_w + w_i] = psum6 + bias_ptr[c_i + 6];
-                    output_batch_ptr[(c_i + 7) * out_h * out_w + h_i * out_w + w_i] = psum7 + bias_ptr[c_i + 7];
-                }
-            }
-        }
-    }
-
-    if (cfg->pads[0] != 0) {
-        free(src_pad_ptr);
-    }
-
-    return 0;
-
-    //    // write_bin(replace_char(cfg->out_operand_name[0]), out_n * out_c * out_h * out_w * sizeof(float), output_ptr);
-
-    int c = 101;
-    return 0;
-}
-
 int im2col(float *input_col_ptr, float *input_ptr, OPERAND_S *in_tensor, OPERAND_S *out_tensor, OPERAND_S *weight_tensor,
            CONV_CONFIG_S *cfg) {
 
@@ -370,16 +217,33 @@ int im2col(float *input_col_ptr, float *input_ptr, OPERAND_S *in_tensor, OPERAND
     for (int col_h1 = 0; col_h1 <in_c; ++col_h1) {
         for (int col_h2 = 0; col_h2 < kernel_h; ++col_h2) {
             for (int col_h3 = 0; col_h3 < kernel_w; ++col_h3) {
-#pragma unroll 8
+                int32_t src_idx = col_h1 * kernel_h * kernel_w * out_h * out_w + col_h2 * kernel_w * out_h * out_h +
+                                  col_h3 * out_h * out_h;
+                int32_t dst_idx = col_h1 * in_h * in_w;
+#pragma unroll 2
                 for (int col_w = 0; col_w < out_h * out_w; ++col_w) {
                     int cur_in_h = col_w / out_w * stride_y + col_h2;
                     int cur_in_w = col_w % out_w * stride_x + col_h3;
-                    input_col_ptr[col_h1 * kernel_h * kernel_w * out_h * out_w + col_h2 * kernel_w * out_h * out_h +
-                                  col_h3 * out_h * out_h + col_w] = input_ptr[col_h1 * in_h * in_w + cur_in_h * in_w + cur_in_w];
+                    input_col_ptr[src_idx + col_w] = input_ptr[dst_idx + cur_in_h * in_w + cur_in_w];
                 }
             }
         }
     }
+
+//#pragma omp parallel for num_threads(8)
+//    for (int col_h1 = 0; col_h1 <in_c; ++col_h1) {
+//        for (int col_h2 = 0; col_h2 < kernel_h; ++col_h2) {
+//            for (int col_h3 = 0; col_h3 < kernel_w; ++col_h3) {
+//#pragma unroll 8
+//                for (int col_w = 0; col_w < out_h * out_w; ++col_w) {
+//                    int cur_in_h = col_w / out_w * stride_y + col_h2;
+//                    int cur_in_w = col_w % out_w * stride_x + col_h3;
+//                    input_col_ptr[col_h1 * kernel_h * kernel_w * out_h * out_w + col_h2 * kernel_w * out_h * out_h +
+//                                  col_h3 * out_h * out_h + col_w] = input_ptr[col_h1 * in_h * in_w + cur_in_h * in_w + cur_in_w];
+//                }
+//            }
+//        }
+//    }
 
     return 0;
 }
@@ -1831,6 +1695,30 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
                 int idx = (int)((cur_val + single_limit) * inv_step);
                 output_ptr[elem_i] = silu_lut[idx];
             }
+        }
+    } else if (cfg->act_type == CLIP) {
+        float max = cfg->clip_max;
+        float min = cfg->clip_min;
+        float tmp;
+        for (int elem_i = 0; elem_i < ofmap_elem_size; ++elem_i) {
+            tmp = (output_ptr[elem_i] > min) ? output_ptr[elem_i] : min;
+            output_ptr[elem_i] = (tmp < max) ? tmp : max;
+        }
+    } else if (cfg->act_type == LEAKYRELU) {
+        float alpha = cfg->leaky_relu_alpha;
+        for (int elem_i = 0; elem_i < ofmap_elem_size; ++elem_i) {
+            output_ptr[elem_i] = (output_ptr[elem_i] > 0.f) ? output_ptr[elem_i] : alpha * output_ptr[elem_i];
+        }
+    } else if (cfg->act_type == HARDSILU) {
+        float tmp;
+        float alpha = cfg->hard_sigmoid_alpha;
+        float beta = cfg->hard_sigmoid_beta;
+        // follow min and max value is define of hard sigmoid, you can see https://onnx.ai/onnx/operators/onnx__HardSigmoid.html
+        float min = 0, max = 1;
+        for (int elem_i = 0; elem_i < ofmap_elem_size; ++elem_i) {
+            tmp = alpha * output_ptr[elem_i] + beta;
+            tmp = (tmp > min) ? tmp : min;
+            output_ptr[elem_i] = output_ptr[elem_i] *((tmp < max) ? tmp : max);
         }
     }
 

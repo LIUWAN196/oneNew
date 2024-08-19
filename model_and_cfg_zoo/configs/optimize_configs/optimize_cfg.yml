@@ -12,7 +12,12 @@
 #one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/vit_b.one
 #quant_one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/opt_vit_b.one
 
-## 1  follow args you need fill
-one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/swin_t.one
-quant_one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/opt_swin_t.one
+### 1  follow args you need fill
+#one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/swin_t.one
+#quant_one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/opt_swin_t.one
+#
+
+one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/resnet50/resnet50.one
+opt_one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/resnet50/opt_resnet50.one
+
 

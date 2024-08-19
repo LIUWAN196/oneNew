@@ -184,6 +184,9 @@ public:
         int32_t in_c = ifmap->shapes[1];
         int32_t mac = 2; // mul and add, so is 2 computation
         each_ofmap_elem_computation = mac * in_c * conv_cfg.kernel_shape[0] * conv_cfg.kernel_shape[1];
+        if (conv_cfg.group != 1) {
+            each_ofmap_elem_computation = mac * conv_cfg.kernel_shape[0] * conv_cfg.kernel_shape[1];
+        }
 
         return (double)(out_elem_size * each_ofmap_elem_computation);
     };

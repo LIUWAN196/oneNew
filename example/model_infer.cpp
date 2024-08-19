@@ -201,7 +201,10 @@ int main(int argc, char **argv)
     if (cfg_info_map["dump_output4each_node"] == "yes") {
         exe_net->prof_impl(io_buf_map, cfg_info_map);
     } else if (cfg_info_map["dump_output4each_node"] == "dump_tracing") {
-        exe_net->impl_with_tracing(io_buf_map, cfg_info_map);
+        const int32_t repeat_cnt = 5;  // 前 4 次预热，最后保留下来的是第五次的耗时
+        for (int cnt_i = 0; cnt_i < repeat_cnt; ++cnt_i) {
+            exe_net->impl_with_tracing(io_buf_map, cfg_info_map);
+        }
     } else {
         exe_net->impl(io_buf_map, cfg_info_map);
     }

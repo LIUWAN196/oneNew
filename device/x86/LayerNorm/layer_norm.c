@@ -10,7 +10,7 @@
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
 {
-//    print_base_op(params);
+//    show_dev_input(params);
     LAYERNORM_CONFIG_S * cfg = (LAYERNORM_CONFIG_S*)(params[0].addr);
 
     float* input_ptr = (float*)(inputs[0].addr);

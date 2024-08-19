@@ -35,6 +35,10 @@ if __name__ == '__main__':
     # csv_file_name = 'timeline_csv_json/resnet50.csv'
     # json_file_name = 'timeline_csv_json/resnet50.json'
 
+    csv_file_name = 'timeline_csv_json/opt_mobilevit_s.csv'
+    json_file_name = 'timeline_csv_json/opt_mobilevit_s.json'
+
+
     # csv_file_name = 'timeline_csv_json/yolov5s.csv'
     # json_file_name = 'timeline_csv_json/yolov5s.json'
 
@@ -44,8 +48,8 @@ if __name__ == '__main__':
     # csv_file_name = 'timeline_csv_json/swin_t.csv'
     # json_file_name = 'timeline_csv_json/swin_t.json'
 
-    csv_file_name = 'timeline_csv_json/opt_vit_b.csv'
-    json_file_name = 'timeline_csv_json/opt_vit_b.json'
+    # csv_file_name = 'timeline_csv_json/opt_vit_b.csv'
+    # json_file_name = 'timeline_csv_json/opt_vit_b.json'
 
     dataset=load_csv(csv_file_name)
 

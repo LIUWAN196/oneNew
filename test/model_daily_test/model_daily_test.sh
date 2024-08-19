@@ -64,7 +64,26 @@ function model_daily_test_main() {
 
         let model_cnt=model_cnt+1
     done
-    echo -e "\033[32m        ********  end daily test, total model cnt is: ${model_cnt}  ********        \033[0m"
+    echo -e "\033[32m        ********  end normal model daily test, total model cnt is: ${model_cnt}  ********        \033[0m"
+
+    # step 2: start test opt model
+    model_cnt=0
+    for model_cfg in $model_yml_list; do
+        # step 2.1: do model opt
+        cd ${root_dir}/cmake-build-debug/tools/optimize
+        ./optimize ${model_cfg}
+
+        # step 2.2: do model_infer
+        cd ${root_dir}/cmake-build-debug/example
+        ./model_infer ${model_cfg}
+
+        # step 2.3: using onnx runtime to compare result
+        cd ${sh_script_dir}
+        python ./compute_ofmap_consim.py ${onnx_dir}/${model_name}".onnx" ${sh_script_dir}/tmp_ofmap_path/${model_name}/
+
+        let model_cnt=model_cnt+1
+    done
+    echo -e "\033[32m        ********  end optimize model daily test, total model cnt is: ${model_cnt}  ********        \033[0m"
 }
 
 # 上面的所有内容都是 function 修改了的。所以会一路向下寻找，找到这个 main。这个 main 实际上就是一个平常的函数，调用上面的 function main() 函数

@@ -22,7 +22,7 @@
 #include <algorithm>
 #include <omp.h>
 #include "../manager/manager.h"
-#include "../../common/nn_common_cpp.h"
+#include "../../common/utils_cpp.hpp"
 
 #include "ops_head.h"
 #include "net.h"

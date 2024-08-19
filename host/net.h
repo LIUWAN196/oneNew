@@ -2,7 +2,7 @@
 #define NET_H
 
 #include "../../common/nn_common.h"
-#include "../../common/nn_common_cpp.h"
+#include "../../common/utils_cpp.hpp"
 #include <dlfcn.h>
 #include <cstring>
 #include <fstream>

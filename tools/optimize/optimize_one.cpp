@@ -22,10 +22,12 @@
 #include <algorithm>
 #include <omp.h>
 #include <numeric>
-#include "../../common/nn_common_cpp.h"
+#include "../../common/utils_cpp.hpp"
 
 #include "ops_head.h"
 #include "net.h"
+
+typedef std::pair<NODE_INFO_S, std::vector<int32_t> > sub_graph_node;
 
 typedef struct
 {
@@ -68,6 +70,65 @@ int fill_conv_relu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_s
     return 0;
 }
 
+int fill_conv_clip_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, std::vector<BASE_CONFIG_S *> sub_op_cfg){
+
+    CONV_CONFIG_S* conv_clip_cfg = (CONV_CONFIG_S*) malloc(sizeof(CONV_CONFIG_S));
+    memcpy(conv_clip_cfg, sub_op_cfg[0], sizeof(CONV_CONFIG_S));
+
+    // 修改消费者 op 为 clip 的输出 op
+    CLIP_CONFIG_S *clip_cfg = (CLIP_CONFIG_S *)sub_op_cfg[1];
+    memcpy(&conv_clip_cfg->op_base_cfg.consumer[0], &clip_cfg->op_base_cfg.consumer[0],
+           OPERAND_MAXNUM * OPERAND_NAME_LEN);
+
+    // 修改输出操作数为 clip 的输出操作数
+    memcpy(&conv_clip_cfg->op_base_cfg.out_operand_name[0], &clip_cfg->op_base_cfg.out_operand_name[0],
+           OPERAND_MAXNUM * sizeof(NODE_INFO_S));
+
+    // 修改激活函数类型
+    conv_clip_cfg->act_type = CLIP;
+    conv_clip_cfg->clip_max = clip_cfg->max;
+    conv_clip_cfg->clip_min = clip_cfg->min;
+
+    conv_clip_cfg->op_base_cfg.in_operand_num = 3;
+    conv_clip_cfg->op_base_cfg.out_operand_num = 1;
+    conv_clip_cfg->op_base_cfg.producer_num = 1;
+    conv_clip_cfg->op_base_cfg.consumer_num = 1;
+
+    // 将 conv clip 这个融合算子的 cfg 挂载到 total_fuse_op_cfg_set 中
+    total_fuse_op_cfg_set.push_back((BASE_CONFIG_S *)conv_clip_cfg);
+
+    return 0;
+}
+
+int fill_conv_leaky_relu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, std::vector<BASE_CONFIG_S *> sub_op_cfg){
+
+    CONV_CONFIG_S* conv_leakyrelu_cfg = (CONV_CONFIG_S*) malloc(sizeof(CONV_CONFIG_S));
+    memcpy(conv_leakyrelu_cfg, sub_op_cfg[0], sizeof(CONV_CONFIG_S));
+
+    // 修改消费者 op 为 leakyrelu 的输出 op
+    LEAKYRELU_CONFIG_S *leakyrelu_cfg = (LEAKYRELU_CONFIG_S *)sub_op_cfg[1];
+    memcpy(&conv_leakyrelu_cfg->op_base_cfg.consumer[0], &leakyrelu_cfg->op_base_cfg.consumer[0],
+           OPERAND_MAXNUM * OPERAND_NAME_LEN);
+
+    // 修改输出操作数为 leakyrelu 的输出操作数
+    memcpy(&conv_leakyrelu_cfg->op_base_cfg.out_operand_name[0], &leakyrelu_cfg->op_base_cfg.out_operand_name[0],
+           OPERAND_MAXNUM * sizeof(NODE_INFO_S));
+
+    // 修改激活函数类型
+    conv_leakyrelu_cfg->act_type = LEAKYRELU;
+    conv_leakyrelu_cfg->leaky_relu_alpha = leakyrelu_cfg->alpha;
+
+    conv_leakyrelu_cfg->op_base_cfg.in_operand_num = 3;
+    conv_leakyrelu_cfg->op_base_cfg.out_operand_num = 1;
+    conv_leakyrelu_cfg->op_base_cfg.producer_num = 1;
+    conv_leakyrelu_cfg->op_base_cfg.consumer_num = 1;
+
+    // 将 conv leakyrelu 这个融合算子的 cfg 挂载到 total_fuse_op_cfg_set 中
+    total_fuse_op_cfg_set.push_back((BASE_CONFIG_S *)conv_leakyrelu_cfg);
+
+    return 0;
+}
+
 int fill_conv_silu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, std::vector<BASE_CONFIG_S *> sub_op_cfg){
 
     CONV_CONFIG_S* conv_silu_cfg = (CONV_CONFIG_S*) malloc(sizeof(CONV_CONFIG_S));
@@ -95,6 +156,39 @@ int fill_conv_silu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_s
 
     return 0;
 }
+
+int fill_conv_hardsilu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, std::vector<BASE_CONFIG_S *> sub_op_cfg){
+
+    CONV_CONFIG_S* conv_hardsilu_cfg = (CONV_CONFIG_S*) malloc(sizeof(CONV_CONFIG_S));
+    memcpy(conv_hardsilu_cfg, sub_op_cfg[0], sizeof(CONV_CONFIG_S));
+
+    // 修改消费者 op 为 mul 的输出 op
+    BASE_CONFIG_S *mul_cfg = sub_op_cfg[2];
+    memcpy(&conv_hardsilu_cfg->op_base_cfg.consumer[0], &mul_cfg->consumer[0],
+           OPERAND_MAXNUM * sizeof(NODE_INFO_S));
+
+    // 修改输出操作数为 silu 的输出操作数
+    memcpy(&conv_hardsilu_cfg->op_base_cfg.out_operand_name[0], &mul_cfg->out_operand_name[0],
+           OPERAND_MAXNUM * OPERAND_NAME_LEN);
+
+    HARD_SIGMOID_CONFIG_S *hardsigmoid_cfg = (HARD_SIGMOID_CONFIG_S *)sub_op_cfg[1];
+    conv_hardsilu_cfg->hard_sigmoid_alpha = hardsigmoid_cfg->alpha;
+    conv_hardsilu_cfg->hard_sigmoid_beta = hardsigmoid_cfg->beta;
+
+    // 修改激活函数类型
+    conv_hardsilu_cfg->act_type = HARDSILU;
+
+    conv_hardsilu_cfg->op_base_cfg.in_operand_num = 3;
+    conv_hardsilu_cfg->op_base_cfg.out_operand_num = 1;
+    conv_hardsilu_cfg->op_base_cfg.producer_num = 1;
+    conv_hardsilu_cfg->op_base_cfg.consumer_num = 1;
+
+    // 将 conv silu 这个融合算子的 cfg 挂载到 total_fuse_op_cfg_set 中
+    total_fuse_op_cfg_set.push_back((BASE_CONFIG_S *)conv_hardsilu_cfg);
+
+    return 0;
+}
+
 
 int fill_gelu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, std::vector<BASE_CONFIG_S *> sub_op_cfg){
 
@@ -154,7 +248,7 @@ int fill_layer_norm_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_
     return 0;
 }
 
-int fuse_operator(std::string fuse_op_type, char* one_file_buf, std::vector<std::pair<NODE_INFO_S, std::vector<int32_t>> > op_and_their_consumer,
+int fuse_operator(std::string fuse_op_type, char* one_file_buf, std::vector<sub_graph_node > op_and_their_consumer,
                   std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, FillFuseOpCfg fill_fuse_op_cfg) {
     Manager &m = Manager::getInstance();
 
@@ -195,7 +289,7 @@ int fuse_operator(std::string fuse_op_type, char* one_file_buf, std::vector<std:
         }
 
         // 拷贝一份 op_and_their_consumer，因为下面要做修改
-        std::vector<std::pair<NODE_INFO_S, std::vector<int32_t>> > tmp_op_and_their_consumer = op_and_their_consumer;
+        std::vector<sub_graph_node > tmp_op_and_their_consumer = op_and_their_consumer;
         // 类型匹配上了，将 op 类型和名称改为 base_op_vec 中的类型和名称
         memcpy(tmp_op_and_their_consumer[0].first.op_type, base_op_vec[node_i]->op_type, OP_TYPE_LEN);
         memcpy(tmp_op_and_their_consumer[0].first.op_name, base_op_vec[node_i]->op_name, OP_NAME_LEN);
@@ -376,7 +470,7 @@ int main(int argc, char **argv)
     yml2map(cfg_info_map, rt_cfg_txt_str);
 
     const char* one_file_path = cfg_info_map["one_file_path"].c_str();
-    const char* quant_one_file_path = cfg_info_map["quant_one_file_path"].c_str();
+    const char* quant_one_file_path = cfg_info_map["one_file_path"].c_str();
 
     // step 1: get one file size
     std::ifstream one_file(one_file_path, std::ios::ate | std::ios::binary);
@@ -397,55 +491,84 @@ int main(int argc, char **argv)
     fclose(file_p);
 
     auto src_one_desc = (ONE_MODEL_DESC_S*)(one_buf_ptr);
-     LOG_MSG("src one have %d op", src_one_desc->node_cnt);
+//     LOG_MSG("src one have %d op", src_one_desc->node_cnt);
 
     // step 9: fuse_operator
     std::vector<BASE_CONFIG_S *> total_fuse_op_cfg_set;
 
     // 这个是做 conv + relu 的子图标记
     {
-        std::vector<std::pair<NODE_INFO_S, std::vector<int32_t>> > op_and_their_consumer;
+        std::vector<sub_graph_node> op_and_their_consumer(2);
 
-        std::pair<NODE_INFO_S, std::vector<int32_t> > conv_op = {(NODE_INFO_S){"Conv", "Conv123"}, {1}};
-        std::pair<NODE_INFO_S, std::vector<int32_t> > relu_op = {(NODE_INFO_S){"Relu", "Relu123"}, {}};
-        op_and_their_consumer.push_back(conv_op);
-        op_and_their_consumer.push_back(relu_op);
+        sub_graph_node conv_op = {(NODE_INFO_S){"Conv", "Conv123"}, {1}};
+        sub_graph_node relu_op = {(NODE_INFO_S){"Relu", "Relu123"}, {}};
+        op_and_their_consumer = {conv_op, relu_op};
 
         fuse_operator("Conv", one_buf_ptr, op_and_their_consumer,
                       total_fuse_op_cfg_set, fill_conv_relu_fuse_op_cfg);
     }
 
+    // 这个是做 conv + clip 的子图标记
+    {
+        std::vector<sub_graph_node> op_and_their_consumer(2);
+
+        sub_graph_node conv_op = {(NODE_INFO_S){"Conv", "Conv123"}, {1}};
+        sub_graph_node clip_op = {(NODE_INFO_S){"Clip", "Clip123"}, {}};
+        op_and_their_consumer = {conv_op, clip_op};
+
+        fuse_operator("Conv", one_buf_ptr, op_and_their_consumer,
+                      total_fuse_op_cfg_set, fill_conv_clip_fuse_op_cfg);
+    }
+
+    // 这个是做 conv + leaky relu 的子图标记
+    {
+        std::vector<sub_graph_node> op_and_their_consumer(2);
+
+        sub_graph_node conv_op = {(NODE_INFO_S){"Conv", "Conv123"}, {1}};
+        sub_graph_node leaky_relu_op = {(NODE_INFO_S){"LeakyRelu", "LeakyRelu123"}, {}};
+        op_and_their_consumer = {conv_op, leaky_relu_op};
+
+        fuse_operator("Conv", one_buf_ptr, op_and_their_consumer,
+                      total_fuse_op_cfg_set, fill_conv_leaky_relu_fuse_op_cfg);
+    }
+
     // 这个是做 conv + silu 的子图标记
     {
-        std::vector<std::pair<NODE_INFO_S, std::vector<int32_t>> > op_and_their_consumer;
+        std::vector<sub_graph_node> op_and_their_consumer(3);
 
-        std::pair<NODE_INFO_S, std::vector<int32_t> > conv_op = {(NODE_INFO_S){"Conv", "Conv123"}, {1, 2}};
-        std::pair<NODE_INFO_S, std::vector<int32_t> > sigmoid_op = {(NODE_INFO_S){"Sigmoid", "Sigmoid123"}, {2}};
-        std::pair<NODE_INFO_S, std::vector<int32_t> > mul_op = {(NODE_INFO_S){"Mul", "Mul123"}, {}};
-        op_and_their_consumer.push_back(conv_op);
-        op_and_their_consumer.push_back(sigmoid_op);
-        op_and_their_consumer.push_back(mul_op);
+        sub_graph_node conv_op = {(NODE_INFO_S){"Conv", "Conv123"}, {1, 2}};
+        sub_graph_node sigmoid_op = {(NODE_INFO_S){"Sigmoid", "Sigmoid123"}, {2}};
+        sub_graph_node mul_op = {(NODE_INFO_S){"Mul", "Mul123"}, {}};
+        op_and_their_consumer = {conv_op, sigmoid_op, mul_op};
 
         fuse_operator("Conv", one_buf_ptr, op_and_their_consumer,
                       total_fuse_op_cfg_set, fill_conv_silu_fuse_op_cfg);
     }
 
+    // 这个是做 conv + hard silu 的子图标记
+    {
+        std::vector<sub_graph_node> op_and_their_consumer(3);
+
+        sub_graph_node conv_op = {(NODE_INFO_S){"Conv", "Conv123"}, {1, 2}};
+        sub_graph_node hardsigmoid_op = {(NODE_INFO_S){"HardSigmoid", "HardSigmoid123"}, {2}};
+        sub_graph_node mul_op = {(NODE_INFO_S){"Mul", "Mul123"}, {}};
+        op_and_their_consumer = {conv_op, hardsigmoid_op, mul_op};
+
+        fuse_operator("Conv", one_buf_ptr, op_and_their_consumer,
+                      total_fuse_op_cfg_set, fill_conv_hardsilu_fuse_op_cfg);
+    }
+
     // 这个是做 gelu 的子图标记
     {
-        std::vector<std::pair<NODE_INFO_S, std::vector<int32_t>> > op_and_their_consumer;
+        std::vector<sub_graph_node> op_and_their_consumer(6);
 
-        std::pair<NODE_INFO_S, std::vector<int32_t> > foo_op = {(NODE_INFO_S){"Foo", "Foo123"}, {1, 4}};
-        std::pair<NODE_INFO_S, std::vector<int32_t> > div_op = {(NODE_INFO_S){"Div", "Div123"}, {2}};
-        std::pair<NODE_INFO_S, std::vector<int32_t> > erf_op = {(NODE_INFO_S){"Erf", "Erf123"}, {3}};
-        std::pair<NODE_INFO_S, std::vector<int32_t> > add_op = {(NODE_INFO_S){"Add", "Add123"}, {4}};
-        std::pair<NODE_INFO_S, std::vector<int32_t> > mul_op0 = {(NODE_INFO_S){"Mul", "Mul123"}, {5}};
-        std::pair<NODE_INFO_S, std::vector<int32_t> > mul_op1 = {(NODE_INFO_S){"Mul", "Mul456"}, {}};
-        op_and_their_consumer.push_back(foo_op);
-        op_and_their_consumer.push_back(div_op);
-        op_and_their_consumer.push_back(erf_op);
-        op_and_their_consumer.push_back(add_op);
-        op_and_their_consumer.push_back(mul_op0);
-        op_and_their_consumer.push_back(mul_op1);
+        sub_graph_node foo_op = {(NODE_INFO_S){"Foo", "Foo123"}, {1, 4}};
+        sub_graph_node div_op = {(NODE_INFO_S){"Div", "Div123"}, {2}};
+        sub_graph_node erf_op = {(NODE_INFO_S){"Erf", "Erf123"}, {3}};
+        sub_graph_node add_op = {(NODE_INFO_S){"Add", "Add123"}, {4}};
+        sub_graph_node mul_op0 = {(NODE_INFO_S){"Mul", "Mul123"}, {5}};
+        sub_graph_node mul_op1 = {(NODE_INFO_S){"Mul", "Mul456"}, {}};
+        op_and_their_consumer = {foo_op, div_op, erf_op, add_op, mul_op0, mul_op1};
 
         fuse_operator("Gelu", one_buf_ptr, op_and_their_consumer,
                       total_fuse_op_cfg_set, fill_gelu_fuse_op_cfg);
@@ -453,24 +576,17 @@ int main(int argc, char **argv)
 
     // 这个是做 layer norm 的子图标记
     {
-        std::vector<std::pair<NODE_INFO_S, std::vector<int32_t>> > op_and_their_consumer;
+        std::vector<sub_graph_node> op_and_their_consumer(8);
 
-        std::pair<NODE_INFO_S, std::vector<int32_t> > foo_op = {(NODE_INFO_S){"Foo", "Foo123"}, {1, 2}};
-        std::pair<NODE_INFO_S, std::vector<int32_t> > reduce_mean_op0 = {(NODE_INFO_S){"ReduceMean", "ReduceMean123"}, {2}};
-        std::pair<NODE_INFO_S, std::vector<int32_t> > sub_op = {(NODE_INFO_S){"Sub", "Sub123"}, {3, 7}};
-        std::pair<NODE_INFO_S, std::vector<int32_t> > pow_op = {(NODE_INFO_S){"Pow", "Pow123"}, {4}};
-        std::pair<NODE_INFO_S, std::vector<int32_t> > reduce_mean_op1 = {(NODE_INFO_S){"ReduceMean", "ReduceMean456"}, {5}};
-        std::pair<NODE_INFO_S, std::vector<int32_t> > add_op1 = {(NODE_INFO_S){"Add", "Add123"}, {6}};
-        std::pair<NODE_INFO_S, std::vector<int32_t> > sqrt_op = {(NODE_INFO_S){"Sqrt", "Sqrt123"}, {7}};
-        std::pair<NODE_INFO_S, std::vector<int32_t> > div_op = {(NODE_INFO_S){"Div", "Div123"}, {}};
-        op_and_their_consumer.push_back(foo_op);
-        op_and_their_consumer.push_back(reduce_mean_op0);
-        op_and_their_consumer.push_back(sub_op);
-        op_and_their_consumer.push_back(pow_op);
-        op_and_their_consumer.push_back(reduce_mean_op1);
-        op_and_their_consumer.push_back(add_op1);
-        op_and_their_consumer.push_back(sqrt_op);
-        op_and_their_consumer.push_back(div_op);
+        sub_graph_node foo_op = {(NODE_INFO_S){"Foo", "Foo123"}, {1, 2}};
+        sub_graph_node reduce_mean_op0 = {(NODE_INFO_S){"ReduceMean", "ReduceMean123"}, {2}};
+        sub_graph_node sub_op = {(NODE_INFO_S){"Sub", "Sub123"}, {3, 7}};
+        sub_graph_node pow_op = {(NODE_INFO_S){"Pow", "Pow123"}, {4}};
+        sub_graph_node reduce_mean_op1 = {(NODE_INFO_S){"ReduceMean", "ReduceMean456"}, {5}};
+        sub_graph_node add_op1 = {(NODE_INFO_S){"Add", "Add123"}, {6}};
+        sub_graph_node sqrt_op = {(NODE_INFO_S){"Sqrt", "Sqrt123"}, {7}};
+        sub_graph_node div_op = {(NODE_INFO_S){"Div", "Div123"}, {}};
+        op_and_their_consumer = {foo_op, reduce_mean_op0, sub_op, pow_op, reduce_mean_op1, add_op1, sqrt_op, div_op};
 
         fuse_operator("LayerNorm", one_buf_ptr, op_and_their_consumer,
                       total_fuse_op_cfg_set, fill_layer_norm_fuse_op_cfg);
@@ -482,7 +598,7 @@ int main(int argc, char **argv)
     do_fuse(opt_one_buf_ptr, one_buf_ptr, one_file_size, total_fuse_op_cfg_set);
 
     auto dst_one_desc = (ONE_MODEL_DESC_S*)(opt_one_buf_ptr);
-    LOG_MSG("dst one have %d op", dst_one_desc->node_cnt);
+//    LOG_MSG("dst one have %d op", dst_one_desc->node_cnt);
 //    print_op_cfg(opt_one_buf_ptr);
     // step 10: // dump the optimize_one_buf_ptr as .one
     FILE *optimize_file_p = fopen(quant_one_file_path, "w");

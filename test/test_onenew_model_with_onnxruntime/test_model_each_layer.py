@@ -105,7 +105,7 @@ if __name__ == '__main__':
         err_max = abs(err.reshape(-1)).max()
         err_max_idx = abs(err.reshape(-1)).argmax()
         cos_sim = cosine_similarity(onnx_ref.reshape(-1), onenew_data.reshape(-1))
-        if (cos_sim < 0.999) | (math.isnan(cos_sim)):
+        if (cos_sim < 0.9998) | (math.isnan(cos_sim)):
             print("=========== the output of {} have big error, it is the {}th tensor, please check, cos_sim is {} ".format(key, correct_layer_num, cos_sim))
             fail_layer_num = fail_layer_num + 1
             # break
