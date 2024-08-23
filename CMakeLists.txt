@@ -12,7 +12,6 @@ add_subdirectory(device)
 
 add_subdirectory(example)
 
-add_subdirectory(tools/quant)
 add_subdirectory(tools/metrics)
 add_subdirectory(tools/onnx2one)
 add_subdirectory(tools/optimize)

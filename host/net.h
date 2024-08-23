@@ -40,8 +40,8 @@ public:
 
     int new_output_buf();
 
-    int prof_impl(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
-    int impl_with_tracing(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
+    int impl_dump_ofmap(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
+    int impl_tracing(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
 
     int impl(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
 
@@ -73,12 +73,17 @@ public:
 
         file_p = fopen(one_path, "r");
         if (file_p == NULL) {
-            std::cout << "failed: can't open the one file" << std::endl;
+            LOG_ERR("can't open the one file");
             return -1;
         }
         fread(one_buf_ptr, sizeof(char), one_file_size, file_p);
         fclose(file_p);
 
+        return 0;
+    }
+
+    int load_one_buf(char *one_ptr) {
+        one_buf_ptr = one_ptr;
         return 0;
     }
 
@@ -177,7 +182,24 @@ public:
     net(const char *one_path) {
 //        std::cout << "start load_one_model" << std::endl;
         if (load_one_model(one_path) != 0) {
-            std::cout << "failed: load_one_model failed! " << std::endl;
+            LOG_ERR("load_one_model failed!");
+        }
+
+//        std::cout << "start instantiate net op" << std::endl;
+        if (instantiate_op() != 0) {
+            std::cout << "failed: instantiate object of op class failed! " << std::endl;
+        }
+
+//        std::cout << "start remove the init operands" << std::endl;
+        if (mv_init_operands() != 0) {
+            std::cout << "failed: remove the init operands failed! " << std::endl;
+        }
+    };
+
+    net(void *one_buf_ptr) {
+//        std::cout << "start load_one_model" << std::endl;
+        if (load_one_buf((char*)one_buf_ptr) != 0) {
+            std::cout << "failed: load_one_buf failed! " << std::endl;
         }
 
 //        std::cout << "start instantiate net op" << std::endl;
@@ -379,7 +401,7 @@ int extractor::new_output_buf() {
 
 #include <sys/time.h>
 
-int extractor::prof_impl(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
+int extractor::impl_dump_ofmap(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
 
     std::unordered_map<std::string, double> op_type_time;
     std::unordered_map<std::string, double> op_name_time;
@@ -401,7 +423,7 @@ int extractor::prof_impl(std::unordered_map<std::string, std::vector<float>> &io
     // 依次执行 net 中排好序的 op
     int op_idx = 0;
     for (auto op : net_ptr->op_exec_order) {
-        gettimeofday(&begin, 0);
+//        gettimeofday(&begin, 0);
 
         op_idx++;
 
@@ -411,26 +433,23 @@ int extractor::prof_impl(std::unordered_map<std::string, std::vector<float>> &io
         op.get()->forward(operand_buf_map, net_ptr->operand_stu_map, net_ptr->init_operands_list);
 //        std::cout << "=== end this op type is:" << op->op_type << ", op_idx is: " << op_idx << std::endl;
 //
-        // dump output, if necessary
-        if (cfg_info_map["dump_output4each_node"] == "yes") {
-            if (!op.get()->out_operands.empty()) {
-                std::string omap_name = op.get()->out_operands[0];
-                char* omap_name_c = (char*)omap_name.c_str();
-                std::vector<float>* omap_vec = &operand_buf_map[omap_name];
-                char* ofmap_ptr = (char *)(&operand_buf_map[omap_name][0]);
-                std::string ofmap_name(replace_char(omap_name_c));
-                std::string ofmap_path = ofmap_folder + ofmap_name;
-                write_bin(ofmap_path.c_str(), omap_vec->size() * sizeof(float), ofmap_ptr);
-            }
-        }
-
-        gettimeofday(&end, 0);
-
         double op_ed = omp_get_wtime();
         elapsed = op_ed - op_st;
 
         op_type_time[std::string(op.get()->op_type)] += elapsed;
         op_name_time[std::string(op.get()->op_name)] += elapsed;
+
+        if (!op.get()->out_operands.empty()) {
+            std::string omap_name = op.get()->out_operands[0];
+            char* omap_name_c = (char*)omap_name.c_str();
+            std::vector<float>* omap_vec = &operand_buf_map[omap_name];
+            char* ofmap_ptr = (char *)(&operand_buf_map[omap_name][0]);
+            std::string ofmap_name(replace_char(omap_name_c));
+            std::string ofmap_path = ofmap_folder + ofmap_name;
+            write_bin(ofmap_path.c_str(), omap_vec->size() * sizeof(float), ofmap_ptr);
+        }
+//        gettimeofday(&end, 0);
+
     }
 
     // 将 out 数据放到 io_buf_map 中
@@ -451,20 +470,26 @@ int extractor::prof_impl(std::unordered_map<std::string, std::vector<float>> &io
         total_time += op_time.second;
     }
 
-    std::cout << "==============  the total_time is: " << total_time << " ==============" << std::endl;
-    std::cout << "==============  start show op_type_time ==============" << std::endl;
+    std::vector<std::pair<std::string, double>> vec(op_type_time.begin(), op_type_time.end());
+    std::sort(vec.begin(), vec.end(),
+              [](const std::pair<std::string, double>& a, const std::pair<std::string, double>& b) {
+        return a.second > b.second; // 降序排序
+    });
 
-    for (auto op_time : op_type_time) {
-        std::cout << "op name: " << op_time.first << ", time is: " << op_time.second
-        << ", ratio is: " << op_time.second * 100 / total_time << " %" << std::endl;
+    std::cout << "======================  the total_time is: " << total_time << " ======================" << std::endl;
+    const int align_pixel = 24;
+    std::cout << std::setw(align_pixel) << std::left << "op_type" << std::setw(align_pixel) << "op_time (ms)"
+    << std::setw(align_pixel) << "op_time_ratio (%)" << std::setw(align_pixel)  << std::endl;
+    for (auto op_time : vec) {
+        std::cout << std::setw(align_pixel) << std::left << op_time.first << std::setw(align_pixel) << op_time.second * 1000
+        << std::setw(align_pixel) << op_time.second * 100 / total_time << std::setw(align_pixel)  << std::endl;
     }
-
-    std::cout << "\n==============  end show the time ==============" << std::endl;
+    std::cout << "======================  end show op_type time ======================" << std::endl;
 
     return 0;
 }
 
-int extractor::impl_with_tracing(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
+int extractor::impl_tracing(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
 
     std::vector<std::vector<std::string>> op_with_tracing;
     op_with_tracing.resize(net_ptr->op_exec_order.size() + 1);

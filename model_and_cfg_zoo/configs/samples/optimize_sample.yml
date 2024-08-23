@@ -1,0 +1,41 @@
+# 这里提供了 optimize 所需的所有参数的说明
+# oneNew 目前的 3 个主要的优化包括：
+# 1、op_fusion ----> 算子融合，用于减少算子的调度开销，并且更有利于后续的优化开展；
+# 2、model_quant ----> 模型量化，将 conv 和 matmul 的 ifmap 和权重量化为 int8 数据类型，尽量减少带宽瓶颈并获得更高的计算性能
+# 3、auto_tuning ----> 自动调优，主要分为两部分：a)、最佳 layout 调优：conv 和 matmul 二者的 ifmap 和 ofmap 的 layout 自动选
+#     择，例如一个模型中，部分 conv 使用 nchw  进行计算和存储，另一部分 conv 使用 nhwc 进行计算和存储； b)、数据并行切分调优：多个硬
+#     件，例如 cpu 和 gpu，或多个 gpu 间的数据并行计算的切分策略
+
+# 1、（必选项）需要优化的点        可选项为：op_fusion、model_quant、auto_tuning 三者其一或任意组合，以 “&” 连接，例如：op_fusion&model_quant&auto_tuning
+optimize_type: model_quant
+
+
+# 2、（必选项）原始的 one 模型绝对路径
+# 注意：这里的路径应该选择你自己的 one 的路径
+one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/resnet50/resnet50.one
+
+
+# 3、（可选项）优化后 one 模型绝对路径，如果该参数不传入，则会将优化后的 one 覆写到 one_file_path 路径的 one
+# 注意：这里的路径应该选择你自己想保存的优化后的 one 的路径
+opt_one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/resnet50/resnet50.one
+
+
+# 4、（必选/可选项）如果 optimize_type 包含了 model_quant，则下面的几个参数是必选项，否则不需要填写
+# 4.1、填写量化的校正集的图片名称的 txt 路径，这里 txt 的每行填写的是一张图片名称，例如第一行内容为：ILSVRC2012_val_00000001.JPEG
+calibrate_img_name_txt_path: /home/wanzai/桌面/img_name.txt
+
+# 4.2、待用于量化的图片绝对路径
+calibrate_img_folder: /home/wanzai/桌面/imageNet/
+
+# 4.3、（必选项）使用多少张图片进行量化        推荐值为：256 ～ 1024 之间，例如 512
+calibrate_img_num: 512
+
+# 4.4、（可选项）是采用何种量化算法来对 model 进行量化        默认为：kl，可选项为：kl、mse
+quant_type: mse
+
+# 4.5、（必选项）图片的预处理参数，应该和后续 runtime 的图片预处理参数保持一致
+resize_shapes: [256, 256]
+crop_shapes: [224, 224]
+normal_mean: [0.485ff, 0.456ff, 0.406ff]
+normal_std: [0.229f, 0.224f, 0.225f]
+

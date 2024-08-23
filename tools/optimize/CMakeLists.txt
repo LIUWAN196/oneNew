@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10.1)
-set(PROJECTNAME fuse)
+set(PROJECTNAME optimize)
 project(${PROJECTNAME})
 
 find_package(OpenCV REQUIRED)
@@ -9,7 +9,7 @@ find_package(OpenMP REQUIRED)
 include_directories(${ROOT_DIR_PATH}/host)
 include_directories(${ROOT_DIR_PATH}/host/ops)
 
-add_executable(optimize optimize_one.cpp)
+add_executable(optimize optimize.cpp)
 target_link_libraries(optimize dl)
 target_link_libraries(optimize Threads::Threads)
 target_link_libraries(optimize  ${OpenCV_LIBS})

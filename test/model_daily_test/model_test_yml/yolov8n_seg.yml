@@ -1,0 +1,28 @@
+
+# runtime params
+
+onnx_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/onnx_model/yolov8n_seg.onnx
+
+do_preprocess: true
+
+do_postprocess: false
+
+one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/yolov8n_seg/yolov8n_seg.one
+
+dump_ifmap&ofmap: true
+
+input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/dog.png
+
+model_exc_type: release
+
+ofmap_folder: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_ofmap_path/yolov8n_seg/
+
+crop_shapes: [640, 640]
+resize_shapes: [640, 640]
+normal_mean: [0.0f, 0.0f, 0.0f]
+normal_std: [1.0f, 1.0f, 1.0f]
+
+# opt params
+optimize_type: op_fusion
+
+

@@ -1,0 +1,27 @@
+
+# runtime params
+
+onnx_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/onnx_model/mobilenet_v3_large.onnx
+
+do_preprocess: true
+
+do_postprocess: false
+
+one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/mobilenet_v3_large/mobilenet_v3_large.one
+
+dump_ifmap&ofmap: true
+
+input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/dog.png
+
+model_exc_type: release
+
+ofmap_folder: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_ofmap_path/mobilenet_v3_large/
+
+resize_shapes: [256, 256]
+crop_shapes: [224, 224]
+normal_mean: [0.485ff, 0.456ff, 0.406ff]
+normal_std: [0.229f, 0.224f, 0.225f]
+
+# opt params
+optimize_type: op_fusion
+

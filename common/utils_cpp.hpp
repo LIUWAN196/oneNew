@@ -13,6 +13,132 @@
 #include "algorithm"
 #include "cctype"
 
+#include <functional>
+#include <algorithm>
+
+#include <iostream>
+#include "opencv/cv.h"
+#include "opencv2/opencv.hpp"
+#include "opencv/cv.h"
+#include "opencv2/opencv.hpp"
+
+int32_t load_bin(const char *filename, const int64_t size, char *buf) {
+    FILE *file_p = NULL;
+
+    file_p = fopen(filename, "r");
+    if (file_p == NULL) {
+        printf("cant open the input bin\n");
+    }
+    size_t bytes_read = fread(buf, sizeof(char), size, file_p);
+    fclose(file_p);
+
+    return 0;
+}
+
+std::vector<std::string> split(const std::string& s)
+{
+    std::vector<std::string> words;
+    std::istringstream stream(s);
+
+    std::string word;
+    while (stream >> word)
+    {
+        words.push_back(word);
+    }
+
+    return words;
+}
+
+typedef enum {
+    RGB = 0,
+    BGR = 1,
+    YUV_NV12 = 2,
+    YUV_NV21 = 3,
+    YUV420P = 4,
+} COLOR_CODE_E;
+
+typedef struct {
+    int32_t resize_size[2];
+    int32_t crop_size[2];
+    COLOR_CODE_E out_color_code;
+    float mean[3];
+    float std[3];
+} TRANSFORMS_CONFIG_S;
+
+int transforms(std::vector<float> &rgb, std::string img_path, TRANSFORMS_CONFIG_S &trans_cfg) {
+    // step 0 : read img
+    cv::Mat ori_img = cv::imread(img_path);
+    if (ori_img.empty()) {
+        std::cout << "error: open " << img_path
+                  << " is failed, please check the img path." << std::endl;
+        return -1;
+    }
+
+    int16_t resize_h = trans_cfg.resize_size[0];
+    int16_t resize_w = trans_cfg.resize_size[1];
+
+    int16_t crop_h = trans_cfg.crop_size[0];
+    int16_t crop_w = trans_cfg.crop_size[1];
+
+    // step 1 : resize img
+    cv::Mat resized_img;
+    // 注意，最后一个参数是 resize 参数，要选 1 = INTER_LINEAR
+    cv::resize(ori_img, resized_img, cv::Size(resize_w, resize_h), 0, 0, 1);
+
+    int16_t crop_x = (resize_w - crop_w) >> 1;
+    int16_t crop_y = (resize_h - crop_h) >> 1;
+
+    // step 2 : crop img
+    cv::Rect roi(crop_x, crop_y, crop_w, crop_h);
+    if (roi.x + roi.width > resized_img.cols || roi.y + roi.height > resized_img.rows) {
+        std::cout << "cropping area beyond image boundaries." << std::endl;
+        return -1;
+    }
+    cv::Mat cropped_img = resized_img(roi);
+
+    cv::Mat rgb_img;
+    cv::cvtColor(cropped_img, rgb_img, cv::COLOR_BGR2RGB);
+
+    std::vector<cv::Mat> rgb_channels(3);
+    cv::split(rgb_img, rgb_channels);
+    for (auto i = 0; i < rgb_channels.size(); i++) {
+        // 转换为浮点型
+        rgb_channels[i].convertTo(rgb_channels[i], CV_32FC1);
+        // 减去均值
+        rgb_channels[i] -= trans_cfg.mean[i] * 255.0f;
+        // 除以标准差
+        rgb_channels[i] /= trans_cfg.std[i];
+        // 转换为 0 ~ 1
+        rgb_channels[i] /= 255.0f;
+    }
+
+    // 将处理后的数据复制到一维数组中
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < crop_w * crop_h; ++j) {
+            rgb[i * crop_w * crop_h + j] = rgb_channels[i].at<float>(j);
+        }
+    }
+
+}
+
+int launch_post_process(std::vector<BUFFER_INFO_S> &params, std::vector<BUFFER_INFO_S> &inputs, std::vector<BUFFER_INFO_S> &outputs){
+    Manager &m = Manager::getInstance();
+
+    char* op_cfg_ptr = (char*)(params[0].addr);
+
+    creator_ creator_op_method = m.Opmap[std::string(op_cfg_ptr)];
+
+    std::shared_ptr<op> op_ptr;
+
+    creator_op_method(op_ptr, op_cfg_ptr);
+
+    op_ptr->prepare(op_cfg_ptr);
+    op_ptr->forward(&params[0], &inputs[0], &outputs[0]);
+
+
+    return 0;
+}
+
 template <class T>
 std::vector<T> str2number(const std::string& str)
 {
@@ -45,9 +171,9 @@ std::string str2lower_str(const std::string& str)
 
 int set_default_args(std::unordered_map<std::string, std::string>& cfg_info_map,
                      const std::string key, const std::string value){
-    if (cfg_info_map["key"].empty())
+    if (cfg_info_map[key].empty())
     {
-        cfg_info_map["key"] = value;
+        cfg_info_map[key] = value;
     }
     return 1;
 }
@@ -91,44 +217,6 @@ int yml2map(std::unordered_map<std::string, std::string>& cfg_info_map, const st
 
             // 存储到 unordered_map 中
             cfg_info_map[key] = value;
-        }
-    }
-
-//    // step 3: parameter check
-//    std::string a = str2lower_str(cfg_info_map["do_preprocess4img"]);
-//    if (str2lower_str(cfg_info_map["do_preprocess4img"]) != "yes" &&
-//        str2lower_str(cfg_info_map["do_preprocess4img"]) != "no") {
-//        std::cerr << "the args: do_preprocess4img must be set, and the value must be yes or no" << std::endl;
-//        return -1;
-//    }
-
-//    if (str2lower_str(cfg_info_map["do_postprocess4net"]) != "yes" &&
-//        str2lower_str(cfg_info_map["do_postprocess4net"]) != "no") {
-//        std::cerr << "the args: do_postprocess4net must be set, and the value must be yes or no" << std::endl;
-//        return -1;
-//
-//    }
-
-//    if (str2lower_str(cfg_info_map["dump_output4each_node"]) != "yes" &&
-//        str2lower_str(cfg_info_map["dump_output4each_node"]) != "no") {
-//        std::cerr << "the args: dump_output4each_node must be set, and the value must be yes or no" << std::endl;
-//        return -1;
-//    }
-
-//    if (cfg_info_map["input_path"].empty()) {
-//        std::cerr << "the args: input_path must be set, and the value are the absolute path" << std::endl;
-//        return -1;
-//    }
-
-    if (str2lower_str(cfg_info_map["do_postprocess4net"]) == "yes") {
-        if (str2lower_str(cfg_info_map["postprocess_type"]) != "detection" &&
-            str2lower_str(cfg_info_map["postprocess_type"]) != "classification"  &&
-            str2lower_str(cfg_info_map["postprocess_type"]) != "pose_detection"  &&
-            str2lower_str(cfg_info_map["postprocess_type"]) != "segmentation") {
-            std::cerr << "you have set do_postprocess4net to yes, so the args: postprocess_type must be set, "
-                         "and the value must be detection、 classification、 pose_detection、 segmentation" << std::endl;
-            return -1;
-
         }
     }
 

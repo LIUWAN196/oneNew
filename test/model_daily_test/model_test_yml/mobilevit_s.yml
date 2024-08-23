@@ -1,0 +1,28 @@
+
+# runtime params
+
+onnx_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/onnx_model/mobilevit_s.onnx
+
+do_preprocess: true
+
+do_postprocess: false
+
+one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/mobilevit_s/mobilevit_s.one
+
+dump_ifmap&ofmap: true
+
+input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/dog.png
+
+model_exc_type: release
+
+ofmap_folder: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_ofmap_path/mobilevit_s/
+
+resize_shapes: [256, 256]
+crop_shapes: [224, 224]
+normal_mean: [0.3281186, 0.28937867, 0.20702125]
+normal_std: [22, 22, 22]
+
+# opt params
+optimize_type: op_fusion
+
+

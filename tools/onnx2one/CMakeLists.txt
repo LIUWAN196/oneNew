@@ -3,6 +3,7 @@ find_package(protobuf CONFIG)
 set(CMAKE_BUILD_TYPE DEBUG)
 
 find_package(OpenMP REQUIRED)
+find_package(OpenCV REQUIRED)
 
 if(protobuf_FOUND)
     set(PROTOBUF_FOUND ${protobuf_FOUND})
@@ -42,6 +43,7 @@ else()
     message(WARNING "Protobuf not found, onnx model convert tool won't be built")
 endif()
 
+target_link_libraries(onnx2one PRIVATE ${OpenCV_LIBS})
 target_link_libraries(onnx2one PRIVATE dl)
 target_link_libraries(onnx2one PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(onnx2one PRIVATE OpenMP::OpenMP_C)
