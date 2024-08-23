@@ -553,7 +553,7 @@ int extractor::impl_tracing(std::unordered_map<std::string, std::vector<float>> 
         }
     }
 
-    std::string csv_file = cfg_info_map["csv_file"];
+    std::string csv_file = cfg_info_map["tracing_csv_path"];
     std::ofstream file(csv_file.c_str());
     for (const auto& row : op_with_tracing) {
         for (size_t i = 0; i < row.size(); i++) {

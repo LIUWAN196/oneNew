@@ -1,29 +1,24 @@
-# 0  description: this is runtime args of one new
+# resnet50 metrics config
 
-# 1  follow args you need fill
-do_preprocess4img: yes
-do_postprocess4net: yes
-one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/one_model/resnet50.one
-input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/dog.png
-in_operand_name: input.1
-out_operand_name: input.1
-imagenet_label_txt_path: /home/wanzai/桌面/imagenet_label.txt
-calibrate_img_path: /home/wanzai/桌面/imageNet/
+do_preprocess: true
 
-dump_output4each_node: no
-ofmap_folder: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/ofmap4debug/resnet18/
+do_postprocess: true
 
-# if you want to do postprocess, please fill this args classification or detection
+one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/resnet50/resnet50.one
+
+metrics_img_label_txt_path: /home/wanzai/桌面/img_name.txt
+
+metrics_img_path: /home/wanzai/桌面/imageNet/
+
+metrics_img_num: 5000
+
+model_exc_type: release
+
 postprocess_type: classification
 
-# 2  you need fill follow args, if you want to do postprocess and the net is classification
 resize_shapes: [256, 256]
 crop_shapes: [224, 224]
 normal_mean: [0.485ff, 0.456ff, 0.406ff]
 normal_std: [0.229f, 0.224f, 0.225f]
-
-# 3  you need fill follow args, if you want to do postprocess and the net is classification
-topk: 5
-
 
 

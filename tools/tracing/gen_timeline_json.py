@@ -32,24 +32,8 @@ def add_item(major_op_info, op_type, op_computation, op_exc_time):
 
 if __name__ == '__main__':
     # step 1：加载 csv
-    # csv_file_name = 'timeline_csv_json/resnet50.csv'
-    # json_file_name = 'timeline_csv_json/resnet50.json'
-
-    csv_file_name = 'timeline_csv_json/opt_mobilevit_s.csv'
-    json_file_name = 'timeline_csv_json/opt_mobilevit_s.json'
-
-
-    # csv_file_name = 'timeline_csv_json/yolov5s.csv'
-    # json_file_name = 'timeline_csv_json/yolov5s.json'
-
-    # csv_file_name = 'timeline_csv_json/vit_b.csv'
-    # json_file_name = 'timeline_csv_json/vit_b.json'
-
-    # csv_file_name = 'timeline_csv_json/swin_t.csv'
-    # json_file_name = 'timeline_csv_json/swin_t.json'
-
-    # csv_file_name = 'timeline_csv_json/opt_vit_b.csv'
-    # json_file_name = 'timeline_csv_json/opt_vit_b.json'
+    csv_file_name = 'timeline_info/swin_t.csv'
+    json_file_name = 'timeline_info/swin_t.json'
 
     dataset=load_csv(csv_file_name)
 

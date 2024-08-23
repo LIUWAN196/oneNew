@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10.1)
-set(PROJECTNAME net_metrics)
+set(PROJECTNAME model_metrics)
 project(${PROJECTNAME})
 
 find_package(OpenCV REQUIRED)
@@ -11,12 +11,12 @@ message(${OpenCV_INCLUDE_DIRS})
 include_directories(${ROOT_DIR_PATH}/host)
 include_directories(${ROOT_DIR_PATH}/host/ops)
 
-add_executable(net_metrics net_metrics.cpp)
-target_link_libraries(net_metrics dl)
-target_link_libraries(net_metrics Threads::Threads)
-target_link_libraries(net_metrics  ${OpenCV_LIBS})
-target_link_libraries(net_metrics OpenMP::OpenMP_CXX)
-target_link_libraries(net_metrics OpenMP::OpenMP_C)
+add_executable(model_metrics metrics.cpp)
+target_link_libraries(model_metrics dl)
+target_link_libraries(model_metrics Threads::Threads)
+target_link_libraries(model_metrics  ${OpenCV_LIBS})
+target_link_libraries(model_metrics OpenMP::OpenMP_CXX)
+target_link_libraries(model_metrics OpenMP::OpenMP_C)
 
 
 

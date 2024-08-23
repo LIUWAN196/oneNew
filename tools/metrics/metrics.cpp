@@ -13,141 +13,10 @@
 #include "ops_head.h"
 #include "net.h"
 
-int32_t load_bin(const char *filename, const int64_t size, char *buf) {
-    FILE *file_p = NULL;
-
-    file_p = fopen(filename, "r");
-    if (file_p == NULL) {
-        printf("cant open the input bin\n");
-    }
-    size_t bytes_read = fread(buf, sizeof(char), size, file_p);
-    fclose(file_p);
-
-    return 0;
-}
-
-typedef enum {
-    RGB = 0,
-    BGR = 1,
-    YUV_NV12 = 2,
-    YUV_NV21 = 3,
-    YUV420P = 4,
-} COLOR_CODE_E;
-typedef enum {
-    A = 0,
-    B = 1,
-    C = 2,
-    D = 3,
-    E = 4,
-} RESIZE_METHOD_E;
-typedef struct {
-    int32_t resize_size[2];
-    int32_t crop_size[2];
-    COLOR_CODE_E out_color_code;
-    RESIZE_METHOD_E resize_method;
-    float mean[3];
-    float std[3];
-} TRANSFORMS_CONFIG_S;
-
-
-#include <iostream>
-#include "opencv/cv.h"
-#include "opencv2/opencv.hpp"
-#include "opencv/cv.h"
-#include "opencv2/opencv.hpp"
-
-int transforms(std::vector<float> &rgb, std::string img_path, TRANSFORMS_CONFIG_S &trans_cfg) {
-    // step 0 : read img
-    cv::Mat ori_img = cv::imread(img_path);
-    if (ori_img.empty()) {
-        std::cout << "error: open " << img_path
-                  << " is failed, please check the img path." << std::endl;
-        return -1;
-    }
-
-    int16_t resize_h = trans_cfg.resize_size[0];
-    int16_t resize_w = trans_cfg.resize_size[1];
-
-    int16_t crop_h = trans_cfg.crop_size[0];
-    int16_t crop_w = trans_cfg.crop_size[1];
-
-    // step 1 : resize img
-    cv::Mat resized_img;
-    // 注意，最后一个参数是 resize 参数，要选 1 = INTER_LINEAR
-    cv::resize(ori_img, resized_img, cv::Size(resize_w, resize_h), 0, 0, 1);
-
-    int16_t crop_x = (resize_w - crop_w) >> 1;
-    int16_t crop_y = (resize_h - crop_h) >> 1;
-
-    // step 2 : crop img
-    cv::Rect roi(crop_x, crop_y, crop_w, crop_h);
-    if (roi.x + roi.width > resized_img.cols || roi.y + roi.height > resized_img.rows) {
-        std::cout << "cropping area beyond image boundaries." << std::endl;
-        return -1;
-    }
-    cv::Mat cropped_img = resized_img(roi);
-
-    cv::Mat rgb_img;
-    cv::cvtColor(cropped_img, rgb_img, cv::COLOR_BGR2RGB);
-
-    std::vector<cv::Mat> rgb_channels(3);
-    cv::split(rgb_img, rgb_channels);
-    for (auto i = 0; i < rgb_channels.size(); i++) {
-        // 转换为浮点型
-        rgb_channels[i].convertTo(rgb_channels[i], CV_32FC1);
-        // 减去均值
-        rgb_channels[i] -= trans_cfg.mean[i] * 255.0f;
-        // 除以标准差
-        rgb_channels[i] /= trans_cfg.std[i];
-        // 转换为 0 ~ 1
-        rgb_channels[i] /= 255.0f;
-    }
-
-    // 将处理后的数据复制到一维数组中
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < crop_w * crop_h; ++j) {
-            rgb[i * crop_w * crop_h + j] = rgb_channels[i].at<float>(j);
-        }
-    }
-
-}
-
-
-int launch_post_process(std::vector<BUFFER_INFO_S> &params, std::vector<BUFFER_INFO_S> &inputs,
-                        std::vector<BUFFER_INFO_S> &outputs) {
-    Manager &m = Manager::getInstance();
-
-    char *op_cfg_ptr = (char *) (params[0].addr);
-
-    creator_ creator_op_method = m.Opmap[std::string(op_cfg_ptr)];
-
-    std::shared_ptr<op> op_ptr;
-
-    creator_op_method(op_ptr, op_cfg_ptr);
-
-    op_ptr->prepare(op_cfg_ptr);
-    op_ptr->forward(&params[0], &inputs[0], &outputs[0]);
-
-
-    return 0;
-}
-
-std::vector<std::string> split(const std::string &s) {
-    std::vector<std::string> words;
-    std::istringstream stream(s);
-
-    std::string word;
-    while (stream >> word) {
-        words.push_back(word);
-    }
-
-    return words;
-}
-
 int main(int argc, char **argv) {
-    if (argc != 2) {
-        std::cout << "Usage: " << argv[0] << " [runtime config.txt]" << std::endl;
-        exit(-1);
+    if (argc != 2)
+    {
+        LOG_ERR("Usage: %s [metrics.yml]", argv[0]);
     }
     const char *rt_cfg_txt = argv[1];
     std::string rt_cfg_txt_str(rt_cfg_txt);
@@ -156,15 +25,16 @@ int main(int argc, char **argv) {
 
     const char *one_file_path = cfg_info_map["one_file_path"].c_str();
     net *model = new net(one_file_path);
-    std::string in_operand_name = cfg_info_map["in_operand_name"];
-
     model->build_graph();
-    extractor *exe_net = model->create_exe();
+    extractor* exe_net = model->create_exe();
+
+    auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
+    std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
     std::unordered_map<std::string, std::vector<float>> io_buf_map;
 
-    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
     std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
+    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
     std::vector<float> normal_mean = str2number<float>(cfg_info_map["normal_mean"]);
     std::vector<float> normal_std = str2number<float>(cfg_info_map["normal_std"]);
 
@@ -186,28 +56,29 @@ int main(int argc, char **argv) {
     trans_cfg.std[1] = normal_std[1];
     trans_cfg.std[2] = normal_std[2];
 
-    std::ifstream file(cfg_info_map["imagenet_label_txt_path"]);
+    int32_t metrics_img_num = std::stoi(cfg_info_map["metrics_img_num"]);
+
+    std::ifstream file(cfg_info_map["metrics_img_label_txt_path"]);
     std::string line;
+
+    char buffer[101] = {0};//存储进度条字符
+    char arr[5] = {"-/|\\"};//存储基本的变化字幕
+    printf("metrics [%.2f%%] [%-100s][%c]    img_cnt: %d/%d, top1: %.4f, top5: %.4f, time(s): %.2f\r",
+           0.0f, buffer, arr[1], 0, metrics_img_num, 0.0f, 0.0f, 0.0f);
+    fflush(stdout);
 
     double omp_st = omp_get_wtime();
 
     int32_t img_cnt = 0, top1_cnt = 0, top5_cnt = 0;
-    while (std::getline(file, line)) {
+    while (std::getline(file, line) && img_cnt < metrics_img_num) {
         std::vector<std::string> words = split(line);
-        std::string path = cfg_info_map["calibrate_img_path"];
+        std::string path = cfg_info_map["metrics_img_path"];
         std::string img = words[0];
         int32_t label = std::stoi(words[1]);
         std::string img_path = path + img;
 
-//        printf("tha tar label is %d\n", label);
-
         transforms(in_buf, img_path, trans_cfg);
         io_buf_map[in_operand_name] = in_buf;
-
-        std::string ifmap_folder = cfg_info_map["ofmap_folder"];
-        std::string ifmap_name("model_ifmap.bin");
-        std::string ifmap_path = ifmap_folder + ifmap_name;
-//        write_bin(ifmap_path.c_str(), in_elem_size * sizeof(float), (char *) &in_buf[0]);
 
         exe_net->impl(io_buf_map, cfg_info_map);
 
@@ -317,12 +188,17 @@ int main(int argc, char **argv) {
             }
         }
 
-
-        if (img_cnt % 100 == 0) {
+        if (img_cnt % 20 == 0 || metrics_img_num < 2000) {
             double omp_ed = omp_get_wtime();
             double elapsed = omp_ed - omp_st;
-            printf("img cnt is %d, top1 ratio is %f, top5 ratio is %f, using time: %fs\n",
-                   img_cnt, top1_cnt * 1.0f / img_cnt, top5_cnt * 1.0f / img_cnt, elapsed);
+            float schedule = (img_cnt + 1.0f) / metrics_img_num * 100;
+            float top1_ratio = top1_cnt * 1.0f / img_cnt;
+            float top5_ratio = top5_cnt * 1.0f / img_cnt;
+            int schedule_int = (int)schedule;
+            buffer[schedule_int] = '#';
+            printf("metrics [%.2f%%] [%-100s][%c]    img_cnt: %d/%d, top1: %.4f, top5: %.4f, time(s): %.2f\r",
+                   schedule, buffer, arr[schedule_int % 4], img_cnt, metrics_img_num, top1_ratio, top5_ratio, elapsed);
+            fflush(stdout);
         }
     }
 
