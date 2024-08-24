@@ -32,8 +32,8 @@ def add_item(major_op_info, op_type, op_computation, op_exc_time):
 
 if __name__ == '__main__':
     # step 1：加载 csv
-    csv_file_name = 'timeline_info/swin_t.csv'
-    json_file_name = 'timeline_info/swin_t.json'
+    csv_file_name = 'timeline_info/mobilenet_v2.csv'
+    json_file_name = 'timeline_info/mobilenet_v2.json'
 
     dataset=load_csv(csv_file_name)
 

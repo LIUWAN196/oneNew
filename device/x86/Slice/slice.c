@@ -7,6 +7,8 @@
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
+//    show_dev_input(params);
+
     SLICE_CONFIG_S *cfg = (SLICE_CONFIG_S *) (params[0].addr);
 //    printf("yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 
@@ -49,22 +51,34 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
         step2 = cfg->steps[1];
     }
 
-//    printf("st1 is %d, step1 is %d, st2 is %d, step2 is %d\n", st1, step1, st2, step2);
+//    LOG_MSG("st1 is %d, step1 is %d, st2 is %d, step2 is %d\n", st1, step1, st2, step2);
+//    LOG_ERR("end slice");
 
     int32_t inner_elem_size = 1;
     for (int i = 3; i < SHAPE_LEN; ++i) {
         inner_elem_size *= in_tensor->shapes[i];
     }
 
-    for (int out1_i = 0; out1_i < out_tensor->shapes[1]; ++out1_i) {
-        for (int out2_i = 0; out2_i < out_tensor->shapes[2]; ++out2_i) {
-            float *cur_ofmap_ptr = output_ptr + out1_i * out_tensor->shapes[2] * inner_elem_size + out2_i * inner_elem_size;
-            float *cur_ifmap_ptr = input_ptr + (out1_i + st1) * step1 * in_tensor->shapes[2] * inner_elem_size
-                    + (out2_i + st2) * step2 * inner_elem_size;
-            memcpy(cur_ofmap_ptr, cur_ifmap_ptr, inner_elem_size * sizeof(float));
+    for (int out0_i = 0; out0_i < out_tensor->shapes[0]; ++out0_i) {
+        for (int out1_i = 0; out1_i < out_tensor->shapes[1]; ++out1_i) {
+            for (int out2_i = 0; out2_i < out_tensor->shapes[2]; ++out2_i) {
+                float *cur_ofmap_ptr = output_ptr + out0_i * out_tensor->shapes[1] * out_tensor->shapes[2] * inner_elem_size + out1_i * out_tensor->shapes[2] * inner_elem_size + out2_i * inner_elem_size;
+                float *cur_ifmap_ptr = input_ptr + out0_i * in_tensor->shapes[1] * in_tensor->shapes[2] * inner_elem_size + (out1_i + st1) * step1 * in_tensor->shapes[2] * inner_elem_size
+                                       + (out2_i + st2) * step2 * inner_elem_size;
+                memcpy(cur_ofmap_ptr, cur_ifmap_ptr, inner_elem_size * sizeof(float));
 
+            }
         }
     }
+//    for (int out1_i = 0; out1_i < out_tensor->shapes[1]; ++out1_i) {
+//        for (int out2_i = 0; out2_i < out_tensor->shapes[2]; ++out2_i) {
+//            float *cur_ofmap_ptr = output_ptr + out1_i * out_tensor->shapes[2] * inner_elem_size + out2_i * inner_elem_size;
+//            float *cur_ifmap_ptr = input_ptr + (out1_i + st1) * step1 * in_tensor->shapes[2] * inner_elem_size
+//                    + (out2_i + st2) * step2 * inner_elem_size;
+//            memcpy(cur_ofmap_ptr, cur_ifmap_ptr, inner_elem_size * sizeof(float));
+//
+//        }
+//    }
 
     return 0;
 }

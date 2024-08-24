@@ -1,16 +1,16 @@
-# resnet50 metrics config
+# vit_t metrics config
 
 do_preprocess: true
 
 do_postprocess: true
 
-one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/resnet50/resnet50.one
+one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/vit_t/vit_t.one
 
 metrics_img_label_txt_path: /home/wanzai/桌面/img_name.txt
 
 metrics_img_path: /home/wanzai/桌面/imageNet/
 
-metrics_img_num: 50000
+metrics_img_num: 1000
 
 model_exc_type: release
 
@@ -18,7 +18,6 @@ postprocess_type: classification
 
 resize_shapes: [256, 256]
 crop_shapes: [224, 224]
-normal_mean: [0.485ff, 0.456ff, 0.406ff]
-normal_std: [0.229f, 0.224f, 0.225f]
-
+normal_mean: [0.5f, 0.5f, 0.5f]
+normal_std: [0.5f, 0.5f, 0.5f]
 

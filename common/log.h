@@ -40,11 +40,11 @@ do {                \
                 abort();                                                                                         \
                 break;                                                                                           \
             case DBG_LEVEL:                                                                                      \
-                printf("\033[33m[%s][DEBUG]: %s:%d: Debug content: " fmt "\033[0m", __TIME__, file, line,      \
+                printf("\033[33m[%s][DEBUG]: %s:%d: Debug content: " fmt "\033[0m\n", __TIME__, file, line,      \
                        ##__VA_ARGS__);                                                                           \
                 break;                                                                                           \
             case MSG_LEVEL:                                                                                      \
-                printf("[%s][MESSAGE]: %s:%d: Message content: " fmt "", __TIME__, file, line, ##__VA_ARGS__); \
+                printf("[%s][MESSAGE]: %s:%d: Message content: " fmt "\n", __TIME__, file, line, ##__VA_ARGS__); \
                 break;                                                                                           \
             default:                                                                                             \
                 break;                                                                                           \

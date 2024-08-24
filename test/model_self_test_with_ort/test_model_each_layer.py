@@ -96,8 +96,9 @@ if __name__ == '__main__':
         else:
             continue
 
-        if (key == "/vit/encoder/layer.0/layernorm_before/Div_output_0") :
+        if (key == "/Add_1_output_0") :
             a = 101
+            err = onnx_ref - onenew_data
             b = 102
 
         # compute similarity

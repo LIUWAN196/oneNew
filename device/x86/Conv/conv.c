@@ -87,18 +87,22 @@ int do_pad_conv_new(char *dst_ptr, char *src_ptr, OPERAND_S *src_data_desc, PAD_
     int32_t dst_h = src_h + pad_cfg->top_pad + pad_cfg->bottom_pad;
     int32_t dst_w = src_w + pad_cfg->left_pad + pad_cfg->right_pad;
 
-    for (int i = 0; i < dst_c * dst_h * dst_w; ++i) {
-        dst_f32[i] = pad_value;
-    }
-//    memset(dst_ptr, dst_c * dst_h * dst_w * sizeof(float), pad_value);
+    memset(dst_f32, 0, dst_c * dst_h * dst_w * sizeof(float));
+//    for (int i = 0; i < dst_c * dst_h * dst_w; ++i) {
+//        dst_f32[i] = pad_value;
+//    }
 
+    float *cur_dst_f32, *cur_src_f32;
+//#pragma omp parallel for num_threads(8)
     for (int c_i = 0; c_i < dst_c; ++c_i) {
+//#pragma unroll 2
         for (int h_i = pad_cfg->top_pad; h_i < dst_h - pad_cfg->bottom_pad; ++h_i) {
+            cur_dst_f32 = dst_f32 + c_i * dst_h * dst_w + h_i * dst_w;
+            cur_src_f32 = src_f32 + c_i * src_h * src_w + (h_i - pad_cfg->top_pad) * src_w;
+#pragma unroll 2
             for (int w_i = pad_cfg->left_pad; w_i < dst_w - pad_cfg->right_pad; ++w_i) {
-                dst_f32[c_i * dst_h * dst_w + h_i * dst_w + w_i]
-                    = src_f32[c_i * src_h * src_w + (h_i - pad_cfg->top_pad) * src_w + (w_i - pad_cfg->left_pad)];
+                cur_dst_f32[w_i] = cur_src_f32[(w_i - pad_cfg->left_pad)];
             }
-
         }
     }
 
@@ -587,62 +591,15 @@ int eval_depthwise_conv_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs
     return 0;
 }
 
-
-void Swap(float *a,float *b)
-{
-    float tmp=*a;
-    *a=*b;
-    *b=tmp;
-}
-
-int PartSort1(float * a, int left, int right)//快排
-{
-    int keyi = left;
-    while (left < right)
-    {
-        //找小
-        while (left < right && a[right] >= a[keyi])
-        {
-            --right;
-        }
-
-        //找大
-        while (left < right && a[left] <= a[keyi])
-        {
-            ++left;
-        }
-        Swap(&a[left], &a[right]);
-    }
-    Swap(&a[keyi], &a[left]);
-    return left;
-}
-
-void Quicksort(float *a, int begin, int end)
-{
-    if(begin>=end)
-    {
-        return;
-    }
-
-    int key=PartSort1(a,begin,end);
-    Quicksort(a,begin,key-1);
-    Quicksort(a,key+1,end);
-}
-
-
-int eval_mxn_img2col_W8A32(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+int eval_depthwise_conv_3x3_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
-//    // printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 
     int32_t stride_x = cfg->strides[0];
     int32_t stride_y = cfg->strides[1];
 
     float *input_ptr = (float *) (inputs[0].addr);
     float *weight_ptr = (float *) (inputs[1].addr);
-
-    // printf("input is %f, %f\n", input_ptr[0], input_ptr[1]);
-    // printf("weight is %f, %f\n", weight_ptr[0], weight_ptr[1]);
 
     float *bias_ptr;
     if (cfg->has_bias) {
@@ -652,13 +609,9 @@ int eval_mxn_img2col_W8A32(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_
     float *output_ptr = (float *) (outputs[0].addr);
 
     OPERAND_S *in_tensor = (OPERAND_S *) (params[1].addr);
-    OPERAND_S *out_tensor = (OPERAND_S *) (params[2].addr);
-    OPERAND_S *weight_tensor = (OPERAND_S *) (params[3].addr);
-    OPERAND_S *bias_tensor;
-
-    if (cfg->has_bias) {
-        bias_tensor = (OPERAND_S *) (params[4].addr);
-    }
+    OPERAND_S *weight_tensor = (OPERAND_S *) (params[2].addr);
+    OPERAND_S *bias_tensor = (OPERAND_S *) (params[3].addr);
+    OPERAND_S *out_tensor = (OPERAND_S *) (params[4].addr);
 
     int32_t kernel_c = weight_tensor->shapes[1];
     int32_t kernel_h = weight_tensor->shapes[2];
@@ -675,148 +628,71 @@ int eval_mxn_img2col_W8A32(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_
     int32_t out_w = out_tensor->shapes[3];
 
     void *src_pad_ptr;
+    // conv pads:  top  left  bottom  right
+    if (cfg->pads[0] != 0 || cfg->pads[1] != 0 || cfg->pads[2] != 0 || cfg->pads[3] != 0) {
 
-    // do pad
-    src_pad_ptr = malloc(in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float));
-    PAD_INNER_CONFIG_S pad_cfg;
-    pad_cfg.h = cfg->pads[0];
-    pad_cfg.w = cfg->pads[0];
+        PAD_INNER_CONFIG_S pad_cfg;
+        pad_cfg.top_pad = cfg->pads[0];
+        pad_cfg.left_pad = cfg->pads[1];
+        pad_cfg.bottom_pad = cfg->pads[2];
+        pad_cfg.right_pad = cfg->pads[3];
 
-    in_h = in_h + 2 * cfg->pads[0];
-    in_w = in_w + 2 * cfg->pads[0];
+        // do pad
+        src_pad_ptr = malloc(in_n * in_c * (in_h + pad_cfg.top_pad + pad_cfg.bottom_pad) * (in_w + pad_cfg.left_pad + pad_cfg.right_pad) * sizeof(float));
 
-    do_pad_conv(src_pad_ptr, input_ptr, in_tensor, &pad_cfg);
-    input_ptr = (float *) src_pad_ptr;
+        in_h = in_h + pad_cfg.top_pad + pad_cfg.bottom_pad;
+        in_w = in_w + pad_cfg.left_pad + pad_cfg.right_pad;
 
-
-
-    float *input_col_ptr = malloc(in_c * kernel_w * kernel_h * out_h * out_w * sizeof(float));
-    im2col(input_col_ptr, input_ptr, in_tensor, out_tensor, weight_tensor, cfg);
-    input_ptr = input_col_ptr;
-
-    // ============================
-    // to find the 99.9% num
-    float percentile = 99.999 / 100;
-    int32_t percentile_idx = (int32_t)(percentile * in_n * in_c * in_h * in_w - 1);
-    float* src_tmp_ptr = (float* )malloc(in_n * in_c * in_h * in_w * sizeof(float));
-    float* src_ptr1 = (float *)src_pad_ptr;
-    for (int i = 0; i < in_n * in_c * in_h * in_w; ++i) {
-        src_tmp_ptr[i] = src_ptr1[i] > 0 ? src_ptr1[i] : -1 * src_ptr1[i];
+        do_pad_conv_new(src_pad_ptr, input_ptr, in_tensor, &pad_cfg);
+        input_ptr = (float *) src_pad_ptr;
     }
-    Quicksort(src_tmp_ptr, 0, in_n * in_c * in_h * in_w - 1);
-    float  threahold = src_tmp_ptr[percentile_idx];
-
-    // trans input from float to int8
-    int8_t *input_s8_ptr = malloc(in_c * kernel_w * kernel_h * out_h * out_w * sizeof(int8_t));
-    for (int i = 0; i < in_c * kernel_w * kernel_h * out_h * out_w; ++i) {
-        input_s8_ptr[i] = (int8_t)(input_ptr[i] / threahold * 127);
-    }
-    int tmp = 101;
-
-
-    // weight and ifmap all s8
-    const int M = out_c;
-    const int N = out_h * out_w;
-    const int K = in_c * kernel_h * kernel_w;
-
-    int8_t * weight_s8_ptr = (int8_t*)weight_ptr;
-    int32_t * bias_s32_ptr = (int32_t*)bias_ptr;
 
 #pragma omp parallel for num_threads(8)
-    for (int i = 0; i < M; i++)
-    {
-        memset(&output_ptr[i * N], 0, N * sizeof(float));
-        int idx_a, idx_b, idx_c;
-        idx_c = i * N;
-        for (int k = 0; k < K; k++)
-        {
-            idx_a = i * K + k;
-            idx_b = k * N;
+    for (int outc_i = 0; outc_i < out_c; ++outc_i) {
+//#pragma unroll 4
+        for (int outh_i = 0; outh_i < out_h; ++outh_i) {
+            float *cur_weight_ptr = weight_ptr + outc_i * kernel_h * kernel_w;
+            float* cur_ofmp_ptr = output_ptr + outc_i * out_h * out_w + outh_i * out_w;
+            float* cur_ifmp_ptr = input_ptr + outc_i * in_h * in_w + outh_i * stride_y * in_w;
+//            float* cur_ifmp_ptr;
+#pragma unroll 4
+            for (int outw_i = 0; outw_i < out_w; ++outw_i) {
+                float psum = 0;
+//                cur_ifmp_ptr = cur_ifmp0_ptr + outw_i * stride_x;
 
-            // s8 * s8
-            for (int j = 0; j < N; ++j) {
-                output_ptr[idx_c + j] += weight_s8_ptr[idx_a] * input_s8_ptr[idx_b + j];
+//                psum += cur_weight_ptr[0] * cur_ifmp_ptr[0 * in_w + 0];
+//                psum += cur_weight_ptr[1] * cur_ifmp_ptr[0 * in_w + 1];
+//                psum += cur_weight_ptr[2] * cur_ifmp_ptr[0 * in_w + 2];
+//
+//                psum += cur_weight_ptr[3] * cur_ifmp_ptr[1 * in_w + 0];
+//                psum += cur_weight_ptr[4] * cur_ifmp_ptr[1 * in_w + 1];
+//                psum += cur_weight_ptr[5] * cur_ifmp_ptr[1 * in_w + 2];
+//
+//                psum += cur_weight_ptr[6] * cur_ifmp_ptr[2 * in_w + 0];
+//                psum += cur_weight_ptr[7] * cur_ifmp_ptr[2 * in_w + 1];
+//                psum += cur_weight_ptr[8] * cur_ifmp_ptr[2 * in_w + 2];
+
+                psum += cur_weight_ptr[0] * cur_ifmp_ptr[0 * in_w + 0 + outw_i * stride_x];
+                psum += cur_weight_ptr[1] * cur_ifmp_ptr[0 * in_w + 1 + outw_i * stride_x];
+                psum += cur_weight_ptr[2] * cur_ifmp_ptr[0 * in_w + 2 + outw_i * stride_x];
+
+                psum += cur_weight_ptr[3] * cur_ifmp_ptr[1 * in_w + 0 + outw_i * stride_x];
+                psum += cur_weight_ptr[4] * cur_ifmp_ptr[1 * in_w + 1 + outw_i * stride_x];
+                psum += cur_weight_ptr[5] * cur_ifmp_ptr[1 * in_w + 2 + outw_i * stride_x];
+
+                psum += cur_weight_ptr[6] * cur_ifmp_ptr[2 * in_w + 0 + outw_i * stride_x];
+                psum += cur_weight_ptr[7] * cur_ifmp_ptr[2 * in_w + 1 + outw_i * stride_x];
+                psum += cur_weight_ptr[8] * cur_ifmp_ptr[2 * in_w + 2 + outw_i * stride_x];
+
+                cur_ofmp_ptr[outw_i] = psum + bias_ptr[outc_i];
             }
         }
-
-        for (int z = 0; z < N; ++z) {
-            output_ptr[idx_c + z] = output_ptr[idx_c + z] / 127 * threahold;
-            output_ptr[idx_c + z] += bias_s32_ptr[i];
-        }
     }
-
-
-
-//    // ==============================================================================
-//    // trans weight and bias to int8
-//    float aux[2048];
-//    const int inner = kernel_c * kernel_w * kernel_h;
-//    const int kernel_num = out_c;
-//    int32_t * biase_s32_ptr = (int32_t *)bias_ptr;
-//    for (int k_ni = 0; k_ni < kernel_num; ++k_ni) {
-//        float* cur_weight_ptr = weight_ptr + k_ni * inner;
-//        int8_t * cur_weight_s8_ptr = (int8_t *)weight_ptr + k_ni * inner;
-//        float cur_max_abs = 0;
-//        for (int i = 0; i < inner; ++i) {
-//            cur_max_abs = fabs(cur_weight_ptr[i]) > cur_max_abs ? fabs(cur_weight_ptr[i]) : cur_max_abs;
-//        }
-//        for (int i = 0; i < inner; ++i) {
-//            cur_weight_s8_ptr[i] = (int8_t)(cur_weight_ptr[i] * 127 / cur_max_abs);
-//        }
-//        biase_s32_ptr[k_ni] = (int32_t)(bias_ptr[k_ni] * 127 / cur_max_abs);
-//        aux[k_ni] = cur_max_abs;
-//    }
-//    // ==============================================================================
-
-/*
-// weight is s8, ifmp is float
-    const int M = out_c;
-    const int N = out_h * out_w;
-    const int K = in_c * kernel_h * kernel_w;
-
-    int8_t * weight_s8_ptr = (int8_t*)weight_ptr;
-    int32_t * bias_s32_ptr = (int32_t*)bias_ptr;
-
-#pragma omp parallel for num_threads(8)
-    for (int i = 0; i < M; i++)
-    {
-        memset(&output_ptr[i * N], 0, N * sizeof(float));
-        int idx_a, idx_b, idx_c;
-        idx_c = i * N;
-        for (int k = 0; k < K; k++)
-        {
-            idx_a = i * K + k;
-            idx_b = k * N;
-            for (int j = 0; j < N; ++j) {
-                output_ptr[idx_c + j] += weight_s8_ptr[idx_a] * input_ptr[idx_b + j];
-            }
-        }
-
-        for (int z = 0; z < N; ++z) {
-            output_ptr[idx_c + z] += bias_s32_ptr[i];
-        }
-    }
-
- */
 
 
     if (cfg->pads[0] != 0) {
         free(src_pad_ptr);
     }
-    free(input_col_ptr);
-    free(input_s8_ptr);
-    free(src_tmp_ptr);
-
-
-    // ==============================================================================
-    // trans output to float
-    for (int outc_i = 0; outc_i < out_c; ++outc_i) {
-        for (int i = 0; i < out_h * out_w; ++i) {
-            output_ptr[outc_i * out_h * out_w + i] = output_ptr[outc_i * out_h * out_w + i] * cfg->weight_aux[outc_i] / 127;
-        }
-    }
-    // ==============================================================================
-
 
     return 0;
 }
@@ -1644,7 +1520,11 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     if (cfg->group != 1) {
         // depth wise conv
-        eval_depthwise_conv_mxn_img2col(params, inputs, outputs);
+        if (cfg->kernel_shape[0] == 3 && cfg->kernel_shape[1] == 3) {
+            eval_depthwise_conv_3x3_img2col(params, inputs, outputs);
+        } else {
+            eval_depthwise_conv_mxn_img2col(params, inputs, outputs);
+        }
     } else {
         // normal conv
         if (cfg->ifmap_quant2 == TYPE_INT8) {
@@ -1700,9 +1580,13 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
         float max = cfg->clip_max;
         float min = cfg->clip_min;
         float tmp;
+#pragma unroll 8
         for (int elem_i = 0; elem_i < ofmap_elem_size; ++elem_i) {
-            tmp = (output_ptr[elem_i] > min) ? output_ptr[elem_i] : min;
-            output_ptr[elem_i] = (tmp < max) ? tmp : max;
+            output_ptr[elem_i] = (output_ptr[elem_i] > min) ? output_ptr[elem_i] : min;
+            output_ptr[elem_i] = (output_ptr[elem_i] < max) ? output_ptr[elem_i] : max;
+
+//            tmp = (output_ptr[elem_i] > min) ? output_ptr[elem_i] : min;
+//            output_ptr[elem_i] = (tmp < max) ? tmp : max;
         }
     } else if (cfg->act_type == LEAKYRELU) {
         float alpha = cfg->leaky_relu_alpha;

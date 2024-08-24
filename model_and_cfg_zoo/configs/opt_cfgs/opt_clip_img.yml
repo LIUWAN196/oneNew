@@ -1,0 +1,21 @@
+# resnet50 optimize config
+
+
+optimize_type: op_fusion
+
+one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/clip_img.one
+
+opt_one_file_path: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/opt_clip_img.one
+
+calibrate_img_name_txt_path: /home/wanzai/桌面/img_name.txt
+
+calibrate_img_folder: /home/wanzai/桌面/imageNet/
+
+calibrate_img_num: 256
+
+quant_type: kl
+
+resize_shapes: [256, 256]
+crop_shapes: [224, 224]
+normal_mean: [0.485ff, 0.456ff, 0.406ff]
+normal_std: [0.229f, 0.224f, 0.225f]

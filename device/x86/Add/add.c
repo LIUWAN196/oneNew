@@ -49,6 +49,20 @@ int eval_dim_num_4(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *
         }
     }
 
+    int32_t in0_elem_size = 1, in1_elem_size = 1;
+    for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
+        in0_elem_size *= in0_tensor->shapes[dim_i];
+        in1_elem_size *= in1_tensor->shapes[dim_i];
+    }
+
+    if (in0_elem_size == in1_elem_size) {
+        for (int i = 0; i < in_elem_size; ++i) {
+            output_ptr[i] = input0_ptr[i] + input1_ptr[i];
+        }
+        return 0;
+    }
+
+//    LOG_ERR("in_elem_size is %d\n", in_elem_size);
     int32_t out_elem_size = 1;
     for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
         out_elem_size *= out_tensor->shapes[dim_i];
@@ -90,13 +104,14 @@ int eval_dim_num_4(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *
                 output_ptr[outc_i * out_h * out_w + outhxw_i] = input0_ptr[outc_i * out_h * out_w + outhxw_i] + input1_ptr[outc_i];
             }
         }
-    }  else if (in1_n == 1) {   // in1 tensor should to be expand
+    }  else if (in1_n == 1 && in0_elem_size != in1_elem_size) {   // in1 tensor should to be expand
         for (int outter = 0; outter < out_n; ++outter) {
             for (int inner = 0; inner < out_h * out_w * out_c; ++inner) {
                 output_ptr[outter * out_h * out_w * out_c + inner] = input0_ptr[outter * out_h * out_w * out_c + inner] + input1_ptr[inner];
             }
         }
     } else {   // in0 and in1 tensor have equal shape
+//        LOG_MSG("add into this barnch");
         for (int i = 0; i < in_elem_size; ++i) {
             output_ptr[i] = input0_ptr[i] + input1_ptr[i];
         }
@@ -168,6 +183,7 @@ int eval_dim_num_5(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *
 }
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+//    show_dev_input(params);
 
     ADD_CONFIG_S *cfg = (ADD_CONFIG_S *) (params[0].addr);
 
@@ -178,6 +194,8 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     } else if (in0_tensor->dim_num_of_shapes == 5) {
         eval_dim_num_5(params, inputs, outputs);
     }
+
+//    LOG_ERR("end of add op\n");
 
     return 0;
 }

@@ -43,6 +43,10 @@ public:
 
         for (int axis_idx = 0; axis_idx < slice_cfg.slice_axes_num; ++axis_idx) {
             int32_t axis = slice_cfg.axes[axis_idx];
+            if (axis == -1) {
+                axis = in->dim_num_of_shapes - 1;
+                slice_cfg.axes[axis_idx] = axis;
+            }
             int32_t starts = slice_cfg.starts[axis_idx];
             if (starts < 0){
                 starts = in->shapes[axis] + starts;

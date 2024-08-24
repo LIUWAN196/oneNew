@@ -191,13 +191,14 @@ int main(int argc, char **argv) {
         if (img_cnt % 20 == 0 || metrics_img_num < 2000) {
             double omp_ed = omp_get_wtime();
             double elapsed = omp_ed - omp_st;
+            double guess_using_time = elapsed / img_cnt * metrics_img_num;
             float schedule = (img_cnt + 1.0f) / metrics_img_num * 100;
             float top1_ratio = top1_cnt * 1.0f / img_cnt;
             float top5_ratio = top5_cnt * 1.0f / img_cnt;
             int schedule_int = (int)schedule;
             buffer[schedule_int] = '#';
-            printf("metrics [%.2f%%] [%-100s][%c]    img_cnt: %d/%d, top1: %.4f, top5: %.4f, time(s): %.2f\r",
-                   schedule, buffer, arr[schedule_int % 4], img_cnt, metrics_img_num, top1_ratio, top5_ratio, elapsed);
+            printf("metrics [%.2f%%] [%-100s][%c]    img_cnt: %d/%d, time(s): %.2f/%.2f, top1: %.4f, top5: %.4f\r",
+                   schedule, buffer, arr[schedule_int % 4], img_cnt, metrics_img_num, elapsed, guess_using_time, top1_ratio, top5_ratio);
             fflush(stdout);
         }
     }
