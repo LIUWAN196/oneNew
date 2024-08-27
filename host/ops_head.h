@@ -29,6 +29,7 @@
 #include "pad.h"
 #include "pose_detection.h"
 #include "pow.h"
+#include "reduce_sum.h"
 #include "reduce_mean.h"
 #include "relu.h"
 #include "reshape.h"

@@ -2,7 +2,7 @@
 # 默认情况下，如果一个命令失败了（返回非零退出状态），shell 脚本会继续执行下一个命令。但是，使用 set -e，一旦遇到错误，脚本就会停止执行。这里的 e 是 end 的意思
 set -e
 
-onnx_dir="/home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/onnx_model"
+onnx_dir="/media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/onnx_model"
 sh_script_dir=$(dirname $(readlink -f "$0"))
 model_yml_dir=${sh_script_dir}/model_test_yml
 root_dir=$(dirname $(dirname "$sh_script_dir"))

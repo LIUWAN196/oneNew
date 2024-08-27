@@ -56,7 +56,7 @@ if __name__ == '__main__':
     #     elif node[i].op_type == 'Split':
     #         node[i].name = 'Split_' + str(i)
     #
-    # onnx.save(model, "/home/wanzai/桌面/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/vit_t.onnx")
+    # onnx.save(model, "/media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/vit_t.onnx")
 
 
 

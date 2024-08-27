@@ -31,7 +31,7 @@ model_exc_type: release
 
 # 6、（必选/可选项）如果 5 中 model_exc_type: debug，则必须指定 out feature map dump 下来的存放路径；如果 model_exc_type 为其他值或者不传参，则这个路径可以为空
 # 注意：这里的路径应该选择一个已有的一个文件夹路径
-ofmap_folder: /home/wanzai/桌面/model_and_cfg_and_ofmap_folder/ofmap4debug/resnet50/
+ofmap_folder: /media/wanzai/File/model_and_cfg_and_ofmap_folder/ofmap4debug/resnet50/
 
 
 # 7、（必选/可选项）如果 2 中 do_postprocess: yes，则需要指定该网络的后处理方法，可选项为：classification、segmentation、pose_detection，三种依次为：分类后处理、语义分割后处理、姿态识别后处理

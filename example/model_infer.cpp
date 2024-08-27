@@ -284,7 +284,7 @@ int main(int argc, char **argv)
 
                 {
                     ARGMAX_CONFIG_S argmax_cfg;
-                    std::string op_type = "Argmax";
+                    std::string op_type = "ArgMax";
                     argmax_cfg.topk = topk;
                     strcpy(argmax_cfg.op_base_cfg.op_type, op_type.c_str());
 

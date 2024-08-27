@@ -25,7 +25,7 @@ opt_one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_mode
 calibrate_img_name_txt_path: /home/wanzai/桌面/img_name.txt
 
 # 4.2、待用于量化的图片绝对路径
-calibrate_img_folder: /home/wanzai/桌面/imageNet/
+calibrate_img_folder: /media/wanzai/File/imageNet/
 
 # 4.3、（必选项）使用多少张图片进行量化        推荐值为：256 ～ 1024 之间，例如 512
 calibrate_img_num: 512

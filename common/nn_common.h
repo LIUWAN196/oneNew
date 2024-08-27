@@ -246,6 +246,8 @@ typedef struct
 
     int64_t axis;
     int64_t indices;
+
+    BOOL indices_from_ifmap;
 } GATHER_CONFIG_S;
 
 typedef struct
@@ -359,6 +361,14 @@ typedef struct
     BASE_CONFIG_S op_base_cfg;
     float power_num;
 } POW_CONFIG_S;
+
+typedef struct
+{
+    BASE_CONFIG_S op_base_cfg;
+    int32_t axes[8];
+    int32_t axes_num;
+    int32_t keepdims;
+} REDUCE_SUM_CONFIG_S;
 
 typedef struct
 {

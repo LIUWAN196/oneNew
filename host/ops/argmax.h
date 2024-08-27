@@ -5,22 +5,22 @@
 #include "../manager/manager.h"
 // namespace one_new {
 
-class Argmax : public op
+class ArgMax : public op
 {
 public:
     ARGMAX_CONFIG_S argmax_cfg;
     OPERAND_S in_operand_stu;
     OPERAND_S out_operand_stu;
 
-    Argmax()
+    ArgMax()
     {
-//        printf("new a Argmax\n");
+//        printf("new a ArgMax\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *argmax_cfg_ptr)
     {
-        // new Argmax op
-        std::shared_ptr<Argmax> argmax_ptr = std::make_shared<Argmax>();
+        // new ArgMax op
+        std::shared_ptr<ArgMax> argmax_ptr = std::make_shared<ArgMax>();
 //        argmax_ptr.get()->find_handle((BUFFER_GROUP_S *)argmax_cfg_ptr);
 
         // fill op config
@@ -49,6 +49,6 @@ public:
 
 };
 
-OP_REGISTER_GLOBAL(Argmax, Argmax::create_instance, sizeof(ARGMAX_CONFIG_S));
+OP_REGISTER_GLOBAL(ArgMax, ArgMax::create_instance, sizeof(ARGMAX_CONFIG_S));
 
 #endif // OP_ARGMAX_H

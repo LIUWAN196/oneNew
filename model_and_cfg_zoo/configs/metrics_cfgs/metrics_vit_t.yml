@@ -8,7 +8,7 @@ one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_pa
 
 metrics_img_label_txt_path: /home/wanzai/桌面/img_name.txt
 
-metrics_img_path: /home/wanzai/桌面/imageNet/
+metrics_img_path: /media/wanzai/File/imageNet/
 
 metrics_img_num: 1000
 

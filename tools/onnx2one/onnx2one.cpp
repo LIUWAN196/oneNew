@@ -478,9 +478,14 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
             // first in_operand is ifmap; second is indices
             std::string resize_indices_name = std::string(base_cfg->in_operand_name[1]);
             OPERAND_S* indices_operand = init_info_map[resize_indices_name];
-            int64_t * indices_data_ptr = (int64_t*)((char*)indices_operand + sizeof(OPERAND_S));
-            gather_cfg->indices = indices_data_ptr[0];
-            int a = 101;
+            if (indices_operand != NULL) {
+                gather_cfg->indices_from_ifmap = FALSE;
+                int64_t * indices_data_ptr = (int64_t*)((char*)indices_operand + sizeof(OPERAND_S));
+                gather_cfg->indices = indices_data_ptr[0];
+                int a = 101;
+            } else {
+                gather_cfg->indices_from_ifmap = TRUE;
+            }
         }
         else if (op_type == "HardSigmoid")
         {
