@@ -47,6 +47,15 @@ public:
             out->shapes[flatten_cfg.axis] *= in->shapes[dim_i];
         }
 
+        if (out->shapes[0] == 1 && out->shapes[1] == 1 && out->shapes[2] == 512) {
+            // todo: 这是为 clip txt 特别定制的，需要修改为通用的
+            out->shapes[0] = 77;
+            out->shapes[1] = 512;
+            out->shapes[2] = 1;
+            out->dim_num_of_shapes = 2;
+        }
+
+//        LOG_DBG("flatten_cfg.axis is %d\n", flatten_cfg.axis);
         params_vec.resize(1 + in_operands.size() + out_operands.size());
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;

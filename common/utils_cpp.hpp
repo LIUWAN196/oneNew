@@ -69,8 +69,7 @@ int transforms(std::vector<float> &rgb, std::string img_path, TRANSFORMS_CONFIG_
     // step 0 : read img
     cv::Mat ori_img = cv::imread(img_path);
     if (ori_img.empty()) {
-        std::cout << "error: open " << img_path
-                  << " is failed, please check the img path." << std::endl;
+        LOG_ERR("open %s is failed, please check the img path.", img_path.c_str());
         return -1;
     }
 

@@ -47,12 +47,9 @@ public:
 
             // reduce sum 后的维度保留
             out->dim_num_of_shapes = in->dim_num_of_shapes;
-            for (int axes_num_i = 0; axes_num_i < reduce_sum_cfg.axes_num; ++axes_num_i) {
-                if (reduce_sum_cfg.axes[axes_num_i] == -1) {
-                    out->shapes[out->dim_num_of_shapes - 1] = 1;
-                } else {
-                    out->shapes[reduce_sum_cfg.axes[axes_num_i]] = 1;
-                }
+            // todo: 这是为 clip txt 特别定制的，需要修改为通用的
+            for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
+                out->shapes[dim_i] = 1;
             }
         } else {
             for (int i = 0; i < SHAPE_LEN; ++i) {

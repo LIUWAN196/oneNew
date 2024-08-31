@@ -7,6 +7,7 @@
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
 {
+//    show_dev_input(params);
     FLATTEN_CONFIG_S* cfg = (FLATTEN_CONFIG_S*)(params[0].addr);
 //    printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 

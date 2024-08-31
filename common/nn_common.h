@@ -150,6 +150,9 @@ typedef struct
 {
     BASE_CONFIG_S op_base_cfg;
     int64_t topk;
+    int64_t axis;
+    int64_t keepdims;
+    int64_t select_last_index;
 } ARGMAX_CONFIG_S;
 
 typedef struct
@@ -368,6 +371,7 @@ typedef struct
     int32_t axes[8];
     int32_t axes_num;
     int32_t keepdims;
+    int32_t noop_with_empty_axes;
 } REDUCE_SUM_CONFIG_S;
 
 typedef struct

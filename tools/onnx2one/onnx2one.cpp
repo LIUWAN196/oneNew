@@ -221,7 +221,27 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
         }
         base_cfg->out_operand_num = out_i;
 
-        if (op_type == "AveragePool")
+        if (op_type == "ArgMax")
+        {
+            ARGMAX_CONFIG_S *argmax_cfg = (ARGMAX_CONFIG_S *)cur_node_cfg_ptr;
+
+            // max pool other attributes
+            auto attr = node.attribute();
+            for (auto param : attr)
+            {
+                if (param.name() == "axis")
+                {
+                    argmax_cfg->axis = param.i();
+                } else if (param.name() == "keepdims")
+                {
+                    argmax_cfg->keepdims = param.i();
+                } else if (param.name() == "select_last_index")
+                {
+                    argmax_cfg->select_last_index = param.i();
+                }
+            }
+        }
+        else if (op_type == "AveragePool")
         {
             AVG_POOL_CONFIG_S *avg_pool_cfg = (AVG_POOL_CONFIG_S *)cur_node_cfg_ptr;
 
@@ -463,7 +483,7 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
         else if (op_type == "Gather")
         {
             GATHER_CONFIG_S *gather_cfg = (GATHER_CONFIG_S *)cur_node_cfg_ptr;
-            base_cfg->in_operand_num = 1;   //  such as roi and scales trans to attr
+            base_cfg->in_operand_num = 1;   //  indices trans to attr
 
             // other attributes
             auto attr = node.attribute();
@@ -476,15 +496,18 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
             }
 
             // first in_operand is ifmap; second is indices
-            std::string resize_indices_name = std::string(base_cfg->in_operand_name[1]);
-            OPERAND_S* indices_operand = init_info_map[resize_indices_name];
+            std::string indices_name = std::string(base_cfg->in_operand_name[1]);
+            OPERAND_S* indices_operand = init_info_map[indices_name];
             if (indices_operand != NULL) {
+                // gather 算子的索引只有一个，并且是 initial 属性的，所以直接放到 cfg 中
                 gather_cfg->indices_from_ifmap = FALSE;
                 int64_t * indices_data_ptr = (int64_t*)((char*)indices_operand + sizeof(OPERAND_S));
                 gather_cfg->indices = indices_data_ptr[0];
                 int a = 101;
             } else {
+                // gather 算子的索引不止一个，而且是变量，会随着输入改变而改变，所以是作为输出传进来的
                 gather_cfg->indices_from_ifmap = TRUE;
+                base_cfg->in_operand_num = 2;   //  data and indices
             }
         }
         else if (op_type == "HardSigmoid")
@@ -599,6 +622,23 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
                 if (param.name() == "keepdims")
                 {
                     reduce_mean_cfg->keepdims = param.i();
+                }
+            }
+        }
+        else if (op_type == "ReduceSum")
+        {
+            REDUCE_SUM_CONFIG_S *reduce_sum_cfg = (REDUCE_SUM_CONFIG_S *)cur_node_cfg_ptr;
+
+            // max pool other attributes
+            auto attr = node.attribute();
+            for (auto param : attr)
+            {
+                if (param.name() == "keepdims")
+                {
+                    reduce_sum_cfg->keepdims = param.i();
+                } else if (param.name() == "noop_with_empty_axes")
+                {
+                    reduce_sum_cfg->noop_with_empty_axes = param.i();
                 }
             }
         }

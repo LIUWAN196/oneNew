@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
-
+#include "math.h"
+#include "float.h"
 #include "stdint.h"
 
 int eval_dim_num_4(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
@@ -95,21 +96,27 @@ int eval_dim_num_4(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *
     } else if (in_h == 1 && in_w == 1) {   // in0 tensor should to be expand
         for (int outc_i = 0; outc_i < out_c; ++outc_i) {
             for (int outhxw_i = 0; outhxw_i < out_h * out_w; ++outhxw_i) {
-                output_ptr[outc_i * out_h * out_w + outhxw_i] = input0_ptr[outc_i] + input1_ptr[outc_i * out_h * out_w + outhxw_i];
+                output_ptr[outc_i * out_h * out_w + outhxw_i] =
+                        input0_ptr[outc_i] + input1_ptr[outc_i * out_h * out_w + outhxw_i];
             }
         }
     } else if (in1_h * in1_w == 1) {   // in1 tensor should to be expand
         for (int outc_i = 0; outc_i < out_c; ++outc_i) {
             for (int outhxw_i = 0; outhxw_i < out_h * out_w; ++outhxw_i) {
-                output_ptr[outc_i * out_h * out_w + outhxw_i] = input0_ptr[outc_i * out_h * out_w + outhxw_i] + input1_ptr[outc_i];
+                output_ptr[outc_i * out_h * out_w + outhxw_i] =
+                        input0_ptr[outc_i * out_h * out_w + outhxw_i] + input1_ptr[outc_i];
             }
         }
-    }  else if (in1_n == 1 && in0_elem_size != in1_elem_size) {   // in1 tensor should to be expand
+    } else if (in1_n == 1 && in0_elem_size != in1_elem_size) {   // in1 tensor should to be expand
+//        LOG_DBG("out_n is %d, out_h * out_w * out_c is %d\n", out_n, out_h * out_w * out_c);
         for (int outter = 0; outter < out_n; ++outter) {
             for (int inner = 0; inner < out_h * out_w * out_c; ++inner) {
-                output_ptr[outter * out_h * out_w * out_c + inner] = input0_ptr[outter * out_h * out_w * out_c + inner] + input1_ptr[inner];
+                float ifmap1_val = input1_ptr[inner];
+                output_ptr[outter * out_h * out_w * out_c + inner] =
+                        input0_ptr[outter * out_h * out_w * out_c + inner] + ifmap1_val;
             }
         }
+//        LOG_ERR("end of first add");
     } else {   // in0 and in1 tensor have equal shape
 //        LOG_MSG("add into this barnch");
         for (int i = 0; i < in_elem_size; ++i) {
@@ -148,7 +155,7 @@ int eval_dim_num_5(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *
 
     int32_t expand_dims = -1;
     for (int i = 0; i < SHAPE_LEN; ++i) {
-        if (in0_tensor->shapes[i] != in1_tensor->shapes[i]){
+        if (in0_tensor->shapes[i] != in1_tensor->shapes[i]) {
             expand_dims = i;
         }
     }
@@ -172,8 +179,8 @@ int eval_dim_num_5(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *
         float *cur_ifmap1 = input1_ptr + outter_i * inner_elem_size;
         float *cur_ofmap = output_ptr + outter_i * expand_elem_size * inner_elem_size;
         for (int expand_i = 0; expand_i < expand_elem_size; ++expand_i) {
-            float* tmp_cur_ifmap0 = cur_ifmap0 + expand_i * inner_elem_size;
-            float* tmp_cur_ofmap = cur_ofmap + expand_i * inner_elem_size;
+            float *tmp_cur_ifmap0 = cur_ifmap0 + expand_i * inner_elem_size;
+            float *tmp_cur_ofmap = cur_ofmap + expand_i * inner_elem_size;
             for (int inner_i = 0; inner_i < inner_elem_size; ++inner_i) {
                 tmp_cur_ofmap[inner_i] = tmp_cur_ifmap0[inner_i] + cur_ifmap1[inner_i];
             }
