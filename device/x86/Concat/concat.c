@@ -6,7 +6,7 @@
 #include "stdint.h"
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-
+//    show_dev_input(params);
     CONCAT_CONFIG_S *cfg = (CONCAT_CONFIG_S *) (params[0].addr);
 
     int axis = (int) cfg->axis;

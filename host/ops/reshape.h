@@ -68,7 +68,12 @@ public:
             }
         }
 
+        std::string opname = std::string(reshape_cfg.op_base_cfg.op_name);
 
+//        if (opname == "/model.22/Reshape_1") {
+//            printf("elem_size is %d, elem_size_no_doubt is %d\n", elem_size, elem_size_no_doubt);
+//            printf("out->shapes[i] is %d %d %d %d\n", out->shapes[0], out->shapes[1], out->shapes[2], out->shapes[3]);
+//        }
         out->dim_num_of_shapes = this->reshape_cfg.dst_shape_num;
 
         params_vec.resize(1 + in_operands.size() + out_operands.size());

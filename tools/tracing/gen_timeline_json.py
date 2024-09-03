@@ -32,8 +32,8 @@ def add_item(major_op_info, op_type, op_computation, op_exc_time):
 
 if __name__ == '__main__':
     # step 1：加载 csv
-    csv_file_name = 'timeline_info/mobilenet_v2.csv'
-    json_file_name = 'timeline_info/mobilenet_v2.json'
+    csv_file_name = 'timeline_info/yolo_world.csv'
+    json_file_name = 'timeline_info/yolo_world.json'
 
     dataset=load_csv(csv_file_name)
 
@@ -52,7 +52,7 @@ if __name__ == '__main__':
         cur_op_info = dataset[op_idx]
         st_time_stamp = float(cur_op_info[2].strip())
         ed_time_stamp = float(cur_op_info[3].strip())
-        computation = float(cur_op_info[4].strip())
+        computation = float(cur_op_info[4].strip()) * 1e6
         model_computation += computation
         op_exc_time = ed_time_stamp - st_time_stamp  # the unit is subtle
         efficiency = computation / (op_exc_time * 1e-6 * computing_power)

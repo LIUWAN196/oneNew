@@ -87,7 +87,7 @@ public:
             out_elem_size *= ofmap->shapes[i];
         }
 
-        return (double)(out_elem_size);
+        return (double)(out_elem_size * 1e-6);
     };
 };
 

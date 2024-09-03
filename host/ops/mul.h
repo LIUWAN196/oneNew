@@ -40,18 +40,19 @@ public:
         OPERAND_S* in = &operand_stu_map[in_operands[0]];
         OPERAND_S* in1 = &operand_stu_map[in_operands[1]];
 
-        if (strcmp(in->operand_name, "/model.10/attn/MatMul_output_0") == 0) {
-            int a = 101;
-        }
         OPERAND_S* out = &operand_stu_map[out_operands[0]];
 
         // the out shape equal in shape
         memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
         out->dim_num_of_shapes = in->dim_num_of_shapes > in1->dim_num_of_shapes ? in->dim_num_of_shapes : in1->dim_num_of_shapes;
 
-        if (in1->shapes[2] > 1 || in1->shapes[3] > 1) {
-            out->shapes[2] = in1->shapes[2];
-            out->shapes[3] = in1->shapes[3];
+//        if (in1->shapes[2] > 1 || in1->shapes[3] > 1) {
+//            out->shapes[2] = in1->shapes[2];
+//            out->shapes[3] = in1->shapes[3];
+//        }
+
+        for (int i = 0; i < out->dim_num_of_shapes; ++i) {
+            out->shapes[i] = in->shapes[i] > in1->shapes[i] ? in->shapes[i] : in1->shapes[i];
         }
 
         params_vec.resize(1 + in_operands.size() + out_operands.size());
@@ -59,12 +60,6 @@ public:
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&mul_cfg);
         params_vec[0] = params;
-//        params_vec.push_back(params);
-//
-//
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&mul_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };
@@ -153,7 +148,7 @@ public:
             out_elem_size *= ofmap->shapes[i];
         }
 
-        return (double)(out_elem_size);
+        return (double)(out_elem_size * 1e-6);
     };
 
 };

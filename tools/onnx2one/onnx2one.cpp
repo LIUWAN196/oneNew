@@ -448,6 +448,26 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
                 }
             }
         }
+        else if (op_type == "Einsum")
+        {
+            EINSUM_CONFIG_S *einsum_cfg = (EINSUM_CONFIG_S *)cur_node_cfg_ptr;
+
+            // Concat other attributes
+            auto attr = node.attribute();
+            for (auto param : attr)
+            {
+                if (param.name() == "equation")
+                {
+                    std::string equation = param.s();
+                    if (equation != "bmchw,bnmc->bmhwn" && equation != "bchw,bkc->bkhw") {
+                        LOG_ERR("sorry, cur, the Einsum's equation must be bmchw,bnmc->bmhwn or bchw,bkc->bkhw");
+                    }
+                    strcpy(einsum_cfg->equation, equation.c_str());
+//                    std::cout << "einsum op's equation is: " << param.s() << std::endl;
+//                    LOG_DBG("einsum op's equation is:%s", param.s());
+                }
+            }
+        }
         else if (op_type == "Expand")
         {
             EXPAND_CONFIG_S *expand_cfg = (EXPAND_CONFIG_S *)cur_node_cfg_ptr;
@@ -600,6 +620,30 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
             pad_cfg->pads[5] = 0;
             pad_cfg->pads[6] = 1;
             pad_cfg->pads[7] = 1;
+        }
+        else if (op_type == "ReduceMax")
+        {
+            REDUCE_MAX_CONFIG_S *reduce_max_cfg = (REDUCE_MAX_CONFIG_S *)cur_node_cfg_ptr;
+
+            // other attributes
+            auto attr = node.attribute();
+            for (auto param : attr)
+            {
+                if (param.name() == "axes")
+                {
+                    int i = 0;
+                    for (auto val : param.ints())
+                    {
+                        reduce_max_cfg->axes[i++] = val;
+                    }
+                    reduce_max_cfg->axes_num = i;
+                }
+                reduce_max_cfg->keepdims = 1;
+                if (param.name() == "keepdims")
+                {
+                    reduce_max_cfg->keepdims = param.i();
+                }
+            }
         }
         else if (op_type == "ReduceMean")
         {
@@ -862,6 +906,29 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
             OPERAND_S*  power_num_operand = init_info_map[power_num_name];
             float * pow_cfg_ptr = (float*)((char*)power_num_operand + sizeof(OPERAND_S));
             pow_cfg->power_num = pow_cfg_ptr[0];
+        }
+        else if (op_type == "Unsqueeze")
+        {
+            UNSQUEEZE_CONFIG_S *unsqueeze_cfg = (UNSQUEEZE_CONFIG_S *)cur_node_cfg_ptr;
+
+            for (int i = 0; i < SHAPE_LEN; ++i) {
+                unsqueeze_cfg->axes[i] = -1;
+            }
+            // Concat other attributes
+            auto attr = node.attribute();
+            for (auto param : attr)
+            {
+
+                if (param.name() == "axes")
+                {
+                    int i = 0;
+                    for (auto val : param.ints())
+                    {
+                        unsqueeze_cfg->axes[i++] = val;
+                    }
+                    unsqueeze_cfg->axes_num = i;
+                }
+            }
         }
 
 		// update cur_node_cfg_ptr

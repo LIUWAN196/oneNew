@@ -95,7 +95,7 @@ public:
             out_elem_size *= ofmap->shapes[i];
         }
 
-        return (double)(out_elem_size * max_pool_cfg.kernel_shape[0] * max_pool_cfg.kernel_shape[1]);
+        return (double)(out_elem_size * max_pool_cfg.kernel_shape[0] * max_pool_cfg.kernel_shape[1] * 1e-6);
     };
 
 };

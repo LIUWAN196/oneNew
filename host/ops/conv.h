@@ -188,7 +188,7 @@ public:
             each_ofmap_elem_computation = mac * conv_cfg.kernel_shape[0] * conv_cfg.kernel_shape[1];
         }
 
-        return (double)(out_elem_size * each_ofmap_elem_computation);
+        return (double)(each_ofmap_elem_computation * 1e-6 * out_elem_size);
     };
 
     int other_prepare() override {

@@ -79,7 +79,7 @@ public:
             out_elem_size *= ofmap->shapes[i];
         }
 
-        return (double)(5 * out_elem_size);
+        return (double)(5 * out_elem_size * 1e-6);
     };
 
     int other_prepare() override {

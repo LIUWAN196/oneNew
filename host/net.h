@@ -328,13 +328,20 @@ public:
 
         for (auto op : op_exec_order) {
             std::string op_type_str(op.get()->op_type);
-            // if is io op
+            // if is io op, 先把输出的 ofmap 的 tensor 放到 operand_stu_map 中
             if (op_type_str == "io") {
                 std::shared_ptr<io> io_ptr = std::dynamic_pointer_cast<io>(op);
                 std::string out_operand_name = std::string(io_ptr.get()->io_cfg.operand.operand_name);
 
                 operand_stu_map[out_operand_name] = io_ptr.get()->io_cfg.operand;
-            } else {
+            }
+        }
+
+        // 做 shape infer，推理获得 ofmap 的 shape
+        for (auto op : op_exec_order) {
+            std::string op_type_str(op.get()->op_type);
+            // if is io op
+            if (op_type_str != "io") {
                 op.get()->calc_out_operand_shape(operand_stu_map);
                 int a = 101;
             }
@@ -383,6 +390,9 @@ int extractor::new_output_buf() {
     for (auto operand : net_ptr->operand_stu_map) {
 //        std::cout << "new_output_buf for:" << operand.first << std::endl;
         int32_t elem_size = operand_elem_size(&operand.second);
+//        LOG_DBG("operand name is %s, elem_size is %d, shape is [%d, %d, %d, %d]",
+//                operand.first.c_str(), elem_size, operand.second.shapes[0], operand.second.shapes[1],
+//                operand.second.shapes[2], operand.second.shapes[3]);
         int32_t buf_size = elem_size * sizeof(float);
 //        if (buf_size == 0) {
 //            std::cout << "warning: the operand size is 0, check the data type!" << std::endl;

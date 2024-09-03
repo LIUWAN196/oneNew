@@ -12,6 +12,7 @@
 #include "conv.h"
 #include "conv_transpose.h"
 #include "div.h"
+#include "einsum.h"
 #include "erf.h"
 #include "expand.h"
 #include "flatten.h"
@@ -29,6 +30,7 @@
 #include "pad.h"
 #include "pose_detection.h"
 #include "pow.h"
+#include "reduce_max.h"
 #include "reduce_sum.h"
 #include "reduce_mean.h"
 #include "relu.h"
@@ -43,6 +45,7 @@
 #include "squeeze.h"
 #include "sub.h"
 #include "transpose.h"
+#include "unsqueeze.h"
 
 
 #define ONENEW_OPS_HEAD_H

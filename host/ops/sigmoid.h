@@ -87,7 +87,7 @@ inputs_vec.resize(in_operands.size());
             out_elem_size *= ofmap->shapes[i];
         }
 
-        return (double)(2 * out_elem_size);
+        return (double)(2 * out_elem_size * 1e-6);
     };
 
 };

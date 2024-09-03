@@ -48,21 +48,21 @@ if __name__ == '__main__':
 
 
 
-    # # step 2: load input data
-    # img = np.fromfile(ofmap_folder + ifmap_name, dtype=np.float32)
-    # ifmap_elem_size = img.shape[0]
-    # ifmap_h_w = np.sqrt(ifmap_elem_size // 3)
-    # img = img.reshape(-1, 3, int(ifmap_h_w), int(ifmap_h_w))
+    # step 2: load input data
+    img = np.fromfile(ofmap_folder + ifmap_name, dtype=np.float32)
+    ifmap_elem_size = img.shape[0]
+    ifmap_h_w = np.sqrt(ifmap_elem_size // 3)
+    img = img.reshape(-1, 3, int(ifmap_h_w), int(ifmap_h_w))
 
-    txt_seq = np.array([[49406,   589,   533,   320,  1125,   539,   320,  1579,  4558, 49407,
-                         0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-                         0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-                         0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-                         0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-                         0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-                         0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-                         0,     0,     0,     0,     0,     0,     0]]).astype(np.int32)
-    img = txt_seq
+    # txt_seq = np.array([[49406,   589,   533,   320,  1125,   539,   320,  1579,  4558, 49407,
+    #                      0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+    #                      0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+    #                      0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+    #                      0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+    #                      0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+    #                      0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+    #                      0,     0,     0,     0,     0,     0,     0]]).astype(np.int32)
+    # img = txt_seq
 
     # step 3: model infer to obtain the output of each layer
     for node in model.graph.node:
@@ -93,14 +93,14 @@ if __name__ == '__main__':
         else:
             continue
 
-        if (key == "/ArgMax_output_0") :
-            continue
-
-        if (key == "text_features") :
-            # continue
-            a = 101
-            err = onnx_ref - onenew_data
-            b = 102
+        # if (key == "/ArgMax_output_0") :
+        #     continue
+        #
+        # if (key == "text_features") :
+        #     # continue
+        #     a = 101
+        #     err = onnx_ref - onenew_data
+        #     b = 102
 
         # compute similarity
         err = onnx_ref - onenew_data

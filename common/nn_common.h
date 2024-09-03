@@ -232,6 +232,12 @@ typedef struct
 typedef struct
 {
     BASE_CONFIG_S op_base_cfg;
+    char equation[32];
+} EINSUM_CONFIG_S;
+
+typedef struct
+{
+    BASE_CONFIG_S op_base_cfg;
 
     int64_t dst_shape[8];
     int64_t dst_shape_num;
@@ -380,6 +386,14 @@ typedef struct
     int32_t axes[8];
     int32_t axes_num;
     int32_t keepdims;
+} REDUCE_MAX_CONFIG_S;
+
+typedef struct
+{
+    BASE_CONFIG_S op_base_cfg;
+    int32_t axes[8];
+    int32_t axes_num;
+    int32_t keepdims;
 } REDUCE_MEAN_CONFIG_S;
 
 typedef struct
@@ -491,7 +505,13 @@ typedef struct
     int64_t perm_num;
 } TRANSPOSE_CONFIG_S;
 
+typedef struct
+{
+    BASE_CONFIG_S op_base_cfg;
 
+    int64_t axes[8];
+    int64_t axes_num;
+} UNSQUEEZE_CONFIG_S;
 
 typedef struct
 {
