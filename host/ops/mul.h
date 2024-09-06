@@ -6,21 +6,20 @@
 #include "../manager/manager.h"
 // namespace one_new {
 
-class Mul : public op
-{
+class Mul : public op {
 public:
     MUL_CONFIG_S mul_cfg;
 
     // 有可能 mul 的第二个输入数据是 init 的
     std::vector<std::vector<float>> initial_datas;  // weight and bias
     std::vector<OPERAND_S> initial_operands;  // weight and bias
-    Mul()
-    {
+    int32_t init_ifmap_idx = -1;
+
+    Mul() {
 //        printf("new a Mul\n");
     };
 
-    static int create_instance(std::shared_ptr<op> &op_ptr, char *relu_cfg_ptr)
-    {
+    static int create_instance(std::shared_ptr<op> &op_ptr, char *relu_cfg_ptr) {
         // new Mul op
         std::shared_ptr<Mul> mul_ptr = std::make_shared<Mul>();
 
@@ -37,23 +36,45 @@ public:
     }
 
     virtual int calc_out_operand_shape(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
-        OPERAND_S* in = &operand_stu_map[in_operands[0]];
-        OPERAND_S* in1 = &operand_stu_map[in_operands[1]];
+        OPERAND_S *in = &operand_stu_map[in_operands[0]];
+        OPERAND_S *in1 = &operand_stu_map[in_operands[1]];
 
-        OPERAND_S* out = &operand_stu_map[out_operands[0]];
+        OPERAND_S *out = &operand_stu_map[out_operands[0]];
 
         // the out shape equal in shape
-        memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
-        out->dim_num_of_shapes = in->dim_num_of_shapes > in1->dim_num_of_shapes ? in->dim_num_of_shapes : in1->dim_num_of_shapes;
+        if (init_ifmap_idx == 0) {  // 第一个输入为 init
+            memcpy(&out->shapes[0], &in1->shapes[0], SHAPE_LEN * sizeof(int32_t));
+            out->dim_num_of_shapes = in1->dim_num_of_shapes;
+        } else if (init_ifmap_idx == 1) {
+            memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
+            out->dim_num_of_shapes = in->dim_num_of_shapes;
+        } else {
+            memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
+            if (in1->shapes[2] > 1 || in1->shapes[3] > 1) {
+                out->shapes[2] = in1->shapes[2];
+                out->shapes[3] = in1->shapes[3];
+            }
+            out->dim_num_of_shapes =
+                    in->dim_num_of_shapes > in1->dim_num_of_shapes ? in->dim_num_of_shapes : in1->dim_num_of_shapes;
 
-//        if (in1->shapes[2] > 1 || in1->shapes[3] > 1) {
-//            out->shapes[2] = in1->shapes[2];
-//            out->shapes[3] = in1->shapes[3];
-//        }
-
-        for (int i = 0; i < out->dim_num_of_shapes; ++i) {
-            out->shapes[i] = in->shapes[i] > in1->shapes[i] ? in->shapes[i] : in1->shapes[i];
+            for (int i = 0; i < out->dim_num_of_shapes; ++i) {
+                out->shapes[i] = in->shapes[i] > in1->shapes[i] ? in->shapes[i] : in1->shapes[i];
+            }
         }
+
+
+//        // the out shape equal in shape
+//        memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
+//        out->dim_num_of_shapes = in->dim_num_of_shapes > in1->dim_num_of_shapes ? in->dim_num_of_shapes : in1->dim_num_of_shapes;
+//
+////        if (in1->shapes[2] > 1 || in1->shapes[3] > 1) {
+////            out->shapes[2] = in1->shapes[2];
+////            out->shapes[3] = in1->shapes[3];
+////        }
+//
+//        for (int i = 0; i < out->dim_num_of_shapes; ++i) {
+//            out->shapes[i] = in->shapes[i] > in1->shapes[i] ? in->shapes[i] : in1->shapes[i];
+//        }
 
         params_vec.resize(1 + in_operands.size() + out_operands.size());
         inputs_vec.resize(in_operands.size());
@@ -61,20 +82,19 @@ public:
         params.addr = (int64_t) (&mul_cfg);
         params_vec[0] = params;
 
-        return  0;
+        return 0;
     };
 
-    int fill_operands(char *one_buf_ptr) override
-    {
+    int fill_operands(char *one_buf_ptr) override {
         // fill op type and op name
-        op_type = (char*)(&(this->mul_cfg));
-        op_name = (char*)((int64_t)&(this->mul_cfg) + OP_TYPE_LEN);
+        op_type = (char *) (&(this->mul_cfg));
+        op_name = (char *) ((int64_t) &(this->mul_cfg) + OP_TYPE_LEN);
 
         if (strcmp(op_name, "/model.10/attn/Mul") == 0) {
             int a = 101;
         }
 
-        BASE_CONFIG_S* base_cfg = (BASE_CONFIG_S*)(&(this->mul_cfg));
+        BASE_CONFIG_S *base_cfg = (BASE_CONFIG_S *) (&(this->mul_cfg));
         int32_t in_operand_num = base_cfg->in_operand_num;
         int32_t out_operand_num = base_cfg->out_operand_num;
 
@@ -95,13 +115,28 @@ public:
         char *cur_init_info_ptr = (char *) (one_buf_ptr + head_ptr[4]);
 
         // 用于存放 weight bias 的描述和数据
+        // 用于存放 weight bias 的描述和数据
+        std::string first_oprand = this->in_operands[0];
         std::string second_oprand = this->in_operands[1];
 
         for (int32_t init_i = 0; init_i < init_cnt; init_i++) {
             OPERAND_S *operand_ptr = (OPERAND_S *) cur_init_info_ptr;
             std::string init_operands = std::string(operand_ptr->operand_name);
 
+            if (init_operands == first_oprand) {
+                init_ifmap_idx = 0;
+                ifmap_st_idx = 1;   // 走到这个 if 分支，说明 add 的第一个输入是 init
+                initial_operands.resize(1);
+                initial_datas.resize(1);
+                int32_t init_operand_elem_size = operand_elem_size(operand_ptr);
+                float *data_ptr = (float *) (cur_init_info_ptr + sizeof(OPERAND_S));
+//                std::cout << "the init operand is weight of " << this->op_type << "op." << std::endl;
+                memcpy(&initial_operands[0], operand_ptr, sizeof(OPERAND_S));
+                initial_datas[0].assign(data_ptr, data_ptr + init_operand_elem_size);
+            }
+
             if (init_operands == second_oprand) {
+                init_ifmap_idx = 1;
                 initial_operands.resize(1);
                 initial_datas.resize(1);
                 int32_t init_operand_elem_size = operand_elem_size(operand_ptr);
@@ -127,14 +162,25 @@ public:
         // todo What is passed in here is not a real structure, and conv does not need to pass in a structure
 
         if (initial_operands.size() != 0) {
-            BUFFER_INFO_S second_operand_desc;
-            second_operand_desc.addr = (int64_t) (&initial_operands[0]);
-            params_vec[2] = second_operand_desc;    //  [0] is cfg; [1] is first ifmap; [2] is init data
+            if (init_ifmap_idx == 0) {
+                BUFFER_INFO_S first_operand_desc;
+                first_operand_desc.addr = (int64_t) (&initial_operands[0]);
+                params_vec[1] = first_operand_desc;    //  [0] is cfg; [1] is init data; [2] is first ifmap
 
-            // set buf
-            BUFFER_INFO_S second_operand_buf;
-            second_operand_buf.addr = (int64_t) (&(initial_datas[0][0]));
-            inputs_vec[init_st_idx] = second_operand_buf;
+                // set buf
+                BUFFER_INFO_S first_operand_buf;
+                first_operand_buf.addr = (int64_t) (&(initial_datas[0][0]));
+                inputs_vec[0] = first_operand_buf;
+            } else if (init_ifmap_idx == 1) {
+                BUFFER_INFO_S second_operand_desc;
+                second_operand_desc.addr = (int64_t) (&initial_operands[0]);
+                params_vec[2] = second_operand_desc;    //  [0] is cfg; [1] is first ifmap; [2] is init data
+
+                // set buf
+                BUFFER_INFO_S second_operand_buf;
+                second_operand_buf.addr = (int64_t) (&(initial_datas[0][0]));
+                inputs_vec[1] = second_operand_buf;
+            }
         }
 
         return 0;
@@ -142,13 +188,13 @@ public:
 
     virtual double get_computation() override {
         int32_t out_elem_size = 1;
-        OPERAND_S* ifmap = (OPERAND_S*)params_vec[1].addr;
-        OPERAND_S* ofmap = (OPERAND_S*)params_vec[1 + this->in_operands.size()].addr;
+        OPERAND_S *ifmap = (OPERAND_S *) params_vec[1].addr;
+        OPERAND_S *ofmap = (OPERAND_S *) params_vec[1 + this->in_operands.size()].addr;
         for (int i = 0; i < SHAPE_LEN; ++i) {
             out_elem_size *= ofmap->shapes[i];
         }
 
-        return (double)(out_elem_size * 1e-6);
+        return (double) (out_elem_size * 1e-6);
     };
 
 };

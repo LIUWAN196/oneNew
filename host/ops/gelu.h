@@ -83,6 +83,7 @@ public:
     };
 
     int other_prepare() override {
+        // 为 gelu 函数建立 lut 表
         float single_limit = 8.0f;
         float step = 1.0 / 512;
         int32_t lut_len = (int32_t)(2.0f * single_limit / step);

@@ -19,6 +19,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     int32_t out_c = out_tensor->shapes[1];
     int32_t out_h = out_tensor->shapes[2];
     int32_t out_w = out_tensor->shapes[3];
+    int32_t out_4 = out_tensor->shapes[4];
     // printf("the fist tensor is %s, 2 tensor is %s\n", cfg->in_operand_name[0], cfg->in_operand_name[1]);
     // printf("concat op, n is %d, c is %d, h is %d, w is %d\n", out_tensor->shape.N, out_tensor->shape.C, out_tensor->shape.H, out_tensor->shape.W);
 
@@ -30,6 +31,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
         int32_t in_c = in_tensor->shapes[1];
         int32_t in_h = in_tensor->shapes[2];
         int32_t in_w = in_tensor->shapes[3];
+        int32_t in_4 = in_tensor->shapes[4];
         // printf("concat op, n is %d, c is %d, h is %d, w is %d\n", in_tensor->shape.N, in_tensor->shape.C, in_tensor->shape.H, in_tensor->shape.W);
 
         int continue_arrange_elem_size;
@@ -37,20 +39,24 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
         int stride;
         if(axis == 0){
             repetitions = 1;
-            continue_arrange_elem_size = in_n * in_c * in_h * in_w;
-            stride = out_n * in_c * in_h * in_w;
+            continue_arrange_elem_size = in_n * in_c * in_h * in_w * in_4;
+            stride = out_n * in_c * in_h * in_w * in_4;
         } else if(axis == 1){
             repetitions = in_n;
-            continue_arrange_elem_size = in_c * in_h * in_w;
-            stride = out_c * in_h * in_w;
+            continue_arrange_elem_size = in_c * in_h * in_w * in_4;
+            stride = out_c * in_h * in_w * in_4;
         } else if(axis == 2){
             repetitions = in_n * in_c;
-            continue_arrange_elem_size = in_h * in_w;
-            stride = out_h * in_w;
+            continue_arrange_elem_size = in_h * in_w * in_4;
+            stride = out_h * in_w * in_4;
         } else if(axis == 3){
             repetitions = in_n * in_c * in_h;
-            continue_arrange_elem_size = in_w;
-            stride = out_w;
+            continue_arrange_elem_size = in_w * in_4;
+            stride = out_w * in_4;
+        } else if(axis == 4){
+            repetitions = in_n * in_c * in_h * in_w;
+            continue_arrange_elem_size = in_4;
+            stride = out_4;
         }
 
         for (int rep_i = 0; rep_i < repetitions; ++rep_i) {

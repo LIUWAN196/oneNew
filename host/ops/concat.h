@@ -64,8 +64,14 @@ public:
                 dim_num_possible_overlap[dim_i] += operand_stu_map[in_operands[in_i]].shapes[dim_i];
             }
         }
+        if (concat_cfg.axis <= 0) {
+            concat_cfg.axis = out->dim_num_of_shapes + concat_cfg.axis;
+        }
         out->shapes[concat_cfg.axis] = dim_num_possible_overlap[concat_cfg.axis];
 
+//        LOG_DBG("the op name is %s, ofmap shape is: %d %d %d %d %d %d %d", concat_cfg.op_base_cfg.op_name,
+//                out->shapes[0], out->shapes[1], out->shapes[2], out->shapes[3], out->shapes[4], out->shapes[5],
+//                out->shapes[6]);
         params_vec.resize(1 + in_operands.size() + out_operands.size());
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;

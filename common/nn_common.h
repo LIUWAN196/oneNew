@@ -168,8 +168,8 @@ typedef struct
 typedef struct
 {
     BASE_CONFIG_S op_base_cfg;
-    int64_t min;
-    int64_t max;
+    float min;
+    float max;
 } CLIP_CONFIG_S;
 
 typedef struct
@@ -282,6 +282,14 @@ typedef struct
 typedef struct
 {
     BASE_CONFIG_S op_base_cfg;
+    int64_t align_corners;
+    char mode[32];
+    char padding_mode[32];
+} GRID_SAMPLE_CONFIG_S;
+
+typedef struct
+{
+    BASE_CONFIG_S op_base_cfg;
     float alpha;
     float beta;
 } HARD_SIGMOID_CONFIG_S;
@@ -299,6 +307,11 @@ typedef struct
     int32_t axes_num;
     int32_t keepdims;
 } LAYERNORM_CONFIG_S;
+
+typedef struct
+{
+    BASE_CONFIG_S op_base_cfg;
+} LOG_CONFIG_S;
 
 typedef struct
 {
@@ -509,7 +522,17 @@ typedef struct
 {
     BASE_CONFIG_S op_base_cfg;
 
-    int64_t axes[8];
+    int64_t axis;
+    int64_t largest;
+    int64_t sorted;
+    int64_t topk_num;
+} TOP_K_CONFIG_S;
+
+typedef struct
+{
+    BASE_CONFIG_S op_base_cfg;
+
+    int64_t axes[SHAPE_LEN];
     int64_t axes_num;
 } UNSQUEEZE_CONFIG_S;
 

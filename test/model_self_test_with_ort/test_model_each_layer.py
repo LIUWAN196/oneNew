@@ -93,14 +93,18 @@ if __name__ == '__main__':
         else:
             continue
 
-        # if (key == "/ArgMax_output_0") :
+        # if (key == "/model.28/TopK_output_0") :
+        #     continue
+        # if (key == "/model.28/TopK_output_1") :
         #     continue
         #
-        # if (key == "text_features") :
-        #     # continue
-        #     a = 101
-        #     err = onnx_ref - onenew_data
-        #     b = 102
+        if (key == "/model.28/Reshape_18_output_0") :
+            # continue
+            a = 101
+            aaa = (np.fromfile(onenew_data_path, dtype=np.int32))
+            print(aaa)
+            err = onnx_ref - onenew_data
+            b = 102
 
         # compute similarity
         err = onnx_ref - onenew_data

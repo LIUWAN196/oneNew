@@ -20,10 +20,12 @@
 #include "gelu.h"
 #include "gemm.h"
 #include "global_avgpool.h"
+#include "grid_sample.h"
 #include "hard_sigmoid.h"
 #include "io.h"
 #include "layer_norm.h"
 #include "leaky_relu.h"
+#include "log.h"
 #include "mat_mul.h"
 #include "maxpool.h"
 #include "mul.h"
@@ -45,6 +47,7 @@
 #include "squeeze.h"
 #include "sub.h"
 #include "transpose.h"
+#include "top_k.h"
 #include "unsqueeze.h"
 
 

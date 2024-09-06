@@ -10,6 +10,7 @@
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
 {
 
+//    show_dev_input(params);
 //    printf("this is gemm eval in x86\n");
     MATMUL_CONFIG_S * cfg = (MATMUL_CONFIG_S*)(params[0].addr);
 //    printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
@@ -102,7 +103,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
 //            }
 //        }
 //    }
-
+//    LOG_DBG("end this op");
 
     return 0;
 }

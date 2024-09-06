@@ -487,6 +487,8 @@ int main(int argc, char **argv)
     model->build_graph();
     extractor* exe_net = model->create_exe();
 
+//    LOG_ERR("先看看 shape infer 有问题没有");
+
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 

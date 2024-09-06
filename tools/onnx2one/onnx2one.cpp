@@ -290,13 +290,23 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
             // first in_operand is ifmap; second is min; third is max
             std::string min_name = std::string(base_cfg->in_operand_name[1]);
             OPERAND_S* min_operand = init_info_map[min_name];
-            float * min_data_ptr = (float*)((char*)min_operand + sizeof(OPERAND_S));
-            clip_cfg->min = min_data_ptr[0];
+            if (min_operand == NULL) {
+                clip_cfg->min = -1 * FLT_MAX;
+            } else {
+                float * min_data_ptr = (float*)((char*)min_operand + sizeof(OPERAND_S));
+                clip_cfg->min = min_data_ptr[0];
+            }
 
             std::string max_name = std::string(base_cfg->in_operand_name[2]);
             OPERAND_S* max_operand = init_info_map[max_name];
-            float * max_data_ptr = (float*)((char*)max_operand + sizeof(OPERAND_S));
-            clip_cfg->max = max_data_ptr[0];
+            if (max_operand == NULL) {
+                clip_cfg->max = FLT_MAX;
+            } else {
+                float * max_data_ptr = (float*)((char*)max_operand + sizeof(OPERAND_S));
+                clip_cfg->max = max_data_ptr[0];
+            }
+
+//            LOG_DBG("clip_cfg->min is %f, clip_cfg->max is %f", clip_cfg->min, clip_cfg->max);
 
             // clip 算子的第 2、3 个输入是 min 和 max，这个我放到 cfg 中，不作为输入。所以这里修改 clip 算子的输入为 1 个
             clip_cfg->op_base_cfg.in_operand_num = 1;
@@ -500,6 +510,36 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
             }
 
         }
+        else if (op_type == "GridSample")
+        {
+            GRID_SAMPLE_CONFIG_S *grid_sample_cfg = (GRID_SAMPLE_CONFIG_S *)cur_node_cfg_ptr;
+
+            // Concat other attributes
+            auto attr = node.attribute();
+            for (auto param : attr)
+            {
+                if (param.name() == "align_corners")
+                {
+                    grid_sample_cfg->align_corners = param.i();
+                }
+                if (param.name() == "mode")
+                {
+                    std::string mode = param.s();
+                    if (mode != "bilinear") {
+                        LOG_ERR("sorry, cur, the GridSample's mode must be bilinear");
+                    }
+                    strcpy(grid_sample_cfg->mode, mode.c_str());
+                }
+                if (param.name() == "padding_mode")
+                {
+                    std::string padding_mode = param.s();
+                    if (padding_mode != "zeros") {
+                        LOG_ERR("sorry, cur, the GridSample's padding_mode must be zeros");
+                    }
+                    strcpy(grid_sample_cfg->padding_mode, padding_mode.c_str());
+                }
+            }
+        }
         else if (op_type == "Gather")
         {
             GATHER_CONFIG_S *gather_cfg = (GATHER_CONFIG_S *)cur_node_cfg_ptr;
@@ -609,17 +649,15 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
         {
             PAD_CONFIG_S *pad_cfg = (PAD_CONFIG_S *)cur_node_cfg_ptr;
 
-            // pad other attributes
-            auto attr = node.attribute();
-            pad_cfg->pads[0] = 0;
-            pad_cfg->pads[1] = 0;
-            pad_cfg->pads[2] = 1;
-            pad_cfg->pads[3] = 1;
+            std::string pads_name = std::string(base_cfg->in_operand_name[1]);
+            OPERAND_S* pads_operand = init_info_map[pads_name];
+            int64_t * pads_data_ptr = (int64_t*)((char*)pads_operand + sizeof(OPERAND_S));
+            const int pads_num = 8;
+            for (int i = 0; i < pads_num; ++i) {
+                pad_cfg->pads[i] = pads_data_ptr[i];
+            }
+            pad_cfg->op_base_cfg.in_operand_num = 1;
 
-            pad_cfg->pads[4] = 0;
-            pad_cfg->pads[5] = 0;
-            pad_cfg->pads[6] = 1;
-            pad_cfg->pads[7] = 1;
         }
         else if (op_type == "ReduceMax")
         {
@@ -854,6 +892,27 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
 
 
         }
+        else if (op_type == "TopK") {
+            TOP_K_CONFIG_S *top_k_cfg = (TOP_K_CONFIG_S *) cur_node_cfg_ptr;
+
+            // Concat other attributes
+            auto attr = node.attribute();
+            for (auto param: attr) {
+
+                if (param.name() == "axis") {
+                    top_k_cfg->axis = param.i();
+                } else if (param.name() == "largest") {
+                    top_k_cfg->largest = param.i();
+                } else if (param.name() == "sorted") {
+                    top_k_cfg->sorted = param.i();
+                }
+            }
+            std::string topk_num_name = std::string(base_cfg->in_operand_name[1]);
+            OPERAND_S *topk_num_operand = init_info_map[topk_num_name];
+            int64_t *topk_num_data_ptr = (int64_t *) ((char *) topk_num_operand + sizeof(OPERAND_S));
+            top_k_cfg->topk_num = topk_num_data_ptr[0];
+            top_k_cfg->op_base_cfg.in_operand_num = 1;
+        }
         else if (op_type == "Squeeze")
         {
             SQUEEZE_CONFIG_S *squeeze_cfg = (SQUEEZE_CONFIG_S *)cur_node_cfg_ptr;
@@ -874,6 +933,16 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
                         squeeze_cfg->axes[i++] = val;
                     }
                     squeeze_cfg->axes_num = i;
+                }
+            }
+
+            if (squeeze_cfg->axes_num == 0) {
+                std::string axes_name = std::string(base_cfg->in_operand_name[1]);
+                OPERAND_S* axes_operand = init_info_map[axes_name];
+                int64_t * axes_data_ptr = (int64_t*)((char*)axes_operand + sizeof(OPERAND_S));
+                squeeze_cfg->axes_num = operand_elem_size(axes_operand);
+                for (int i = 0; i < squeeze_cfg->axes_num; ++i) {
+                    squeeze_cfg->axes[i] = axes_data_ptr[i];
                 }
             }
         }
@@ -929,6 +998,17 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
                     unsqueeze_cfg->axes_num = i;
                 }
             }
+
+            if (unsqueeze_cfg->axes_num == 0) {
+                std::string axes_name = std::string(base_cfg->in_operand_name[1]);
+                OPERAND_S* axes_operand = init_info_map[axes_name];
+                int64_t * axes_data_ptr = (int64_t*)((char*)axes_operand + sizeof(OPERAND_S));
+                unsqueeze_cfg->axes_num = operand_elem_size(axes_operand);
+                for (int i = 0; i < unsqueeze_cfg->axes_num; ++i) {
+                    unsqueeze_cfg->axes[i] = axes_data_ptr[i];
+                }
+            }
+//            LOG_DBG("Unsqueeze axes is %d %d %d", unsqueeze_cfg->axes[0], unsqueeze_cfg->axes[1], unsqueeze_cfg->axes[2]);
         }
 
 		// update cur_node_cfg_ptr
