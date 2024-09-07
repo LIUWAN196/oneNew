@@ -6,6 +6,7 @@
 #include "stdint.h"
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+//    show_dev_input(params);
 //    printf("this is x86 mul start\n");
     SUB_CONFIG_S *cfg = (SUB_CONFIG_S *) (params[0].addr);
 //    printf("this is device, the op type is mul\n");
@@ -36,6 +37,23 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     int32_t in_elem_size = 1;
     for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
         in_elem_size *= in0_tensor->shapes[dim_i];
+    }
+
+    int32_t out_elem_size = 1;
+    for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
+        out_elem_size *= out_tensor->shapes[dim_i];
+    }
+
+    if (in0_tensor->dim_num_of_shapes == 1) {
+        int32_t psum_elem_size = in0_tensor->shapes[0];
+        for (int outc_i = 0; outc_i < out_elem_size / psum_elem_size; ++outc_i) {
+            for (int inner_i = 0; inner_i < psum_elem_size; ++inner_i) {
+                output_ptr[outc_i * psum_elem_size + inner_i]
+                        = input0_ptr[inner_i] - input1_ptr[outc_i * psum_elem_size + inner_i];
+            }
+        }
+
+        return 0;
     }
 
     if (in1_n * in1_c * in1_h * in1_w == 1) {   // in1 tensor should to be expand

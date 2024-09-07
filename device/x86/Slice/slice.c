@@ -5,12 +5,11 @@
 #include "string.h"
 #include "stdint.h"
 
-int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+int eval_less5dims(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
 //    show_dev_input(params);
 
     SLICE_CONFIG_S *cfg = (SLICE_CONFIG_S *) (params[0].addr);
-//    printf("yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 
     float *input_ptr = (float *) (inputs[0].addr);
     float *output_ptr = (float *) (outputs[0].addr);
@@ -79,6 +78,57 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 //
 //        }
 //    }
+
+    return 0;
+}
+
+int eval_equal5dims(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+
+//    show_dev_input(params);
+
+    SLICE_CONFIG_S *cfg = (SLICE_CONFIG_S *) (params[0].addr);
+//    printf("yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
+//    if (strcmp(cfg->op_base_cfg.op_name, "/model.28/decoder/layers.0/cross_attn/Slice") == 0) {
+//        show_dev_input(params);
+//    }
+    float *input_ptr = (float *) (inputs[0].addr);
+    float *output_ptr = (float *) (outputs[0].addr);
+
+    OPERAND_S *in_tensor = (OPERAND_S *) (params[1].addr);
+    OPERAND_S *out_tensor = (OPERAND_S *) (params[2].addr);
+
+    int32_t in_elem_size = 1;
+    for (int i = 0; i < SHAPE_LEN; ++i) {
+        in_elem_size *= in_tensor->shapes[i];
+    }
+
+    if (cfg->starts[0] == 0) {
+        for (int i = 0; i < in_elem_size / 4; ++i) {
+            output_ptr[2 * i + 0] = input_ptr[4 * i + 0];
+            output_ptr[2 * i + 1] = input_ptr[4 * i + 1];
+        }
+    } else {
+        for (int i = 0; i < in_elem_size / 4; ++i) {
+            output_ptr[2 * i + 0] = input_ptr[4 * i + 2];
+            output_ptr[2 * i + 1] = input_ptr[4 * i + 3];
+        }
+    }
+
+    return 0;
+}
+
+int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+
+//    show_dev_input(params);
+
+    SLICE_CONFIG_S *cfg = (SLICE_CONFIG_S *) (params[0].addr);
+    if (cfg->axes[0] == 5) {
+        eval_equal5dims(params, inputs, outputs);
+    } else {
+        // todo:这是为 rt detr 的特例，需要改为通用的
+        eval_less5dims(params, inputs, outputs);
+    }
+//    printf("yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 
     return 0;
 }

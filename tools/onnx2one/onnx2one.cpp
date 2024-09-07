@@ -723,6 +723,7 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
                     reduce_sum_cfg->noop_with_empty_axes = param.i();
                 }
             }
+            reduce_sum_cfg->op_base_cfg.in_operand_num = 1;
         }
         else if (op_type == "Resize")
         {

@@ -51,6 +51,11 @@ public:
             for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
                 out->shapes[dim_i] = 1;
             }
+        } else if (reduce_sum_cfg.keepdims == 0) {
+            memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
+
+            out->shapes[in->dim_num_of_shapes - 1] = 1;
+            out->dim_num_of_shapes = in->dim_num_of_shapes - 1;
         } else {
             for (int i = 0; i < SHAPE_LEN; ++i) {
                 out->shapes[i] = 1;

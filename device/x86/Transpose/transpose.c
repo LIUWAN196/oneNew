@@ -121,6 +121,7 @@ int eval_perm_num6(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
+//    show_dev_input(params);
     TRANSPOSE_CONFIG_S *cfg = (TRANSPOSE_CONFIG_S *) (params[0].addr);
 
     if (cfg->perm_num <= 4) {

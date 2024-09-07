@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.10.1)
 set(PROJECTNAME example)
 project(${PROJECTNAME})
 
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O -g")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O -g")
+
+
 find_package(OpenCV REQUIRED)
 find_package(Threads REQUIRED)
 find_package(OpenMP REQUIRED)

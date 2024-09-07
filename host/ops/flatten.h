@@ -53,6 +53,12 @@ public:
             out->shapes[1] = 512;
             out->shapes[2] = 1;
             out->dim_num_of_shapes = 2;
+        } else if (in->shapes[0] == 1 && in->shapes[1] == 8400 && in->shapes[2] == 256) {
+            // todo: 这是为 rt detr 特别定制的，需要修改为通用的
+            out->shapes[0] = 8400;
+            out->shapes[1] = 256;
+            out->shapes[2] = 1;
+            out->dim_num_of_shapes = 2;
         }
 
 //        LOG_DBG("flatten_cfg.axis is %d\n", flatten_cfg.axis);

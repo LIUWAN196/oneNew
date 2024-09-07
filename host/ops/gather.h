@@ -6,21 +6,18 @@
 #include "../manager/manager.h"
 // namespace one_new {
 
-class Gather : public op
-{
+class Gather : public op {
 public:
     GATHER_CONFIG_S gather_cfg;
     std::vector<std::vector<float>> initial_datas;  // maybe the first ifmap is init
     std::vector<OPERAND_S> initial_operands;  // maybe the first ifmap is init
     int32_t init_ifmap_idx = -1;
 
-    Gather()
-    {
+    Gather() {
 //        printf("new a Gather\n");
     };
 
-    static int create_instance(std::shared_ptr<op> &op_ptr, char *cfg_ptr)
-    {
+    static int create_instance(std::shared_ptr<op> &op_ptr, char *cfg_ptr) {
         // new Gather op
         std::shared_ptr<Gather> gather_ptr = std::make_shared<Gather>();
 
@@ -37,75 +34,154 @@ public:
     }
 
     virtual int calc_out_operand_shape(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
-        OPERAND_S* in = &operand_stu_map[in_operands[0]];
-
+        OPERAND_S *data, *idx;
+        OPERAND_S* out = &operand_stu_map[out_operands[0]];
+        for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
+            out->shapes[dim_i] = 1;
+        }
+//        if (strcmp(gather_cfg.op_base_cfg.op_name, "/model.28/decoder/layers.4/cross_attn/Reshape_7") == 0) {
+//            LOG_DBG("indices is %d ", gather_cfg.indices);
+//        }
         if (gather_cfg.indices_from_ifmap == TRUE) {
             if (initial_operands.size() != 0) {
-                int32_t gather_axis = gather_cfg.axis;
-
-                OPERAND_S* out = &operand_stu_map[out_operands[0]];
-                for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
-                    out->shapes[dim_i] = 1;
-                }
-                // todo: create shape infer from input
-                out->shapes[1] = 77;
-                out->shapes[2] = 512;
-                out->dim_num_of_shapes = 3;
-
-                params_vec.resize(1 + in_operands.size() + out_operands.size());
-                inputs_vec.resize(in_operands.size());
-                BUFFER_INFO_S params;
-                params.addr = (int64_t) (&gather_cfg);
-                params_vec[0] = params;
+                data = &initial_operands[0];
             } else {
-                int32_t gather_axis = gather_cfg.axis;
-
-                OPERAND_S* out = &operand_stu_map[out_operands[0]];
-                for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
-                    out->shapes[dim_i] = 1;
-                }
-                // todo: create shape infer from input
-                out->shapes[1] = 512;
-                out->dim_num_of_shapes = 2;
-
-                params_vec.resize(1 + in_operands.size() + out_operands.size());
-                inputs_vec.resize(in_operands.size());
-                BUFFER_INFO_S params;
-                params.addr = (int64_t) (&gather_cfg);
-                params_vec[0] = params;
+                data = &operand_stu_map[in_operands[0]];
             }
+            idx = &operand_stu_map[in_operands[1]];
+            if (gather_cfg.axis == 0) {
+                out->dim_num_of_shapes = data->dim_num_of_shapes;
+                for (int i = 0; i < data->dim_num_of_shapes; ++i) {
+                    out->shapes[i] = data->shapes[i];
+                }
+                out->shapes[0] = idx->shapes[0];
+            } else if (gather_cfg.axis == 1) {
+                out->dim_num_of_shapes = data->dim_num_of_shapes;
+                for (int i = 0; i < data->dim_num_of_shapes; ++i) {
+                    out->shapes[i] = data->shapes[i];
+                }
+                out->shapes[1] = idx->shapes[0];
+            } else {
+                out->dim_num_of_shapes = idx->dim_num_of_shapes + 1;
+                int i;
+                for (i = 0; i < idx->dim_num_of_shapes; ++i) {
+                    out->shapes[i] = idx->shapes[i];
+                }
+                out->shapes[i] = data->shapes[data->dim_num_of_shapes - 1];
+            }
+
         } else {
+//            if (strcmp(gather_cfg.op_base_cfg.op_name, "/model.28/decoder/layers.4/cross_attn/Reshape_7") == 0) {
+//                LOG_DBG("indices is %d ", gather_cfg.indices);
+//            }
+            data = &operand_stu_map[in_operands[0]];
+
             int32_t gather_axis = gather_cfg.axis;
 
-            OPERAND_S* out = &operand_stu_map[out_operands[0]];
-
+            out->dim_num_of_shapes = data->dim_num_of_shapes - 1;
             for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
                 out->shapes[dim_i] = 1;
             }
-
-            out->dim_num_of_shapes = in->dim_num_of_shapes - gather_axis;
-            out->shapes[0] = 1;
-            for (int dim_i = 1; dim_i < out->dim_num_of_shapes; ++dim_i) {
-                out->shapes[dim_i] = in->shapes[dim_i + gather_axis];
+            for (int dim_i = 0; dim_i < gather_axis; ++dim_i) {
+                out->shapes[dim_i] = data->shapes[dim_i];
+            }
+            for (int dim_i = gather_axis; dim_i < data->dim_num_of_shapes; ++dim_i) {
+                out->shapes[dim_i] = data->shapes[dim_i + 1];
             }
 
-            params_vec.resize(1 + in_operands.size() + out_operands.size());
-            inputs_vec.resize(in_operands.size());
-            BUFFER_INFO_S params;
-            params.addr = (int64_t) (&gather_cfg);
-            params_vec[0] = params;
+//            int32_t gather_axis = gather_cfg.axis;
+//
+//            out->dim_num_of_shapes = data->dim_num_of_shapes - gather_axis;
+//            out->shapes[0] = 1;
+//            for (int dim_i = 1; dim_i < out->dim_num_of_shapes; ++dim_i) {
+//                out->shapes[dim_i] = data->shapes[dim_i + gather_axis];
+//            }
         }
 
-        return  0;
+        params_vec.resize(1 + in_operands.size() + out_operands.size());
+        inputs_vec.resize(in_operands.size());
+        BUFFER_INFO_S params;
+        params.addr = (int64_t) (&gather_cfg);
+        params_vec[0] = params;
+
+//        if (strcmp(gather_cfg.op_base_cfg.op_name, "/model.28/Gather_9") == 0) {
+//            LOG_DBG("%s", gather_cfg.op_base_cfg.op_name);
+//            LOG_DBG("out shape is %d %d %d %d", data->shapes[0], data->shapes[1], data->shapes[2], data->shapes[3]);
+//            LOG_DBG("out shape is %d %d %d %d", idx->shapes[0], idx->shapes[1], idx->shapes[2], idx->shapes[3]);
+//            LOG_DBG("out shape is %d %d %d %d", out->shapes[0], out->shapes[1], out->shapes[2], out->shapes[3]);
+//        }
+
+//
+//        if (strcmp(gather_cfg.op_base_cfg.op_name, "/model.28/Gather_10") == 0) {
+//            LOG_DBG("%s", gather_cfg.op_base_cfg.op_name);
+//        }
+//
+//        if (gather_cfg.indices_from_ifmap == TRUE) {
+//            if (initial_operands.size() != 0) {
+//                int32_t gather_axis = gather_cfg.axis;
+//
+//                OPERAND_S* out = &operand_stu_map[out_operands[0]];
+//                for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
+//                    out->shapes[dim_i] = 1;
+//                }
+//                // todo: create shape infer from input
+//                out->shapes[1] = 77;
+//                out->shapes[2] = 512;
+//                out->dim_num_of_shapes = 3;
+//
+//                params_vec.resize(1 + in_operands.size() + out_operands.size());
+//                inputs_vec.resize(in_operands.size());
+//                BUFFER_INFO_S params;
+//                params.addr = (int64_t) (&gather_cfg);
+//                params_vec[0] = params;
+//            } else {
+//                int32_t gather_axis = gather_cfg.axis;
+//
+//                OPERAND_S* out = &operand_stu_map[out_operands[0]];
+//                for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
+//                    out->shapes[dim_i] = 1;
+//                }
+//                // todo: create shape infer from input
+//                out->shapes[1] = 512;
+//                out->dim_num_of_shapes = 2;
+//
+//                params_vec.resize(1 + in_operands.size() + out_operands.size());
+//                inputs_vec.resize(in_operands.size());
+//                BUFFER_INFO_S params;
+//                params.addr = (int64_t) (&gather_cfg);
+//                params_vec[0] = params;
+//            }
+//        } else {
+//            int32_t gather_axis = gather_cfg.axis;
+//
+//            OPERAND_S* out = &operand_stu_map[out_operands[0]];
+//
+//            for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
+//                out->shapes[dim_i] = 1;
+//            }
+//
+//            out->dim_num_of_shapes = in->dim_num_of_shapes - gather_axis;
+//            out->shapes[0] = 1;
+//            for (int dim_i = 1; dim_i < out->dim_num_of_shapes; ++dim_i) {
+//                out->shapes[dim_i] = in->shapes[dim_i + gather_axis];
+//            }
+//
+//            params_vec.resize(1 + in_operands.size() + out_operands.size());
+//            inputs_vec.resize(in_operands.size());
+//            BUFFER_INFO_S params;
+//            params.addr = (int64_t) (&gather_cfg);
+//            params_vec[0] = params;
+//        }
+
+        return 0;
     };
 
-    int fill_operands(char *one_buf_ptr) override
-    {
+    int fill_operands(char *one_buf_ptr) override {
         // fill op type and op name
-        op_type = (char*)(&(this->gather_cfg));
-        op_name = (char*)((int64_t)&(this->gather_cfg) + OP_TYPE_LEN);
+        op_type = (char *) (&(this->gather_cfg));
+        op_name = (char *) ((int64_t) &(this->gather_cfg) + OP_TYPE_LEN);
 
-        BASE_CONFIG_S* base_cfg = (BASE_CONFIG_S*)(&(this->gather_cfg));
+        BASE_CONFIG_S *base_cfg = (BASE_CONFIG_S *) (&(this->gather_cfg));
         int32_t in_operand_num = base_cfg->in_operand_num;
         int32_t out_operand_num = base_cfg->out_operand_num;
 

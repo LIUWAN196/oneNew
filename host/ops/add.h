@@ -48,6 +48,11 @@ public:
         } else {
             memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
             out->dim_num_of_shapes = in->dim_num_of_shapes;
+            if (in->dim_num_of_shapes == in1->dim_num_of_shapes) {
+                for (int i = 0; i < out->dim_num_of_shapes; ++i) {
+                    out->shapes[i] = in->shapes[i] > in1->shapes[i] ? in->shapes[i] : in1->shapes[i];
+                }
+            }
         }
 
 //        std::cout<< "out->dim_num_of_shapes is:" << out->dim_num_of_shapes

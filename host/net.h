@@ -438,10 +438,16 @@ int extractor::impl_dump_ofmap(std::unordered_map<std::string, std::vector<float
         op_idx++;
 
         double op_st = omp_get_wtime();
-//        std::cout << "this op type is: " << op->op_type << ", op->op_name is: " << op->op_name << ", op_idx is: " << op_idx << std::endl;
+        std::cout << "this op type is: " << op->op_type << ", op->op_name is: " << op->op_name << ", op_idx is: " << op_idx << std::endl;
 
+        fflush(stdout);
+        std::string tar_opname = "/model.28/decoder/layers.4/cross_attn/Reshape_7";
+        if (strcmp(op->op_name, tar_opname.c_str()) == 0) {
+            LOG_DBG("hahahahhaha");
+        }
+        fflush(stdout);
         op.get()->forward(operand_buf_map, net_ptr->operand_stu_map, net_ptr->init_operands_list);
-//        std::cout << "=== end this op type is:" << op->op_type << ", op_idx is: " << op_idx << std::endl;
+        std::cout << "=== end this op type is:" << op->op_type << ", op_idx is: " << op_idx << std::endl;
 //
         double op_ed = omp_get_wtime();
         elapsed = op_ed - op_st;

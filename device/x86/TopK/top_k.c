@@ -8,7 +8,7 @@
 
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-    show_dev_input(params);
+//    show_dev_input(params);
 //    printf("this is x86 mul start\n");
     TOP_K_CONFIG_S *cfg = (TOP_K_CONFIG_S *) (params[0].addr);
 
@@ -40,8 +40,8 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     }
 
     free(ifmap_ptr);
-    LOG_DBG("这是 topk 算子的结束");
-    LOG_DBG("这是 topk 算子的结束");
+//    LOG_DBG("这是 topk 算子的结束");
+//    LOG_DBG("这是 topk 算子的结束");
 
     return 0;
 }

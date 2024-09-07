@@ -189,6 +189,45 @@ int eval_dim_num_5(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *
     return 0;
 }
 
+int eval_dim_num_6(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+
+    ADD_CONFIG_S *cfg = (ADD_CONFIG_S *) (params[0].addr);
+
+    float *input0_ptr = (float *) (inputs[0].addr);
+    float *input1_ptr = (float *) (inputs[1].addr);
+    float *output_ptr = (float *) (outputs[0].addr);
+
+    OPERAND_S *in0_tensor = (OPERAND_S *) (params[1].addr);
+    OPERAND_S *in1_tensor = (OPERAND_S *) (params[2].addr);
+    OPERAND_S *out_tensor = (OPERAND_S *) (params[3].addr);
+
+    int32_t out_elem_size = 1;
+    for (int i = 0; i < SHAPE_LEN; ++i) {
+        out_elem_size *= out_tensor->shapes[i];
+    }
+
+
+    int32_t expand_elem_size = out_tensor->shapes[2] * out_tensor->shapes[3] * out_tensor->shapes[4];
+
+    int32_t inner_elem_size = out_tensor->shapes[out_tensor->dim_num_of_shapes - 1];
+    int32_t outter_elem_size = out_elem_size / inner_elem_size / expand_elem_size;
+
+    for (int outter_i = 0; outter_i < outter_elem_size; ++outter_i) {
+        float* cur_output_ptr = output_ptr + outter_i * expand_elem_size * inner_elem_size;
+        float* cur_in0_ptr = input0_ptr + outter_i * inner_elem_size;
+        float* cur_in1_ptr = input1_ptr + outter_i * expand_elem_size * inner_elem_size;
+        for (int expand_i = 0; expand_i < expand_elem_size; ++expand_i) {
+            for (int inner_i = 0; inner_i < inner_elem_size; ++inner_i) {
+                cur_output_ptr[expand_i * inner_elem_size + inner_i] =
+                        cur_in0_ptr[inner_i] + cur_in1_ptr[expand_i * inner_elem_size + inner_i];
+            }
+        }
+    }
+
+
+    return 0;
+}
+
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 //    show_dev_input(params);
 
@@ -200,6 +239,9 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
         eval_dim_num_4(params, inputs, outputs);
     } else if (in0_tensor->dim_num_of_shapes == 5) {
         eval_dim_num_5(params, inputs, outputs);
+    } else if (in0_tensor->dim_num_of_shapes == 6) {
+        // todo: 只是针对 rt detr，需要统一适配
+        eval_dim_num_6(params, inputs, outputs);
     }
 
 //    LOG_ERR("end of add op\n");

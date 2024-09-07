@@ -93,11 +93,13 @@ if __name__ == '__main__':
         else:
             continue
 
-        # if (key == "/model.28/TopK_output_0") :
-        #     continue
-        # if (key == "/model.28/TopK_output_1") :
-        #     continue
-        #
+        if (key == "/model.28/TopK_output_0") :
+            continue
+        if (key == "/model.28/TopK_output_1") :
+            continue
+        if (key == "/model.28/Reshape_18_output_0") :
+            continue
+
         if (key == "/model.28/Reshape_18_output_0") :
             # continue
             a = 101

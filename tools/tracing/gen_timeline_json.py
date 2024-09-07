@@ -32,8 +32,8 @@ def add_item(major_op_info, op_type, op_computation, op_exc_time):
 
 if __name__ == '__main__':
     # step 1：加载 csv
-    csv_file_name = 'timeline_info/yolo_world.csv'
-    json_file_name = 'timeline_info/yolo_world.json'
+    csv_file_name = 'timeline_info/rt_detr.csv'
+    json_file_name = 'timeline_info/rt_detr.json'
 
     dataset=load_csv(csv_file_name)
 
