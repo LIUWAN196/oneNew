@@ -150,19 +150,14 @@ public:
         return 0;
     };
 
-    virtual int forward(std::unordered_map<std::string, std::vector<float>> &operand_buf_map,
+    virtual int forward(std::unordered_map<std::string, BUF_INFO_S> &operand_buf_map,
                         std::unordered_map<std::string, OPERAND_S> &operand_stu_map, std::set<std::string> &init_operands_list) {
-//        std::cout << "start forward. " << std::endl;
-
         BASE_CONFIG_S* cfg = (BASE_CONFIG_S*)(this->params_vec[0].addr);
-//        if (strcmp(cfg->op_name, "/model.28/decoder/layers.4/cross_attn/Reshape_7") == 0) {
-//            LOG_DBG("this is forward");
-//        }
+
         // step 1： set the operand desc
         int32_t params_ifmap_idx = ifmap_st_idx + 1;      // because [0] is cfg
         for (int i = 0; i < this->in_operands.size(); ++i) {
             auto it = init_operands_list.find(this->in_operands[i]);
-//        for (int i = 0; i < 1; ++i) {
             if (this->in_operands[i].empty() || it != init_operands_list.end()) {
                 continue;
             }
@@ -170,68 +165,49 @@ public:
             in_desc.addr = (int64_t) (&(operand_stu_map[this->in_operands[i]]));
             params_vec[params_ifmap_idx] = in_desc;
             params_ifmap_idx++;
-//            params_vec.push_back(in_desc);
+
         }
-//        if (strcmp(cfg->op_name, "/model.28/decoder/layers.4/cross_attn/Reshape_7") == 0) {
-//            LOG_DBG("this is forward22222");
-//        }
+
         int32_t ofmap_idx = 1 + this->in_operands.size();
         for (int i = 0; i < this->out_operands.size(); ++i) {
             BUFFER_INFO_S out_desc;
             out_desc.addr = (int64_t) (&(operand_stu_map[this->out_operands[i]]));
             params_vec[ofmap_idx] = out_desc;
             ofmap_idx++;
-//            params_vec.push_back(out_desc);
         }
-//        if (strcmp(cfg->op_name, "/model.28/decoder/layers.4/cross_attn/Reshape_7") == 0) {
-//            LOG_DBG("this is forward333333, this->ifmap_st_idx is %d, this->in_operands.size() is %d",
-//                    this->ifmap_st_idx, this->in_operands.size());
-//        }
+
         // step 2： set the operand buf
         int32_t ifmap_buf_idx = this->ifmap_st_idx;
-        int32_t *p = &ifmap_buf_idx;
         for (int i = 0; i < this->in_operands.size(); ++i) {
-//            if (strcmp(cfg->op_name, "/model.28/decoder/layers.4/cross_attn/Reshape_7") == 0) {
-//                LOG_DBG("this is forwardaaaaa444444");
-//                LOG_DBG("cur operand is %s", this->in_operands[i].c_str());
-//            }
             auto it = init_operands_list.find(this->in_operands[i]);
-//        for (int i = 0; i < 1; ++i) {
             if (this->in_operands[i].empty() || it != init_operands_list.end()) {
                 continue;
             }
-//            if (strcmp(cfg->op_name, "/model.28/decoder/layers.4/cross_attn/Reshape_7") == 0) {
-//                LOG_DBG("this is forwardbbbb444444");
-//            }
             BUFFER_INFO_S in_buf;
-            in_buf.addr = (int64_t) (&(operand_buf_map[this->in_operands[i]][0]));
-//            inputs_vec[ifmap_st_idx] = in_buf;
-//            printf("ifmap_st_idx is %d\n", ifmap_st_idx);
-//            ifmap_st_idx++;
-//            if (strcmp(cfg->op_name, "/model.28/decoder/layers.4/cross_attn/Reshape_7") == 0) {
-//                LOG_DBG("this is forwardxxxxxxxx444444");
-//            }
+            in_buf.addr = operand_buf_map[this->in_operands[i]].st_ptr;
+
             inputs_vec[ifmap_buf_idx] = in_buf;
-//            printf("ifmap_buf_idx is %d\n", ifmap_buf_idx);
             ifmap_buf_idx++;
         }
-//        if (strcmp(cfg->op_name, "/model.28/decoder/layers.4/cross_attn/Reshape_7") == 0) {
-//            LOG_DBG("this is forward444444");
-//        }
+
+        // 判断是否需要进行计算，例如 reshape / flatten 根本不需要计算
+        OPERAND_S* first_ofmap = (OPERAND_S*)&(operand_stu_map[this->out_operands[0]]);
+        if (first_ofmap->not_need_buf == TRUE) {
+            // 只需要将输入的 buffer 描述拷贝到输出的 buffer 描述即可。后面都不需要计算
+            operand_buf_map[this->out_operands[0]] = operand_buf_map[this->in_operands[0]];
+            return 0;
+        }
+
         for (int i = 0; i < this->out_operands.size(); ++i) {
             BUFFER_INFO_S out_buf;
-            out_buf.addr = (int64_t) (&(operand_buf_map[this->out_operands[i]][0]));
+            out_buf.addr = operand_buf_map[this->out_operands[i]].st_ptr;
             outputs_vec.push_back(out_buf);
         }
-//        if (strcmp(cfg->op_name, "/model.28/decoder/layers.4/cross_attn/Reshape_7") == 0) {
-//            LOG_DBG("this is forward55555");
-//        }
-        // prapaere
+
+        // prepare
         init_st_idx = ifmap_buf_idx;
         prepare_init_operand_data();
-//        if (strcmp(cfg->op_name, "/model.28/decoder/layers.4/cross_attn/Reshape_7") == 0) {
-//            LOG_DBG("this is forward666666");
-//        }
+
 //        BASE_CONFIG_S* cfg = (BASE_CONFIG_S*)(this->params_vec[0].addr);
 
         int ret = evla_impl(&(this->params_vec[0]), &(this->inputs_vec[0]), &(this->outputs_vec[0]));

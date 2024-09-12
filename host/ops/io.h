@@ -34,7 +34,7 @@ public:
         return 0;
     }
 
-    virtual int forward(std::unordered_map<std::string, std::vector<float>> &operand_buf_map, std::unordered_map<std::string, OPERAND_S> &operand_stu_map, std::set<std::string> &init_operands_list) override
+    virtual int forward(std::unordered_map<std::string, BUF_INFO_S> &operand_buf_map, std::unordered_map<std::string, OPERAND_S> &operand_stu_map, std::set<std::string> &init_operands_list) override
     {
 //        std::cout << "this op type is io, dont need forward. " << std::endl;
         return 0;

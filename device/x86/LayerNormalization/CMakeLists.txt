@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10.1)
 
-project(LayerNorm_x86)
+project(LayerNormalization_x86)
 #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mavx2")
 #set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mavx2")
 #
@@ -22,8 +22,8 @@ set (NN_COMMON "/home/e0006809/Desktop/oneNew-main/infer/common")
 include_directories(
     ${NN_COMMON})
 
-add_library(LayerNorm_x86 SHARED layer_norm.c)
+add_library(LayerNormalization_x86 SHARED layer_normalization.c)
 
-target_link_libraries(LayerNorm_x86 PUBLIC OpenMP::OpenMP_CXX)
-target_link_libraries(LayerNorm_x86 PUBLIC OpenMP::OpenMP_C)
+target_link_libraries(LayerNormalization_x86 PUBLIC OpenMP::OpenMP_CXX)
+target_link_libraries(LayerNormalization_x86 PUBLIC OpenMP::OpenMP_C)
 

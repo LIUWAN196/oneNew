@@ -227,25 +227,30 @@ int fill_gelu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, s
     return 0;
 }
 
-int fill_layer_norm_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, std::vector<BASE_CONFIG_S *> sub_op_cfg){
+int fill_layer_normalization_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, std::vector<BASE_CONFIG_S *> sub_op_cfg){
 
-    LAYERNORM_CONFIG_S * ln_cfg = (LAYERNORM_CONFIG_S*) malloc(sizeof(LAYERNORM_CONFIG_S));
-    memcpy(ln_cfg, sub_op_cfg[1], sizeof(LAYERNORM_CONFIG_S));
+    LAYERNORMALIZATION_CONFIG_S * ln_cfg = (LAYERNORMALIZATION_CONFIG_S*) malloc(sizeof(LAYERNORMALIZATION_CONFIG_S));
+    memcpy(ln_cfg, sub_op_cfg[1], sizeof(LAYERNORMALIZATION_CONFIG_S));
     memset(ln_cfg->op_base_cfg.op_type, 0, OP_TYPE_LEN);
 
-    std::string op_type = "LayerNorm";
+    std::string op_type = "LayerNormalization";
     strcpy(ln_cfg->op_base_cfg.op_type, op_type.c_str());
 
     // 修改消费者 op 为最后一个 div 的输出 op
-    BASE_CONFIG_S *div_cfg = sub_op_cfg[7];
-    memcpy(&ln_cfg->op_base_cfg.consumer[0], &div_cfg->consumer[0],
+    BASE_CONFIG_S *mul_cfg = sub_op_cfg[8];
+    BASE_CONFIG_S *add_cfg = sub_op_cfg[9];
+    memcpy(&ln_cfg->op_base_cfg.consumer[0], &add_cfg->consumer[0],
            OPERAND_MAXNUM * sizeof(NODE_INFO_S));
 
     // 修改输出操作数为 silu 的输出操作数
-    memcpy(&ln_cfg->op_base_cfg.out_operand_name[0], &div_cfg->out_operand_name[0],
+    memcpy(&ln_cfg->op_base_cfg.out_operand_name[0], &add_cfg->out_operand_name[0],
            OPERAND_MAXNUM * OPERAND_NAME_LEN);
 
-    ln_cfg->op_base_cfg.in_operand_num = 1;
+    // 将 layer norm 的 weight bias 放到 layer norm 的输入中来
+    memcpy(&ln_cfg->op_base_cfg.in_operand_name[1][0], &mul_cfg->in_operand_name[1][0], OPERAND_NAME_LEN);
+    memcpy(&ln_cfg->op_base_cfg.in_operand_name[2][0], &add_cfg->in_operand_name[1][0], OPERAND_NAME_LEN);
+
+    ln_cfg->op_base_cfg.in_operand_num = 3;
     ln_cfg->op_base_cfg.out_operand_num = 1;
     ln_cfg->op_base_cfg.producer_num = 1;
     ln_cfg->op_base_cfg.consumer_num = 1;
@@ -564,11 +569,13 @@ int32_t op_fusion(char *fusion_one_buf_ptr, char *one_buf_ptr, CFG_MAP cfg_info_
         sub_graph_node reduce_mean_op1 = {(NODE_INFO_S){"ReduceMean", "ReduceMean456"}, {5}};
         sub_graph_node add_op1 = {(NODE_INFO_S){"Add", "Add123"}, {6}};
         sub_graph_node sqrt_op = {(NODE_INFO_S){"Sqrt", "Sqrt123"}, {7}};
-        sub_graph_node div_op = {(NODE_INFO_S){"Div", "Div123"}, {}};
-        op_and_their_consumer = {foo_op, reduce_mean_op0, sub_op, pow_op, reduce_mean_op1, add_op1, sqrt_op, div_op};
+        sub_graph_node div_op = {(NODE_INFO_S){"Div", "Div123"}, {8}};
+        sub_graph_node mul_op = {(NODE_INFO_S){"Mul", "Mul123"}, {9}};
+        sub_graph_node add_op2 = {(NODE_INFO_S){"Add", "Add456"}, {}};
+        op_and_their_consumer = {foo_op, reduce_mean_op0, sub_op, pow_op, reduce_mean_op1, add_op1, sqrt_op, div_op, mul_op, add_op2};
 
-        fuse_operator("LayerNorm", one_buf_ptr, op_and_their_consumer,
-                      total_fuse_op_cfg_set, fill_layer_norm_fuse_op_cfg);
+        fuse_operator("LayerNormalization", one_buf_ptr, op_and_their_consumer,
+                      total_fuse_op_cfg_set, fill_layer_normalization_fuse_op_cfg);
     }
 
     // 开始做真正的融合

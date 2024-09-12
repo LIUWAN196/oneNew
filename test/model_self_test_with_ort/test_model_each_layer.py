@@ -100,12 +100,17 @@ if __name__ == '__main__':
         if (key == "/model.28/Reshape_18_output_0") :
             continue
 
-        if (key == "/model.28/Reshape_18_output_0") :
+        if (key == "/image_encoder/layers.1/blocks.0/Pad_output_0") :
             # continue
             a = 101
-            aaa = (np.fromfile(onenew_data_path, dtype=np.int32))
-            print(aaa)
+            # onenew_data_path = (np.fromfile(onenew_data_path, dtype=np.int32))
+            # print("onenew_data_path")
+            # print(onenew_data_path)
+            # print("onnx_ref")
+            # print(onnx_ref)
             err = onnx_ref - onenew_data
+            # print("err")
+            # print(err)
             b = 102
 
         # compute similarity

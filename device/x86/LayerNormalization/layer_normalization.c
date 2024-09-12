@@ -1,4 +1,4 @@
-#include "layer_norm.h"
+#include "layer_normalization.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -13,9 +13,11 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
 //    show_dev_input(params);
 //    LOG_ERR("end in layer norm\n");
 //    show_dev_input(params);
-    LAYERNORM_CONFIG_S * cfg = (LAYERNORM_CONFIG_S*)(params[0].addr);
+    LAYERNORMALIZATION_CONFIG_S * cfg = (LAYERNORMALIZATION_CONFIG_S*)(params[0].addr);
 
     float* input_ptr = (float*)(inputs[0].addr);
+    float* weight_ptr = (float*)(inputs[1].addr);
+    float* bias_ptr = (float*)(inputs[2].addr);
     float* output_ptr = (float*)(outputs[0].addr);
 
     OPERAND_S* in_tensor = (OPERAND_S*)(params[1].addr);
@@ -56,8 +58,10 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
         float inv_std_val = 1.0f / std_val;
 
         // setp 3: save to ofmp
+        float tmp;
         for (int reduce_i = 0; reduce_i < reduce_size; ++reduce_i) {
-            cur_ofmap[reduce_i] = (cur_ifmap[reduce_i] - mean_val) * inv_std_val;
+            tmp = (cur_ifmap[reduce_i] - mean_val) * inv_std_val;
+            cur_ofmap[reduce_i] = tmp * weight_ptr[reduce_i] + bias_ptr[reduce_i];
         }
 
     }

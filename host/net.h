@@ -29,7 +29,7 @@ class extractor {
 
 public:
 
-    std::unordered_map<std::string, std::vector<float>> operand_buf_map;
+    std::unordered_map<std::string, BUF_INFO_S> operand_buf_map;
 
     net *net_ptr;
 
@@ -40,10 +40,10 @@ public:
 
     int new_output_buf();
 
-    int impl_dump_ofmap(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
-    int impl_tracing(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
+    int impl_dump_ofmap(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
+    int impl_tracing(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
 
-    int impl(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
+    int impl(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
 
 };
 
@@ -383,23 +383,35 @@ public:
 
 // } // namespace one_new
 
+bool startsWithAbc(const std::string& str) {
+    std::string a = "/image_encoder/blocks.5";
+    return str.compare(0, a.length(), a) == 0;
+}
 
 int extractor::new_output_buf() {
 //    printf("start new_output_buf\n");
 
+    int64_t total_buf_size = 0;
+    int32_t op_idx = 0;
     for (auto operand : net_ptr->operand_stu_map) {
-//        std::cout << "new_output_buf for:" << operand.first << std::endl;
+        if (operand.second.not_need_buf == TRUE) {
+            continue;
+        }
         int32_t elem_size = operand_elem_size(&operand.second);
-//        LOG_DBG("operand name is %s, elem_size is %d, shape is [%d, %d, %d, %d]",
-//                operand.first.c_str(), elem_size, operand.second.shapes[0], operand.second.shapes[1],
-//                operand.second.shapes[2], operand.second.shapes[3]);
         int32_t buf_size = elem_size * sizeof(float);
-//        if (buf_size == 0) {
-//            std::cout << "warning: the operand size is 0, check the data type!" << std::endl;
-////            buf_size = 1024;  // todo : tmp
-//        }
-        std::vector<float> operand_vec(elem_size, 0);
-        operand_buf_map[operand.first] = operand_vec;
+        int64_t cur_operand_ptr = (int64_t)malloc(buf_size);
+
+        operand_buf_map[operand.first] = {cur_operand_ptr, elem_size, buf_size};
+        if (elem_size != 0 && startsWithAbc(operand.first.c_str())) {
+            total_buf_size += buf_size;
+            op_idx ++;
+            LOG_DBG("this is %dth op, and total buf size is %ld MB, operand name is %s, buf size is %f MB, elem_size is %d, shape is [%d, %d, %d, %d]",
+                    op_idx, total_buf_size / 1024 / 1024, operand.first.c_str(), elem_size * sizeof(float) * 1.0f / 1024 / 1024, elem_size, operand.second.shapes[0], operand.second.shapes[1],
+                    operand.second.shapes[2], operand.second.shapes[3]);
+        }
+
+
+//        LOG_DBG("this is %dth op, and total buf size is %ld", op_idx, total_buf_size);
 //        std::cout << "end new_output_buf for:" << operand.first << std::endl;
 
     }
@@ -411,7 +423,7 @@ int extractor::new_output_buf() {
 
 #include <sys/time.h>
 
-int extractor::impl_dump_ofmap(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
+int extractor::impl_dump_ofmap(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
 
     std::unordered_map<std::string, double> op_type_time;
     std::unordered_map<std::string, double> op_name_time;
@@ -438,16 +450,10 @@ int extractor::impl_dump_ofmap(std::unordered_map<std::string, std::vector<float
         op_idx++;
 
         double op_st = omp_get_wtime();
-        std::cout << "this op type is: " << op->op_type << ", op->op_name is: " << op->op_name << ", op_idx is: " << op_idx << std::endl;
+//        std::cout << "this op type is: " << op->op_type << ", op->op_name is: " << op->op_name << ", op_idx is: " << op_idx << std::endl;
 
-        fflush(stdout);
-        std::string tar_opname = "/model.28/decoder/layers.4/cross_attn/Reshape_7";
-        if (strcmp(op->op_name, tar_opname.c_str()) == 0) {
-            LOG_DBG("hahahahhaha");
-        }
-        fflush(stdout);
         op.get()->forward(operand_buf_map, net_ptr->operand_stu_map, net_ptr->init_operands_list);
-        std::cout << "=== end this op type is:" << op->op_type << ", op_idx is: " << op_idx << std::endl;
+//        std::cout << "=== end this op type is:" << op->op_type << ", op_idx is: " << op_idx << std::endl;
 //
         double op_ed = omp_get_wtime();
         elapsed = op_ed - op_st;
@@ -458,11 +464,11 @@ int extractor::impl_dump_ofmap(std::unordered_map<std::string, std::vector<float
         if (!op.get()->out_operands.empty()) {
             std::string omap_name = op.get()->out_operands[0];
             char* omap_name_c = (char*)omap_name.c_str();
-            std::vector<float>* omap_vec = &operand_buf_map[omap_name];
-            char* ofmap_ptr = (char *)(&operand_buf_map[omap_name][0]);
+            char* ofmap_ptr = (char *)operand_buf_map[omap_name].st_ptr;
+            int64_t buf_size = operand_buf_map[omap_name].buf_size;
             std::string ofmap_name(replace_char(omap_name_c));
             std::string ofmap_path = ofmap_folder + ofmap_name;
-            write_bin(ofmap_path.c_str(), omap_vec->size() * sizeof(float), ofmap_ptr);
+            write_bin(ofmap_path.c_str(), buf_size, ofmap_ptr);
         }
 //        gettimeofday(&end, 0);
 
@@ -505,7 +511,7 @@ int extractor::impl_dump_ofmap(std::unordered_map<std::string, std::vector<float
     return 0;
 }
 
-int extractor::impl_tracing(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
+int extractor::impl_tracing(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
 
     std::vector<std::vector<std::string>> op_with_tracing;
     op_with_tracing.resize(net_ptr->op_exec_order.size() + 1);
@@ -583,7 +589,7 @@ int extractor::impl_tracing(std::unordered_map<std::string, std::vector<float>> 
 }
 
 
-int extractor::impl(std::unordered_map<std::string, std::vector<float>> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
+int extractor::impl(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
     for (auto input:io_buf_map) {
         operand_buf_map[input.first] = input.second;
     }

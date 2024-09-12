@@ -148,7 +148,7 @@ int quant_percent(std::unordered_map<std::string, float> &threshold_map, net *ne
 
     extractor* exe_net = net_1->create_exe();
 
-    std::unordered_map<std::string, std::vector<float>> io_buf_map;
+    std::unordered_map<std::string, BUF_INFO_S> io_buf_map;
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
@@ -193,7 +193,7 @@ int quant_percent(std::unordered_map<std::string, float> &threshold_map, net *ne
         if (strcmp(op.get()->op_type, "Conv") == 0)
         {
             std::string ifmap_name = op.get()->in_operands[0];
-            int32_t ifmap_elem_size = exe_net->operand_buf_map[ifmap_name].size();
+            int32_t ifmap_elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
             int32_t mult_batch_large_elem_size = (int32_t)(calibrate_img_num * ifmap_elem_size * (1 - percent) * affluence_ratio);
             std::vector<float> large_elem_vec(mult_batch_large_elem_size, 0);
             large_elem_map[ifmap_name] = large_elem_vec;
@@ -213,7 +213,11 @@ int quant_percent(std::unordered_map<std::string, float> &threshold_map, net *ne
         std::string img_path = path + img;
 
         transforms(in_buf, img_path, trans_cfg);
-        io_buf_map[in_operand_name] = in_buf;
+        int32_t elem_size = in_buf.size();
+        int32_t buf_size = elem_size * sizeof(float);
+        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
+        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+
         std::unordered_map<std::string, std::string> cfg_info_map;
         exe_net->impl(io_buf_map, cfg_info_map);
 
@@ -228,13 +232,15 @@ int quant_percent(std::unordered_map<std::string, float> &threshold_map, net *ne
             if (strcmp(op.get()->op_type, "Conv") == 0)
             {
                 std::string ifmap_name = op.get()->in_operands[0];
-                std::vector<float>* cur_ifmap = &exe_net->operand_buf_map[ifmap_name];
-                std::sort(cur_ifmap->begin(), cur_ifmap->end(), greater);   // 按照绝对值从大到小排序
+                float *ifmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].st_ptr;
+                int32_t ifmap_elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
+                std::vector<float> cur_ifmap(ifmap_elem_size, 0);
+                memcpy(&cur_ifmap[0], ifmap_ptr, ifmap_elem_size * sizeof(float));
+                std::sort(cur_ifmap.begin(), cur_ifmap.end(), greater);   // 按照绝对值从大到小排序
 
                 // 将本张图的本个 conv 的输入的 reserve_elem_size 个元素，保存到 large_elem_map 的对应位置
-                int32_t ifmap_elem_size = exe_net->operand_buf_map[ifmap_name].size();
                 int32_t reserve_elem_size = (int32_t)(ifmap_elem_size * (1 - percent) * affluence_ratio);
-                std::copy(cur_ifmap->begin(), cur_ifmap->begin() + reserve_elem_size, large_elem_map[ifmap_name].begin() + img_i * reserve_elem_size);
+                std::copy(cur_ifmap.begin(), cur_ifmap.begin() + reserve_elem_size, large_elem_map[ifmap_name].begin() + img_i * reserve_elem_size);
             }
         }
         img_i ++;
@@ -243,7 +249,7 @@ int quant_percent(std::unordered_map<std::string, float> &threshold_map, net *ne
     // 步骤 3： 对 large_elem_map 的较大值再进行一次排序，找出其中第 percent * calibrate_img_num 个数作为阈值来使用
     for (auto map_i : large_elem_map) {
         std::string ifmap_name = map_i.first;
-        int32_t ori_ifmap_elem_size = exe_net->operand_buf_map[ifmap_name].size();   // 获取原始的本个 ifmap 的单 batch 数据量
+        int32_t ori_ifmap_elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;   // 获取原始的本个 ifmap 的单 batch 数据量
         std::vector<float>* cur_ifmap = &map_i.second;
         std::sort(cur_ifmap->begin(), cur_ifmap->end(), greater);
         int32_t threshold_idx = (int32_t)((1 - percent) * calibrate_img_num * ori_ifmap_elem_size);
@@ -270,7 +276,7 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
 
     extractor* exe_net = net_1->create_exe();
 
-    std::unordered_map<std::string, std::vector<float>> io_buf_map;
+    std::unordered_map<std::string, BUF_INFO_S> io_buf_map;
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
@@ -315,13 +321,16 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
         if (strcmp(op.get()->op_type, "Conv") == 0)
         {
             std::string ifmap_name = op.get()->in_operands[0];
-            int32_t ifmap_elem_size = exe_net->operand_buf_map[ifmap_name].size();
+            int32_t ifmap_elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
             std::vector<float> his_elem_vec(num_his_bins, 0);
             his_map[ifmap_name] = his_elem_vec;
             max_elem_map[ifmap_name] = 0.0f;
             float psum = 0.0f;
-            for (auto elem_i : exe_net->operand_buf_map[ifmap_name]) {
-                psum += elem_i;
+
+            float * fmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].st_ptr;
+            int64_t elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
+            for (int i = 0; i < elem_size; ++i) {
+                psum += fmap_ptr[i];
             }
             psum_map[ifmap_name] += psum;
 
@@ -342,7 +351,11 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
         std::string img_path = path + img;
 
         transforms(in_buf, img_path, trans_cfg);
-        io_buf_map[in_operand_name] = in_buf;
+        int32_t elem_size = in_buf.size();
+        int32_t buf_size = elem_size * sizeof(float);
+        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
+        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+
         std::unordered_map<std::string, std::string> cfg_info_map;
         exe_net->impl(io_buf_map, cfg_info_map);
 
@@ -357,15 +370,14 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
             if (strcmp(op.get()->op_type, "Conv") == 0)
             {
                 std::string ifmap_name = op.get()->in_operands[0];
-                std::vector<float>* cur_ifmap = &exe_net->operand_buf_map[ifmap_name];
 
+                float * fmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].st_ptr;
+                int64_t elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
                 float max_abs = 0.0f;
-                // 遍历 vector 以找到绝对值最大的元素
-                for (size_t i = 1; i < cur_ifmap->size(); ++i) {
-                    if (std::fabs((*cur_ifmap)[i]) > max_abs) {
-                        max_abs = std::fabs((*cur_ifmap)[i]);
-                    }
+                for (int i = 0; i < elem_size; ++i) {
+                    max_abs = max_abs > std::fabs(fmap_ptr[i]) ? max_abs : std::fabs(fmap_ptr[i]);
                 }
+
                 if (max_abs > max_elem_map[ifmap_name]) {
                     max_elem_map[ifmap_name] = max_abs;
                 }
@@ -383,7 +395,11 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
         std::string img_path = path + img;
 
         transforms(in_buf, img_path, trans_cfg);
-        io_buf_map[in_operand_name] = in_buf;
+        int32_t elem_size = in_buf.size();
+        int32_t buf_size = elem_size * sizeof(float);
+        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
+        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+
         std::unordered_map<std::string, std::string> cfg_info_map;
         exe_net->impl(io_buf_map, cfg_info_map);
 
@@ -399,11 +415,13 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
                 std::string ifmap_name = op.get()->in_operands[0];
                 float cur_ifmap_max = max_elem_map[ifmap_name];
 
-                for (auto num : exe_net->operand_buf_map[ifmap_name]) {
-                    if (num == 0.0f){
+                float * ofmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].st_ptr;
+                int64_t elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
+                for (int i = 0; i < elem_size; ++i) {
+                    if (ofmap_ptr[i] == 0.0f){
                         continue;
                     }
-                    int32_t idx = std::min((int)(fabs(num) * num_his_bins * 1.0f / cur_ifmap_max), num_his_bins - 1);
+                    int32_t idx = std::min((int)(fabs(ofmap_ptr[i]) * num_his_bins * 1.0f / cur_ifmap_max), num_his_bins - 1);
                     his_map[ifmap_name][idx] += 1;
                 }
             }
@@ -521,7 +539,7 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
 
     extractor* exe_net = net_1->create_exe();
 
-    std::unordered_map<std::string, std::vector<float>> io_buf_map;
+    std::unordered_map<std::string, BUF_INFO_S> io_buf_map;
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
@@ -567,14 +585,16 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
         if (strcmp(op.get()->op_type, "Conv") == 0)
         {
             std::string ifmap_name = op.get()->in_operands[0];
-            int32_t ifmap_elem_size = exe_net->operand_buf_map[ifmap_name].size();
+            int32_t ifmap_elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
             std::vector<float> his_elem_vec(num_his_bins, 0);
             his_map[ifmap_name] = his_elem_vec;
             max_elem_map[ifmap_name] = 0.0f;
 
             float psum = 0.0f;
-            for (auto elem_i : exe_net->operand_buf_map[ifmap_name]) {
-                psum += elem_i;
+            float * fmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].st_ptr;
+            int64_t elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
+            for (int i = 0; i < elem_size; ++i) {
+                psum += fmap_ptr[i];
             }
             psum_map[ifmap_name] += psum;
 
@@ -596,7 +616,11 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
         std::string img_path = path + img;
 
         transforms(in_buf, img_path, trans_cfg);
-        io_buf_map[in_operand_name] = in_buf;
+        int32_t elem_size = in_buf.size();
+        int32_t buf_size = elem_size * sizeof(float);
+        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
+        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+
         std::unordered_map<std::string, std::string> cfg_info_map;
         exe_net->impl(io_buf_map, cfg_info_map);
 
@@ -611,15 +635,14 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
             if (strcmp(op.get()->op_type, "Conv") == 0)
             {
                 std::string ifmap_name = op.get()->in_operands[0];
-                std::vector<float>* cur_ifmap = &exe_net->operand_buf_map[ifmap_name];
 
+                float * fmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].st_ptr;
+                int64_t elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
                 float max_abs = 0.0f;
-                // 遍历 vector 以找到绝对值最大的元素
-                for (size_t i = 1; i < cur_ifmap->size(); ++i) {
-                    if (std::fabs((*cur_ifmap)[i]) > max_abs) {
-                        max_abs = std::fabs((*cur_ifmap)[i]);
-                    }
+                for (int i = 0; i < elem_size; ++i) {
+                    max_abs = max_abs > std::fabs(fmap_ptr[i]) ? max_abs : std::fabs(fmap_ptr[i]);
                 }
+
                 if (max_abs > max_elem_map[ifmap_name]) {
                     max_elem_map[ifmap_name] = max_abs;
                 }
@@ -637,7 +660,11 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
         std::string img_path = path + img;
 
         transforms(in_buf, img_path, trans_cfg);
-        io_buf_map[in_operand_name] = in_buf;
+        int32_t elem_size = in_buf.size();
+        int32_t buf_size = elem_size * sizeof(float);
+        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
+        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+
         std::unordered_map<std::string, std::string> cfg_info_map;
         exe_net->impl(io_buf_map, cfg_info_map);
 
@@ -653,11 +680,13 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
                 std::string ifmap_name = op.get()->in_operands[0];
                 float cur_ifmap_max = max_elem_map[ifmap_name];
 
-                for (auto num : exe_net->operand_buf_map[ifmap_name]) {
-                    if (num == 0.0f){
+                float * ofmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].st_ptr;
+                int64_t elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
+                for (int i = 0; i < elem_size; ++i) {
+                    if (ofmap_ptr[i] == 0.0f){
                         continue;
                     }
-                    int32_t idx = std::min((int)(fabs(num) * num_his_bins * 1.0f / cur_ifmap_max), num_his_bins - 1);
+                    int32_t idx = std::min((int)(fabs(ofmap_ptr[i]) * num_his_bins * 1.0f / cur_ifmap_max), num_his_bins - 1);
                     his_map[ifmap_name][idx] += 1;
                 }
             }

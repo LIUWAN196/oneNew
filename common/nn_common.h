@@ -108,6 +108,7 @@ typedef struct
 {
     char operand_name[OP_NAME_LEN];
     BOOL is_fixed_val; // such as: weight, bias
+    BOOL not_need_buf;  // 用于 flatten 和 reshape 等算子的输出，此类输出不需要开辟 buffer
     int64_t p_data;
     int32_t dim_num_of_shapes;
     int32_t shapes[SHAPE_LEN];
@@ -120,6 +121,13 @@ typedef struct
     char op_name[OP_NAME_LEN]; //  "input" or "output"
     OPERAND_S operand;
 } IO_CONFIG_S;
+
+typedef struct
+{
+    int64_t st_ptr;
+    int32_t elem_size;
+    int32_t buf_size;
+} BUF_INFO_S;
 
 typedef struct
 {
@@ -306,7 +314,7 @@ typedef struct
     int32_t axes[8];
     int32_t axes_num;
     int32_t keepdims;
-} LAYERNORM_CONFIG_S;
+} LAYERNORMALIZATION_CONFIG_S;
 
 typedef struct
 {

@@ -23,7 +23,7 @@
 #include "grid_sample.h"
 #include "hard_sigmoid.h"
 #include "io.h"
-#include "layer_norm.h"
+#include "layer_normalization.h"
 #include "leaky_relu.h"
 #include "log.h"
 #include "mat_mul.h"

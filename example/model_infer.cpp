@@ -115,6 +115,7 @@ int32_t rt_cfg_check(std::unordered_map<std::string, std::string>& cfg_info_map)
     }
 
     std::string normal_mean = cfg_info_map["normal_mean"];
+
     if (normal_mean.empty()) {
         LOG_ERR("the args: normal_mean must be set, for example: [0.485ff, 0.456ff, 0.406ff]");
         return -1;
@@ -124,6 +125,11 @@ int32_t rt_cfg_check(std::unordered_map<std::string, std::string>& cfg_info_map)
     if (normal_mean.empty()) {
         LOG_ERR("the args: normal_std must be set, for example: [0.229f, 0.224f, 0.225f]");
         return -1;
+    }
+
+    std::string topk = str2lower_str(cfg_info_map["topk"]);
+    if (topk.empty()) {    // default args: 5
+        set_default_args(cfg_info_map, "topk", "5");
     }
 
     if (str2lower_str(cfg_info_map["model_exc_type"]) != "tracing") {
@@ -141,11 +147,6 @@ int32_t rt_cfg_check(std::unordered_map<std::string, std::string>& cfg_info_map)
     if (tracing_csv_path.empty()) {
         LOG_ERR("the args: tracing_csv_path must be set");
         return -1;
-    }
-
-    std::string topk = str2lower_str(cfg_info_map["topk"]);
-    if (topk.empty()) {    // default args: 5
-        set_default_args(cfg_info_map, "topk", "5");
     }
 
     return 0;
@@ -290,7 +291,7 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
-    std::unordered_map<std::string, std::vector<float>> io_buf_map;
+    std::unordered_map<std::string, BUF_INFO_S> io_buf_map;
 
     std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
     std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
@@ -328,7 +329,10 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
         std::string img_path = img_folder_path + img_name_vec[img_i];
 
         transforms(in_buf, img_path, trans_cfg);
-        io_buf_map[in_operand_name] = in_buf;
+        int64_t st_ptr = (int64_t)(&in_buf[0]);
+        int32_t elem_size = (int64_t)(in_buf.size());
+        int32_t buf_size = (int64_t)(elem_size * sizeof(float));
+        io_buf_map[in_operand_name] = {st_ptr, elem_size, buf_size};
 
         std::string ifmap_folder = cfg_info_map["ofmap_folder"];
         std::string ifmap_name("model_ifmap.bin");
@@ -337,7 +341,10 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
         exe_net->impl(io_buf_map, cfg_info_map);
 
         std::string ofmap = "image_features";
-        std::vector<float> clip_img_ofmap = io_buf_map[ofmap];
+
+        BUF_INFO_S ofmap_info = io_buf_map[ofmap];
+        std::vector<float> clip_img_ofmap(ofmap_info.elem_size);
+        memcpy(&clip_img_ofmap[0], (void *)ofmap_info.st_ptr, ofmap_info.buf_size);
 
         // 处理 img 的输出
         double psum = 0;
@@ -396,13 +403,17 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
         auto* txt_ifmap_of_model = (io*)txt_exe_net->net_ptr->op_exec_order[0].get();
         std::string txt_in_operand_name = txt_ifmap_of_model->io_cfg.operand.operand_name;
 
-        std::unordered_map<std::string, std::vector<float>> txt_io_buf_map;
+        std::unordered_map<std::string, BUF_INFO_S> txt_io_buf_map;
 
         std::vector<int> texts = str2number<int>(token_list);
 //        std::vector<int> texts = str2number<int>(cfg_info_map["token_list"]);
         std::vector<float> texts_float(texts.size());
         memcpy((char *)&texts_float[0], (char *)&texts[0], texts.size() * sizeof(float));
-        txt_io_buf_map[txt_in_operand_name] = texts_float;
+
+        int32_t elem_size = texts_float.size();
+        int32_t buf_size = elem_size * sizeof(float);
+        int64_t cur_operand_ptr = (int64_t)&texts_float[0];
+        txt_io_buf_map[txt_in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
 
         std::string txt_ifmap_folder = cfg_info_map["ofmap_folder"];
         std::string txt_ifmap_name("model_ifmap.bin");
@@ -421,7 +432,10 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
         }
 
         std::string txt_ofmap = "text_features";
-        std::vector<float> clip_txt_ofmap = txt_io_buf_map[txt_ofmap];
+
+        BUF_INFO_S ofmap_info = io_buf_map[txt_ofmap];
+        std::vector<float> clip_txt_ofmap(ofmap_info.elem_size);
+        memcpy(&clip_txt_ofmap[0], (void *)ofmap_info.st_ptr, ofmap_info.buf_size);
 
         // 计算图片和文字的匹配程度
         std::vector<std::pair<std::string, float>> img_sim;
@@ -485,6 +499,8 @@ int main(int argc, char **argv)
     const char* one_file_path = cfg_info_map["one_file_path"].c_str();
     net *model = new net(one_file_path);
     model->build_graph();
+
+//    LOG_DBG("开始开辟空间");
     extractor* exe_net = model->create_exe();
 
 //    LOG_ERR("先看看 shape infer 有问题没有");
@@ -492,7 +508,7 @@ int main(int argc, char **argv)
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
-    std::unordered_map<std::string, std::vector<float>> io_buf_map;
+    std::unordered_map<std::string, BUF_INFO_S> io_buf_map;
 
     std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
     std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
@@ -520,7 +536,13 @@ int main(int argc, char **argv)
     std::string img_path = cfg_info_map["input_data_path"];
 
     transforms(in_buf, img_path, trans_cfg);
-    io_buf_map[in_operand_name] = in_buf;
+//    io_buf_map[in_operand_name] = in_buf;
+
+    int32_t elem_size = in_buf.size();
+    int32_t buf_size = elem_size * sizeof(float);
+    int64_t cur_operand_ptr = (int64_t)&in_buf[0];
+    io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+
 
     std::string ifmap_folder = cfg_info_map["ofmap_folder"];
     std::string ifmap_name("model_ifmap.bin");
@@ -548,7 +570,7 @@ int main(int argc, char **argv)
                 std::string ofmap_name_replace_char(replace_char(omap_name_c));
 
                 std::string ofmap_path = ifmap_folder + ofmap_name_replace_char;
-                write_bin(ofmap_path.c_str(), io_buf.second.size() * sizeof(float), (char *) &io_buf.second[0]);
+                write_bin(ofmap_path.c_str(), io_buf.second.buf_size, (char *) io_buf.second.st_ptr);
             }
         }
     }
@@ -596,7 +618,7 @@ int main(int argc, char **argv)
                     params.push_back(out_desc);
 
                     BUFFER_INFO_S in_info;
-                    in_info.addr = (int64_t) (&io_buf.second[0]);
+                    in_info.addr = (int64_t) (io_buf.second.st_ptr);
                     inputs.push_back(in_info);
 
                     BUFFER_INFO_S out_info;
@@ -611,6 +633,7 @@ int main(int argc, char **argv)
 
                 {
                     ARGMAX_CONFIG_S argmax_cfg;
+                    argmax_cfg.axis = 1;
                     std::string op_type = "ArgMax";
                     argmax_cfg.topk = topk;
                     strcpy(argmax_cfg.op_base_cfg.op_type, op_type.c_str());
@@ -685,32 +708,32 @@ int main(int argc, char **argv)
         // find the three ofmap of backbone, they are the ifmap of detct op
         BUFFER_INFO_S in0_info;
         std::string in0_name = get_string_vec(cfg_info_map["ofmap_name"])[0];
-        in0_info.addr = (int64_t) (&io_buf_map[in0_name][0]);
+        in0_info.addr = (int64_t) (&io_buf_map[in0_name].st_ptr);
         inputs.push_back(in0_info);
 
         BUFFER_INFO_S in1_info;
         std::string in1_name = get_string_vec(cfg_info_map["ofmap_name"])[1];
-        in1_info.addr = (int64_t) (&io_buf_map[in1_name][0]);
+        in1_info.addr = (int64_t) (&io_buf_map[in1_name].st_ptr);
         inputs.push_back(in1_info);
 
         BUFFER_INFO_S in2_info;
         std::string in2_name = get_string_vec(cfg_info_map["ofmap_name"])[2];
-        in2_info.addr = (int64_t) (&io_buf_map[in2_name][0]);
+        in2_info.addr = (int64_t) (&io_buf_map[in2_name].st_ptr);
         inputs.push_back(in2_info);
 
         BUFFER_INFO_S in3_info;
         std::string in3_name = get_string_vec(cfg_info_map["ofmap_name"])[3];
-        in3_info.addr = (int64_t) (&io_buf_map[in3_name][0]);
+        in3_info.addr = (int64_t) (&io_buf_map[in3_name].st_ptr);
         inputs.push_back(in3_info);
 
         BUFFER_INFO_S in4_info;
         std::string in4_name = get_string_vec(cfg_info_map["ofmap_name"])[4];
-        in4_info.addr = (int64_t) (&io_buf_map[in4_name][0]);
+        in4_info.addr = (int64_t) (&io_buf_map[in4_name].st_ptr);
         inputs.push_back(in4_info);
 
         BUFFER_INFO_S in5_info;
         std::string in5_name = get_string_vec(cfg_info_map["ofmap_name"])[5];
-        in5_info.addr = (int64_t) (&io_buf_map[in5_name][0]);
+        in5_info.addr = (int64_t) (&io_buf_map[in5_name].st_ptr);
         inputs.push_back(in5_info);
 
         // fill outputs
@@ -752,32 +775,32 @@ int main(int argc, char **argv)
         // find the three ofmap of backbone, they are the ifmap of detct op
         BUFFER_INFO_S in0_info;
         std::string in0_name = get_string_vec(cfg_info_map["ofmap_name"])[0];
-        in0_info.addr = (int64_t) (&io_buf_map[in0_name][0]);
+        in0_info.addr = (int64_t) (&io_buf_map[in0_name].st_ptr);
         inputs.push_back(in0_info);
 
         BUFFER_INFO_S in1_info;
         std::string in1_name = get_string_vec(cfg_info_map["ofmap_name"])[1];
-        in1_info.addr = (int64_t) (&io_buf_map[in1_name][0]);
+        in1_info.addr = (int64_t) (&io_buf_map[in1_name].st_ptr);
         inputs.push_back(in1_info);
 
         BUFFER_INFO_S in2_info;
         std::string in2_name = get_string_vec(cfg_info_map["ofmap_name"])[2];
-        in2_info.addr = (int64_t) (&io_buf_map[in2_name][0]);
+        in2_info.addr = (int64_t) (&io_buf_map[in2_name].st_ptr);
         inputs.push_back(in2_info);
 
         BUFFER_INFO_S in3_info;
         std::string in3_name = get_string_vec(cfg_info_map["ofmap_name"])[3];
-        in3_info.addr = (int64_t) (&io_buf_map[in3_name][0]);
+        in3_info.addr = (int64_t) (&io_buf_map[in3_name].st_ptr);
         inputs.push_back(in3_info);
 
         BUFFER_INFO_S in4_info;
         std::string in4_name = get_string_vec(cfg_info_map["ofmap_name"])[4];
-        in4_info.addr = (int64_t) (&io_buf_map[in4_name][0]);
+        in4_info.addr = (int64_t) (&io_buf_map[in4_name].st_ptr);
         inputs.push_back(in4_info);
 
         BUFFER_INFO_S in5_info;
         std::string in5_name = get_string_vec(cfg_info_map["ofmap_name"])[5];
-        in5_info.addr = (int64_t) (&io_buf_map[in5_name][0]);
+        in5_info.addr = (int64_t) (&io_buf_map[in5_name].st_ptr);
         inputs.push_back(in5_info);
 
         // fill outputs

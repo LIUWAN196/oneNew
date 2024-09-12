@@ -3,9 +3,9 @@
 
 optimize_type: op_fusion
 
-one_file_path: /media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/one_model/clip_txt.one
+one_file_path: /media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/sam_encoder.one
 
-opt_one_file_path: /media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/one_model/opt_clip_txt.one
+opt_one_file_path: /media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/opt_sam_encoder.one
 
 calibrate_img_name_txt_path: /home/wanzai/桌面/img_name.txt
 

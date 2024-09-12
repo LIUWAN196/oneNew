@@ -33,7 +33,7 @@ public:
     virtual int calc_out_operand_shape(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         OPERAND_S *in = &operand_stu_map[in_operands[0]];
         OPERAND_S *out = &operand_stu_map[out_operands[0]];
-
+        out->not_need_buf = TRUE;
         // the out shape equal in shape
 //        memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
         for (int i = 0; i < SHAPE_LEN; ++i) {

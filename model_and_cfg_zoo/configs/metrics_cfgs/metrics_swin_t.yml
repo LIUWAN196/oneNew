@@ -10,7 +10,7 @@ metrics_img_label_txt_path: /home/wanzai/桌面/img_name.txt
 
 metrics_img_path: /media/wanzai/File/imageNet/
 
-metrics_img_num: 50000
+metrics_img_num: 500
 
 model_exc_type: release
 

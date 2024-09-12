@@ -1,232 +1,18 @@
 #include "add.h"
 #include <stdlib.h>
-#include <stdint.h>
 #include <stdio.h>
-#include "math.h"
-#include "float.h"
-#include "stdint.h"
 
-int eval_dim_num_4(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+/*
+ * 可以参考 https://blog.csdn.net/weixin_42575020/article/details/106947188 这里的 numpy 的 4 种广播方法
+numpy 四则运算的广播规则：
+规则 1：如果两个数组的维度数不相同，那么小维度数组的形状将会在最左边补 1
+规则 2：如果两个数组的形状在任何一个维度上都不匹配，那么数组的形状会沿着维度 为 1 的维度扩展以匹配另外一个数组的形状
+规则 3：如果两个数组的形状在任何一个维度上都不匹配并且没有任何一个维度等于 1， 那么会引发异常。
+ */
 
-//    printf("this is x86 mul start\n");
-    ADD_CONFIG_S *cfg = (ADD_CONFIG_S *) (params[0].addr);
-//    printf("this is device, the op type is mul\n");
-
-    float *input0_ptr = (float *) (inputs[0].addr);
-    float *input1_ptr = (float *) (inputs[1].addr);
-    float *output_ptr = (float *) (outputs[0].addr);
-
-    OPERAND_S *in0_tensor = (OPERAND_S *) (params[1].addr);
-    OPERAND_S *in1_tensor = (OPERAND_S *) (params[2].addr);
-    OPERAND_S *out_tensor = (OPERAND_S *) (params[3].addr);
-
-    int32_t in_n = in0_tensor->shapes[0];
-    int32_t in_c = in0_tensor->shapes[1];
-    int32_t in_h = in0_tensor->shapes[2];
-    int32_t in_w = in0_tensor->shapes[3];
-
-    int32_t in1_n = in1_tensor->shapes[0];
-    int32_t in1_c = in1_tensor->shapes[1];
-    int32_t in1_h = in1_tensor->shapes[2];
-    int32_t in1_w = in1_tensor->shapes[3];
-
-    int32_t out_n = out_tensor->shapes[0];
-    int32_t out_c = out_tensor->shapes[1];
-    int32_t out_h = out_tensor->shapes[2];
-    int32_t out_w = out_tensor->shapes[3];
-
-    int32_t in_elem_size = 1;
-    if (in0_tensor->dim_num_of_shapes == 0) {
-        for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
-            in_elem_size *= in1_tensor->shapes[dim_i];
-        }
-    } else if (in1_tensor->dim_num_of_shapes == 0) {
-        for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
-            in_elem_size *= in0_tensor->shapes[dim_i];
-        }
-    } else {    // 到这个分支说明两个输入的 shape 一样，拿其中任意一个来计算 elem size 即可
-        for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
-            in_elem_size *= in0_tensor->shapes[dim_i];
-        }
-    }
-
-    int32_t in0_elem_size = 1, in1_elem_size = 1;
-    for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
-        in0_elem_size *= in0_tensor->shapes[dim_i];
-        in1_elem_size *= in1_tensor->shapes[dim_i];
-    }
-
-    if (in0_elem_size == in1_elem_size) {
-        for (int i = 0; i < in_elem_size; ++i) {
-            output_ptr[i] = input0_ptr[i] + input1_ptr[i];
-        }
-        return 0;
-    }
-
-//    LOG_ERR("in_elem_size is %d\n", in_elem_size);
-    int32_t out_elem_size = 1;
-    for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
-        out_elem_size *= out_tensor->shapes[dim_i];
-    }
-
-    if (in0_tensor->dim_num_of_shapes == 1) {
-        int32_t psum_elem_size = in0_tensor->shapes[0];
-        for (int outc_i = 0; outc_i < out_elem_size / psum_elem_size; ++outc_i) {
-            for (int inner_i = 0; inner_i < psum_elem_size; ++inner_i) {
-                output_ptr[outc_i * psum_elem_size + inner_i]
-                        = input0_ptr[inner_i] + input1_ptr[outc_i * psum_elem_size + inner_i];
-            }
-        }
-
-        return 0;
-    }
-
-    if (in1_tensor->dim_num_of_shapes == 1) {
-        int32_t psum_elem_size = in1_tensor->shapes[0];
-        for (int outc_i = 0; outc_i < out_elem_size / psum_elem_size; ++outc_i) {
-            for (int inner_i = 0; inner_i < psum_elem_size; ++inner_i) {
-                output_ptr[outc_i * psum_elem_size + inner_i]
-                        = input0_ptr[outc_i * psum_elem_size + inner_i] + input1_ptr[inner_i];
-            }
-        }
-    } else if (in1_n * in1_c * in1_h * in1_w == 1) {   // in1 tensor should to be expand
-        for (int elem_i = 0; elem_i < in_elem_size; ++elem_i) {
-            output_ptr[elem_i] = input0_ptr[elem_i] + input1_ptr[0];
-        }
-    } else if (in_h == 1 && in_w == 1) {   // in0 tensor should to be expand
-        for (int outc_i = 0; outc_i < out_c; ++outc_i) {
-            for (int outhxw_i = 0; outhxw_i < out_h * out_w; ++outhxw_i) {
-                output_ptr[outc_i * out_h * out_w + outhxw_i] =
-                        input0_ptr[outc_i] + input1_ptr[outc_i * out_h * out_w + outhxw_i];
-            }
-        }
-    } else if (in1_h * in1_w == 1) {   // in1 tensor should to be expand
-        for (int outc_i = 0; outc_i < out_c; ++outc_i) {
-            for (int outhxw_i = 0; outhxw_i < out_h * out_w; ++outhxw_i) {
-                output_ptr[outc_i * out_h * out_w + outhxw_i] =
-                        input0_ptr[outc_i * out_h * out_w + outhxw_i] + input1_ptr[outc_i];
-            }
-        }
-    } else if (in1_n == 1 && in0_elem_size != in1_elem_size) {   // in1 tensor should to be expand
-//        LOG_DBG("out_n is %d, out_h * out_w * out_c is %d\n", out_n, out_h * out_w * out_c);
-        for (int outter = 0; outter < out_n; ++outter) {
-            for (int inner = 0; inner < out_h * out_w * out_c; ++inner) {
-                float ifmap1_val = input1_ptr[inner];
-                output_ptr[outter * out_h * out_w * out_c + inner] =
-                        input0_ptr[outter * out_h * out_w * out_c + inner] + ifmap1_val;
-            }
-        }
-//        LOG_ERR("end of first add");
-    } else {   // in0 and in1 tensor have equal shape
-//        LOG_MSG("add into this barnch");
-        for (int i = 0; i < in_elem_size; ++i) {
-            output_ptr[i] = input0_ptr[i] + input1_ptr[i];
-        }
-    }
-
-    return 0;
-}
-
-int eval_dim_num_5(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-
-    ADD_CONFIG_S *cfg = (ADD_CONFIG_S *) (params[0].addr);
-
-    float *input0_ptr = (float *) (inputs[0].addr);
-    float *input1_ptr = (float *) (inputs[1].addr);
-    float *output_ptr = (float *) (outputs[0].addr);
-
-    OPERAND_S *in0_tensor = (OPERAND_S *) (params[1].addr);
-    OPERAND_S *in1_tensor = (OPERAND_S *) (params[2].addr);
-    OPERAND_S *out_tensor = (OPERAND_S *) (params[3].addr);
-
-//    printf("==============\n");
-//    for (int i = 0; i < SHAPE_LEN; ++i) {
-//        printf("%d  ", in0_tensor->shapes[i]);
-//    }
-//    printf("\n");
-//    for (int i = 0; i < SHAPE_LEN; ++i) {
-//        printf("%d  ", in1_tensor->shapes[i]);
-//    }
-//    printf("\n");
-//    for (int i = 0; i < SHAPE_LEN; ++i) {
-//        printf("%d  ", out_tensor->shapes[i]);
-//    }
-//    printf("\n");
-
-    int32_t expand_dims = -1;
-    for (int i = 0; i < SHAPE_LEN; ++i) {
-        if (in0_tensor->shapes[i] != in1_tensor->shapes[i]) {
-            expand_dims = i;
-        }
-    }
-
-    int32_t outter_elem_size = 1;
-    for (int i = 0; i < expand_dims; ++i) {
-        outter_elem_size *= out_tensor->shapes[i];
-    }
-
-    int32_t expand_elem_size = out_tensor->shapes[expand_dims];
-
-    int32_t inner_elem_size = 1;
-    for (int i = expand_dims + 1; i < SHAPE_LEN; ++i) {
-        inner_elem_size *= out_tensor->shapes[i];
-    }
-//    printf("expand_dims is %d, outter_elem_size is %d, expand_elem_size is %d, inner_elem_size is %d\n",
-//           expand_dims, outter_elem_size, expand_elem_size, inner_elem_size);
-
-    for (int outter_i = 0; outter_i < outter_elem_size; ++outter_i) {
-        float *cur_ifmap0 = input0_ptr + outter_i * expand_elem_size * inner_elem_size;
-        float *cur_ifmap1 = input1_ptr + outter_i * inner_elem_size;
-        float *cur_ofmap = output_ptr + outter_i * expand_elem_size * inner_elem_size;
-        for (int expand_i = 0; expand_i < expand_elem_size; ++expand_i) {
-            float *tmp_cur_ifmap0 = cur_ifmap0 + expand_i * inner_elem_size;
-            float *tmp_cur_ofmap = cur_ofmap + expand_i * inner_elem_size;
-            for (int inner_i = 0; inner_i < inner_elem_size; ++inner_i) {
-                tmp_cur_ofmap[inner_i] = tmp_cur_ifmap0[inner_i] + cur_ifmap1[inner_i];
-            }
-        }
-    }
-    return 0;
-}
-
-int eval_dim_num_6(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-
-    ADD_CONFIG_S *cfg = (ADD_CONFIG_S *) (params[0].addr);
-
-    float *input0_ptr = (float *) (inputs[0].addr);
-    float *input1_ptr = (float *) (inputs[1].addr);
-    float *output_ptr = (float *) (outputs[0].addr);
-
-    OPERAND_S *in0_tensor = (OPERAND_S *) (params[1].addr);
-    OPERAND_S *in1_tensor = (OPERAND_S *) (params[2].addr);
-    OPERAND_S *out_tensor = (OPERAND_S *) (params[3].addr);
-
-    int32_t out_elem_size = 1;
-    for (int i = 0; i < SHAPE_LEN; ++i) {
-        out_elem_size *= out_tensor->shapes[i];
-    }
-
-
-    int32_t expand_elem_size = out_tensor->shapes[2] * out_tensor->shapes[3] * out_tensor->shapes[4];
-
-    int32_t inner_elem_size = out_tensor->shapes[out_tensor->dim_num_of_shapes - 1];
-    int32_t outter_elem_size = out_elem_size / inner_elem_size / expand_elem_size;
-
-    for (int outter_i = 0; outter_i < outter_elem_size; ++outter_i) {
-        float* cur_output_ptr = output_ptr + outter_i * expand_elem_size * inner_elem_size;
-        float* cur_in0_ptr = input0_ptr + outter_i * inner_elem_size;
-        float* cur_in1_ptr = input1_ptr + outter_i * expand_elem_size * inner_elem_size;
-        for (int expand_i = 0; expand_i < expand_elem_size; ++expand_i) {
-            for (int inner_i = 0; inner_i < inner_elem_size; ++inner_i) {
-                cur_output_ptr[expand_i * inner_elem_size + inner_i] =
-                        cur_in0_ptr[inner_i] + cur_in1_ptr[expand_i * inner_elem_size + inner_i];
-            }
-        }
-    }
-
-
-    return 0;
-}
+int32_t fun_0(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, ADD_CONFIG_S* cfg);
+int32_t fun_1(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, ADD_CONFIG_S* cfg);
+int32_t fun_2(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, ADD_CONFIG_S* cfg);
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 //    show_dev_input(params);
@@ -234,20 +20,334 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     ADD_CONFIG_S *cfg = (ADD_CONFIG_S *) (params[0].addr);
 
     OPERAND_S *in0_tensor = (OPERAND_S *) (params[1].addr);
+    OPERAND_S *in1_tensor = (OPERAND_S *) (params[2].addr);
+    OPERAND_S *out_tensor = (OPERAND_S *) (params[3].addr);
 
-    if (in0_tensor->dim_num_of_shapes <= 4) {
-        eval_dim_num_4(params, inputs, outputs);
-    } else if (in0_tensor->dim_num_of_shapes == 5) {
-        eval_dim_num_5(params, inputs, outputs);
-    } else if (in0_tensor->dim_num_of_shapes == 6) {
-        // todo: 只是针对 rt detr，需要统一适配
-        eval_dim_num_6(params, inputs, outputs);
+    int32_t in0_elem_size = operand_elem_size(in0_tensor);
+    int32_t in1_elem_size = operand_elem_size(in1_tensor);
+
+    // 将 elem size 较大和较小的 tensor 和指针分别命名为 large 和 small
+    OPERAND_S ofmap_tensor, small_tensor, large_tensor;
+    ofmap_tensor = *out_tensor;
+    ofmap_tensor.p_data = outputs[0].addr;
+    if (in0_elem_size < in1_elem_size) {
+        small_tensor = *in0_tensor;
+        small_tensor.p_data = inputs[0].addr;
+        large_tensor = *in1_tensor;
+        large_tensor.p_data = inputs[1].addr;
+    } else {
+        small_tensor = *in1_tensor;
+        small_tensor.p_data = inputs[1].addr;
+        large_tensor = *in0_tensor;
+        large_tensor.p_data = inputs[0].addr;
     }
 
-//    LOG_ERR("end of add op\n");
+    if (in0_elem_size == in1_elem_size) {
+        // 1、两个数组 elem size 完全相同，直接相加即可；
+        fun_0(ofmap_tensor, small_tensor, large_tensor, cfg);
+    } else if (operand_elem_size(&small_tensor) == 1) {
+        // 2、small 的 elem size 为 1，也就是要把这个标量广播到任意维度
+        fun_1(ofmap_tensor, small_tensor, large_tensor, cfg);
+    } else {
+        // 注意进入这个分支需要修改 shape 信息，所以要将 tensor 复制一份，不要在原始的 tensor 上修改
+        if (small_tensor.dim_num_of_shapes != large_tensor.dim_num_of_shapes) {
+            int32_t large_dims_num = large_tensor.dim_num_of_shapes;
+            int32_t small_dims_num = small_tensor.dim_num_of_shapes;
+            for (int dim_i = large_dims_num - 1; dim_i >= large_dims_num - small_dims_num; --dim_i) {
+                small_tensor.shapes[dim_i] = large_tensor.shapes[dim_i];
+            }
+            // 小维度数组的形状在最左边补 1
+            for (int dim_i = 0; dim_i < large_dims_num - small_dims_num; ++dim_i) {
+                small_tensor.shapes[dim_i] = 1;
+            }
+        }
+        // 此时两个 tensor 的维度长度都相同了, 做某些维度的广播加法，这些广播的维度可能相邻也可能不相邻
+        // 根据上面规则 3，依次对比 tensor0 和 tensor1 的每个维度
+        int32_t dims_num = large_tensor.dim_num_of_shapes;
+        BOOL dims_correct = TRUE;
+        for (int dim_i = 0; dim_i < dims_num; ++dim_i) {
+            if (small_tensor.shapes[dim_i] != large_tensor.shapes[dim_i] && small_tensor.shapes[dim_i] != 1) {
+                dims_correct = FALSE;
+                break;
+            }
+        }
+        if (dims_correct == FALSE) {
+            LOG_ERR("add op 的 shape 不符合广播规则\n");
+        }
+        fun_2(ofmap_tensor, small_tensor, large_tensor, cfg);
+    }
 
     return 0;
 }
 
+
+int32_t fun_0(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, ADD_CONFIG_S* cfg) {
+
+    float *input0_ptr = (float *) (small_tensor.p_data);
+    float *input1_ptr = (float *) (large_tensor.p_data);
+    float *output_ptr = (float *) (ofmap_tensor.p_data);
+
+    int32_t ofmap_elem_size = operand_elem_size(&ofmap_tensor);
+
+    for (int i = 0; i < ofmap_elem_size; ++i) {
+        output_ptr[i] = input0_ptr[i] + input1_ptr[i];
+    }
+
+    return 0;
+}
+
+
+int32_t fun_1(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, ADD_CONFIG_S* cfg) {
+
+    float *small_ptr = (float *) (small_tensor.p_data);
+    float *large_ptr = (float *) (large_tensor.p_data);
+    float *output_ptr = (float *) (ofmap_tensor.p_data);
+
+    int32_t ofmap_elem_size = operand_elem_size(&ofmap_tensor);
+
+    for (int i = 0; i < ofmap_elem_size; ++i) {
+        output_ptr[i] = large_ptr[i] + small_ptr[0];
+    }
+
+    return 0;
+}
+
+int32_t fun_2_dim3(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, ADD_CONFIG_S* cfg);
+int32_t fun_2_dim4(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, ADD_CONFIG_S* cfg);
+int32_t fun_2_dim5(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, ADD_CONFIG_S* cfg);
+int32_t fun_2_dim6(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, ADD_CONFIG_S* cfg);
+
+int32_t fun_2(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, ADD_CONFIG_S* cfg) {
+
+    int32_t ofmap_dims_num = ofmap_tensor.dim_num_of_shapes;
+    if (ofmap_dims_num <= 2) {
+        LOG_ERR("在 add op 中，输出的 shape 维度 <= 2\n");
+    } else if (ofmap_dims_num <= 3) {
+        fun_2_dim3(ofmap_tensor, small_tensor, large_tensor, cfg);
+    } else if (ofmap_dims_num <= 4) {
+        fun_2_dim4(ofmap_tensor, small_tensor, large_tensor, cfg);
+    } else if (ofmap_dims_num <= 5) {
+        fun_2_dim5(ofmap_tensor, small_tensor, large_tensor, cfg);
+    } else if (ofmap_dims_num <= 6) {
+        fun_2_dim6(ofmap_tensor, small_tensor, large_tensor, cfg);
+    } else {
+        LOG_ERR("在 add op 中，输出的 shape 维度 > 6\n");
+    }
+
+    return 0;
+}
+
+int32_t fun_2_dim3(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, ADD_CONFIG_S* cfg){
+
+    float *small_ptr = (float *) (small_tensor.p_data);
+    float *large_ptr = (float *) (large_tensor.p_data);
+    float *ofmap_ptr = (float *) (ofmap_tensor.p_data);
+
+    int32_t large_dim0 = large_tensor.shapes[0];
+    int32_t large_dim1 = large_tensor.shapes[1];
+    int32_t large_dim2 = large_tensor.shapes[2];
+
+
+    int32_t large_stride0 = large_dim1 * large_dim2;
+    int32_t large_stride1 = large_dim2;
+    int32_t large_stride2 = 1;
+
+    /*
+     * 注意：这里的 small_stride 的计算和普通的 stride 的计算逻辑有所不同。如果 small_dimX 为 1，则 small_strideX == 0，这是为了保
+     * 证在下面的 dimX_i 随着 large_dimX 增加时，不会导致本来需要广播的 small 随着 large_dimX 增加而增加
+     */
+    int32_t small_dim0 = small_tensor.shapes[0];
+    int32_t small_dim1 = small_tensor.shapes[1];
+    int32_t small_dim2 = small_tensor.shapes[2];
+
+    int32_t small_stride0 = (small_dim0 == 1) ? 0 : small_dim1 * small_dim2;
+    int32_t small_stride1 = (small_dim1 == 1) ? 0 : small_dim2;
+    int32_t small_stride2 = (small_dim2 == 1) ? 0 : 1;
+
+    // 开始做加法
+    float *cur_ofmap_ptr, *cur_large_ptr, *cur_small_ptr;
+    for (int dim0_i = 0; dim0_i < large_dim0; ++dim0_i) {
+        for (int dim1_i = 0; dim1_i < large_dim1; ++dim1_i) {
+            cur_ofmap_ptr = ofmap_ptr + dim0_i * large_stride0 + dim1_i * large_stride1;
+            cur_large_ptr = large_ptr + dim0_i * large_stride0 + dim1_i * large_stride1;
+            cur_small_ptr = small_ptr + dim0_i * small_stride0 + dim1_i * small_stride1;
+            for (int dim2_i = 0; dim2_i < large_dim2; ++dim2_i) {
+                cur_ofmap_ptr[dim2_i] = cur_large_ptr[dim2_i] + cur_small_ptr[dim2_i * small_stride2];
+            }
+        }
+    }
+
+    return 0;
+}
+
+int32_t fun_2_dim4(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, ADD_CONFIG_S* cfg){
+
+    float *small_ptr = (float *) (small_tensor.p_data);
+    float *large_ptr = (float *) (large_tensor.p_data);
+    float *ofmap_ptr = (float *) (ofmap_tensor.p_data);
+
+    int32_t large_dim0 = large_tensor.shapes[0];
+    int32_t large_dim1 = large_tensor.shapes[1];
+    int32_t large_dim2 = large_tensor.shapes[2];
+    int32_t large_dim3 = large_tensor.shapes[3];
+
+    int32_t large_stride0 = large_dim1 * large_dim2 * large_dim3;
+    int32_t large_stride1 = large_dim2 * large_dim3;
+    int32_t large_stride2 = large_dim3;
+    int32_t large_stride3 = 1;
+
+    /*
+     * 注意：这里的 small_stride 的计算和普通的 stride 的计算逻辑有所不同。如果 small_dimX 为 1，则 small_strideX == 0，这是为了保
+     * 证在下面的 dimX_i 随着 large_dimX 增加时，不会导致本来需要广播的 small 随着 large_dimX 增加而增加
+     */
+    int32_t small_dim0 = small_tensor.shapes[0];
+    int32_t small_dim1 = small_tensor.shapes[1];
+    int32_t small_dim2 = small_tensor.shapes[2];
+    int32_t small_dim3 = small_tensor.shapes[3];
+
+    int32_t small_stride0 = (small_dim0 == 1) ? 0 : small_dim1 * small_dim2 * small_dim3;
+    int32_t small_stride1 = (small_dim1 == 1) ? 0 : small_dim2 * small_dim3;
+    int32_t small_stride2 = (small_dim2 == 1) ? 0 : small_dim3;
+    int32_t small_stride3 = (small_dim3 == 1) ? 0 : 1;
+
+    // 开始做加法
+    float *cur_ofmap_ptr, *cur_large_ptr, *cur_small_ptr;
+    for (int dim0_i = 0; dim0_i < large_dim0; ++dim0_i) {
+        for (int dim1_i = 0; dim1_i < large_dim1; ++dim1_i) {
+            for (int dim2_i = 0; dim2_i < large_dim2; ++dim2_i) {
+                cur_ofmap_ptr = ofmap_ptr + dim0_i * large_stride0 + dim1_i * large_stride1 + dim2_i * large_stride2;
+                cur_large_ptr = large_ptr + dim0_i * large_stride0 + dim1_i * large_stride1 + dim2_i * large_stride2;
+                cur_small_ptr = small_ptr + dim0_i * small_stride0 + dim1_i * small_stride1 + dim2_i * small_stride2;
+                for (int dim3_i = 0; dim3_i < large_dim3; ++dim3_i) {
+                    cur_ofmap_ptr[dim3_i] = cur_large_ptr[dim3_i] + cur_small_ptr[dim3_i * small_stride3];
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+int32_t fun_2_dim5(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, ADD_CONFIG_S* cfg){
+
+    float *small_ptr = (float *) (small_tensor.p_data);
+    float *large_ptr = (float *) (large_tensor.p_data);
+    float *ofmap_ptr = (float *) (ofmap_tensor.p_data);
+
+    int32_t large_dim0 = large_tensor.shapes[0];
+    int32_t large_dim1 = large_tensor.shapes[1];
+    int32_t large_dim2 = large_tensor.shapes[2];
+    int32_t large_dim3 = large_tensor.shapes[3];
+    int32_t large_dim4 = large_tensor.shapes[4];
+
+    int32_t large_stride0 = large_dim1 * large_dim2 * large_dim3 * large_dim4;
+    int32_t large_stride1 = large_dim2 * large_dim3 * large_dim4;
+    int32_t large_stride2 = large_dim3 * large_dim4;
+    int32_t large_stride3 = large_dim4;
+    int32_t large_stride4 = 1;
+
+    /*
+     * 注意：这里的 small_stride 的计算和普通的 stride 的计算逻辑有所不同。如果 small_dimX 为 1，则 small_strideX == 0，这是为了保
+     * 证在下面的 dimX_i 随着 large_dimX 增加时，不会导致本来需要广播的 small 随着 large_dimX 增加而增加
+     */
+    int32_t small_dim0 = small_tensor.shapes[0];
+    int32_t small_dim1 = small_tensor.shapes[1];
+    int32_t small_dim2 = small_tensor.shapes[2];
+    int32_t small_dim3 = small_tensor.shapes[3];
+    int32_t small_dim4 = small_tensor.shapes[4];
+
+    int32_t small_stride0 = (small_dim0 == 1) ? 0 : small_dim1 * small_dim2 * small_dim3 * small_dim4;
+    int32_t small_stride1 = (small_dim1 == 1) ? 0 : small_dim2 * small_dim3 * small_dim4;
+    int32_t small_stride2 = (small_dim2 == 1) ? 0 : small_dim3 * small_dim4;
+    int32_t small_stride3 = (small_dim3 == 1) ? 0 : small_dim4;
+    int32_t small_stride4 = (small_dim4 == 1) ? 0 : 1;
+
+    // 开始做加法
+    float *cur_ofmap_ptr, *cur_large_ptr, *cur_small_ptr;
+    for (int dim0_i = 0; dim0_i < large_dim0; ++dim0_i) {
+        for (int dim1_i = 0; dim1_i < large_dim1; ++dim1_i) {
+            for (int dim2_i = 0; dim2_i < large_dim2; ++dim2_i) {
+                for (int dim3_i = 0; dim3_i < large_dim3; ++dim3_i) {
+                    cur_ofmap_ptr = ofmap_ptr + dim0_i * large_stride0 +
+                                    dim1_i * large_stride1 + dim2_i * large_stride2 + dim3_i * large_stride3;
+                    cur_large_ptr = large_ptr + dim0_i * large_stride0 +
+                                    dim1_i * large_stride1 + dim2_i * large_stride2 + dim3_i * large_stride3;
+                    cur_small_ptr = small_ptr + dim0_i * small_stride0 +
+                                    dim1_i * small_stride1 + dim2_i * small_stride2 + dim3_i * small_stride3;
+                    for (int dim4_i = 0; dim4_i < large_dim4; ++dim4_i) {
+                        cur_ofmap_ptr[dim4_i] = cur_large_ptr[dim4_i] + cur_small_ptr[dim4_i * small_stride4];
+                    }
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+int32_t fun_2_dim6(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, ADD_CONFIG_S* cfg){
+
+    float *small_ptr = (float *) (small_tensor.p_data);
+    float *large_ptr = (float *) (large_tensor.p_data);
+    float *ofmap_ptr = (float *) (ofmap_tensor.p_data);
+
+    int32_t large_dim0 = large_tensor.shapes[0];
+    int32_t large_dim1 = large_tensor.shapes[1];
+    int32_t large_dim2 = large_tensor.shapes[2];
+    int32_t large_dim3 = large_tensor.shapes[3];
+    int32_t large_dim4 = large_tensor.shapes[4];
+    int32_t large_dim5 = large_tensor.shapes[5];
+
+    int32_t large_stride0 = large_dim1 * large_dim2 * large_dim3 * large_dim4 * large_dim5;
+    int32_t large_stride1 = large_dim2 * large_dim3 * large_dim4 * large_dim5;
+    int32_t large_stride2 = large_dim3 * large_dim4 * large_dim5;
+    int32_t large_stride3 = large_dim4 * large_dim5;
+    int32_t large_stride4 = large_dim5;
+    int32_t large_stride5 = 1;
+
+    /*
+     * 注意：这里的 small_stride 的计算和普通的 stride 的计算逻辑有所不同。如果 small_dimX 为 1，则 small_strideX == 0，这是为了保
+     * 证在下面的 dimX_i 随着 large_dimX 增加时，不会导致本来需要广播的 small 随着 large_dimX 增加而增加
+     */
+    int32_t small_dim0 = small_tensor.shapes[0];
+    int32_t small_dim1 = small_tensor.shapes[1];
+    int32_t small_dim2 = small_tensor.shapes[2];
+    int32_t small_dim3 = small_tensor.shapes[3];
+    int32_t small_dim4 = small_tensor.shapes[4];
+    int32_t small_dim5 = small_tensor.shapes[5];
+
+    int32_t small_stride0 = (small_dim0 == 1) ? 0 : small_dim1 * small_dim2 * small_dim3 * small_dim4 * small_dim5;
+    int32_t small_stride1 = (small_dim1 == 1) ? 0 : small_dim2 * small_dim3 * small_dim4 * small_dim5;
+    int32_t small_stride2 = (small_dim2 == 1) ? 0 : small_dim3 * small_dim4 * small_dim5;
+    int32_t small_stride3 = (small_dim3 == 1) ? 0 : small_dim4 * small_dim5;
+    int32_t small_stride4 = (small_dim4 == 1) ? 0 : small_dim5;
+    int32_t small_stride5 = (small_dim5 == 1) ? 0 : 1;
+
+    // 开始做加法
+    float *cur_ofmap_ptr, *cur_large_ptr, *cur_small_ptr;
+    for (int dim0_i = 0; dim0_i < large_dim0; ++dim0_i) {
+        for (int dim1_i = 0; dim1_i < large_dim1; ++dim1_i) {
+            for (int dim2_i = 0; dim2_i < large_dim2; ++dim2_i) {
+                for (int dim3_i = 0; dim3_i < large_dim3; ++dim3_i) {
+                    cur_ofmap_ptr = ofmap_ptr + dim0_i * large_stride0 +
+                                    dim1_i * large_stride1 + dim2_i * large_stride2 + dim3_i * large_stride3;
+                    cur_large_ptr = large_ptr + dim0_i * large_stride0 +
+                                    dim1_i * large_stride1 + dim2_i * large_stride2 + dim3_i * large_stride3;
+                    cur_small_ptr = small_ptr + dim0_i * small_stride0 +
+                                    dim1_i * small_stride1 + dim2_i * small_stride2 + dim3_i * small_stride3;
+                    for (int dim4_i = 0; dim4_i < large_dim4; ++dim4_i) {
+                        for (int dim5_i = 0; dim5_i < large_dim5; ++dim5_i) {
+                            cur_ofmap_ptr[dim4_i * large_stride4 + dim5_i] =
+                                    cur_large_ptr[dim4_i * large_stride4 + dim5_i]
+                                    + cur_small_ptr[dim4_i * small_stride4 + dim5_i * small_stride5];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return 0;
+}
 
 

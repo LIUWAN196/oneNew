@@ -21,7 +21,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
         OPERAND_S *out_tensor = (OPERAND_S *) (params[2].addr);
 
         if (axes != -1) {
-            printf("cur, just support axes == -1, in reduce mean\n");
+            LOG_ERR("cur, just support axes == -1, in reduce mean\n");
         }
 
         int32_t outer_elem_size = 1;

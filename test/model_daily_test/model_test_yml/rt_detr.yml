@@ -1,0 +1,31 @@
+
+# runtime params
+
+onnx_file_path: /media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/onnx_model/rt_detr.onnx
+
+do_preprocess: true
+
+do_postprocess: false
+
+one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/rt_detr/rt_detr.one
+
+dump_ifmap&ofmap: true
+
+input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/dog.png
+
+model_exc_type: release
+
+ofmap_folder: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_ofmap_path/rt_detr/
+
+crop_shapes: [640, 640]
+resize_shapes: [640, 640]
+normal_mean: [0.0f, 0.0f, 0.0f]
+normal_std: [1.0f, 1.0f, 1.0f]
+
+# opt params
+# rt detr 这个模型比较特殊，内部有 top k 这个算子，而如果使用了 op_fusion 这个优化选项，则会将 conv + sigmoid + mul 融合
+# 为 conv + silu 并用查找表来实现，这里会导致在 top k 算子那里，获取到的较大值索引偏差较大，导致最终输出的相似度只有 0.91，所以这里不对
+# rt detr 做融合，如果确实要做融合，请修改 conv 内的 silu 计算为真实计算而不是使用 lut 实现
+# 另外，即使不融合，最后一层的相似度也只有 0.995,是因为 gird_sample 算子采用的是 align_corners 为 true 的写法，详见 gird_sample 的实现
+optimize_type: don't_do_anything
+

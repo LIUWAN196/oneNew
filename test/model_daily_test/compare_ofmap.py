@@ -43,10 +43,11 @@ if __name__ == '__main__':
 
     model_path = sys.argv[1]
     ofmap_folder = sys.argv[2]
-    con_sim_threshold = 0.99
+    con_sim_min_threshold = 0.99
+    con_sim_max_threshold = 1.01
     if (len(sys.argv) == 4):
         if (sys.argv[3] == 'opt_model'):
-            con_sim_threshold = 0.98
+            con_sim_min_threshold = 0.98
 
     # step 1: load onnx model
     ifmap_name = 'model_ifmap.bin'
@@ -73,6 +74,7 @@ if __name__ == '__main__':
 
     # step 4: 依次检验每层的 output 的误差是否符合预期
     min_cos_sim = 10
+    max_cos_sim = -10
     correct_layer_num = 0
     for (key, value) in ort_out_desc.items():
         if 'Constant' in key:
@@ -93,6 +95,8 @@ if __name__ == '__main__':
         cos_sim = cosine_similarity(onnx_ref.reshape(-1), onenew_data.reshape(-1))
         if cos_sim < min_cos_sim:
             min_cos_sim = cos_sim
+        if cos_sim > max_cos_sim:
+            max_cos_sim = cos_sim
         # if cos_sim < 0.98:
         #     print("=========== the output of {} have big error, it is the {}th tensor, please check, cos_sim is {} ".format(key, correct_layer_num, cos_sim))
         # else:
@@ -100,7 +104,7 @@ if __name__ == '__main__':
         correct_layer_num = correct_layer_num + 1
 
 model_name = os.path.splitext(os.path.basename(sys.argv[1]))[0]
-if min_cos_sim > con_sim_threshold:
+if ((min_cos_sim > con_sim_min_threshold) & (max_cos_sim < con_sim_max_threshold) & (not np.isnan(cos_sim))):
     part1 = model_name
     part2 = " daily test SUCCESS"
     part3 = "min cosine similarity of ofmap is: " + str(min_cos_sim)

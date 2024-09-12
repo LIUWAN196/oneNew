@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
-    std::unordered_map<std::string, std::vector<float>> io_buf_map;
+    std::unordered_map<std::string, BUF_INFO_S> io_buf_map;
 
     std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
     std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
@@ -78,7 +78,10 @@ int main(int argc, char **argv) {
         std::string img_path = path + img;
 
         transforms(in_buf, img_path, trans_cfg);
-        io_buf_map[in_operand_name] = in_buf;
+        int32_t elem_size = in_buf.size();
+        int32_t buf_size = elem_size * sizeof(float);
+        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
+        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
 
         exe_net->impl(io_buf_map, cfg_info_map);
 
@@ -120,7 +123,7 @@ int main(int argc, char **argv) {
                     params.push_back(out_desc);
 
                     BUFFER_INFO_S in_info;
-                    in_info.addr = (int64_t) (&io_buf.second[0]);
+                    in_info.addr = (int64_t) (io_buf.second.st_ptr);
                     inputs.push_back(in_info);
 
                     BUFFER_INFO_S out_info;
@@ -136,6 +139,7 @@ int main(int argc, char **argv) {
                 {
                     ARGMAX_CONFIG_S argmax_cfg;
                     std::string op_type = "ArgMax";
+                    argmax_cfg.axis = 1;
                     argmax_cfg.topk = topk;
                     strcpy(argmax_cfg.op_base_cfg.op_type, op_type.c_str());
 
