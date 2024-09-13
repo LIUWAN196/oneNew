@@ -230,6 +230,11 @@ typedef struct
 typedef struct
 {
     BASE_CONFIG_S op_base_cfg;
+} COS_CONFIG_S;
+
+typedef struct
+{
+    BASE_CONFIG_S op_base_cfg;
 } DIV_CONFIG_S;
 
 typedef struct
@@ -476,6 +481,11 @@ typedef struct
 typedef struct
 {
     BASE_CONFIG_S op_base_cfg;
+} SIN_CONFIG_S;
+
+typedef struct
+{
+    BASE_CONFIG_S op_base_cfg;
 
     int64_t starts[8];
     int64_t ends[8];
@@ -517,6 +527,11 @@ typedef struct
 {
     BASE_CONFIG_S op_base_cfg;
 } SUB_CONFIG_S;
+
+typedef struct
+{
+    BASE_CONFIG_S op_base_cfg;
+} TILE_CONFIG_S;
 
 typedef struct
 {

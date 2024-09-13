@@ -4,8 +4,8 @@ project(Slice_x86)
 #set(CMAKE_C_FLAGS_RELEASE "-O3")
 set(NN_COMMON "/home/e0006809/Desktop/oneNew-main/infer/common")
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O -g")
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O -g")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O3 -g")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O3 -g")
 
 
 include_directories(

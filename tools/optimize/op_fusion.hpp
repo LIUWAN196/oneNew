@@ -236,7 +236,12 @@ int fill_layer_normalization_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fus
     std::string op_type = "LayerNormalization";
     strcpy(ln_cfg->op_base_cfg.op_type, op_type.c_str());
 
+    REDUCE_MEAN_CONFIG_S *reduce_mean_cfg = (REDUCE_MEAN_CONFIG_S *)sub_op_cfg[1];
+    ln_cfg->axes[0] = reduce_mean_cfg->axes[0];
+//    LOG_DBG("ln_cfg->axes[0] is %d\n", ln_cfg->axes[0]);
+
     // 修改消费者 op 为最后一个 div 的输出 op
+    BASE_CONFIG_S *div_cfg = sub_op_cfg[7];
     BASE_CONFIG_S *mul_cfg = sub_op_cfg[8];
     BASE_CONFIG_S *add_cfg = sub_op_cfg[9];
     memcpy(&ln_cfg->op_base_cfg.consumer[0], &add_cfg->consumer[0],
@@ -247,7 +252,15 @@ int fill_layer_normalization_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fus
            OPERAND_MAXNUM * OPERAND_NAME_LEN);
 
     // 将 layer norm 的 weight bias 放到 layer norm 的输入中来
-    memcpy(&ln_cfg->op_base_cfg.in_operand_name[1][0], &mul_cfg->in_operand_name[1][0], OPERAND_NAME_LEN);
+    // 下面几行代码，是判断 weight 是 mul 这个 op 的第 0 个还是第 1 个输入
+    std::string div_op_ofmap(div_cfg->out_operand_name[0]);
+    std::string mul_op_ifmap1(mul_cfg->in_operand_name[0]);
+    std::string mul_op_ifmap2(mul_cfg->in_operand_name[1]);
+    if (div_op_ofmap == mul_op_ifmap1) {
+        memcpy(&ln_cfg->op_base_cfg.in_operand_name[1][0], &mul_cfg->in_operand_name[1][0], OPERAND_NAME_LEN);
+    } else {
+        memcpy(&ln_cfg->op_base_cfg.in_operand_name[1][0], &mul_cfg->in_operand_name[0][0], OPERAND_NAME_LEN);
+    }
     memcpy(&ln_cfg->op_base_cfg.in_operand_name[2][0], &add_cfg->in_operand_name[1][0], OPERAND_NAME_LEN);
 
     ln_cfg->op_base_cfg.in_operand_num = 3;

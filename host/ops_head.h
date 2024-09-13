@@ -11,6 +11,7 @@
 #include "concat.h"
 #include "conv.h"
 #include "conv_transpose.h"
+#include "cos.h"
 #include "div.h"
 #include "einsum.h"
 #include "erf.h"
@@ -40,6 +41,7 @@
 #include "resize.h"
 #include "segment.h"
 #include "sigmoid.h"
+#include "sin.h"
 #include "slice.h"
 #include "softmax.h"
 #include "split.h"
@@ -47,6 +49,7 @@
 #include "squeeze.h"
 #include "sub.h"
 #include "transpose.h"
+#include "tile.h"
 #include "top_k.h"
 #include "unsqueeze.h"
 

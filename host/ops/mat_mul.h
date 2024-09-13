@@ -156,7 +156,7 @@ public:
             }
         }
         int32_t mac = 2; // mul and add, so is 2 computation
-        return (double)(out_elem_size * mac * in_last_dim_size);
+        return (double)(out_elem_size * mac * 1e-6 * in_last_dim_size);
     };
 
 };

@@ -1,112 +1,361 @@
 #include "mul.h"
 #include <stdlib.h>
-#include <stdint.h>
 #include <stdio.h>
 
-#include "stdint.h"
+/*
+ * 可以参考 https://blog.csdn.net/weixin_42575020/article/details/106947188 这里的 numpy 的 4 种广播方法
+numpy 四则运算的广播规则：
+规则 1：如果两个数组的维度数不相同，那么小维度数组的形状将会在最左边补 1
+规则 2：如果两个数组的形状在任何一个维度上都不匹配，那么数组的形状会沿着维度 为 1 的维度扩展以匹配另外一个数组的形状
+规则 3：如果两个数组的形状在任何一个维度上都不匹配并且没有任何一个维度等于 1， 那么会引发异常。
+ */
+
+int32_t fun_0(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, MUL_CONFIG_S* cfg);
+int32_t fun_1(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, MUL_CONFIG_S* cfg);
+int32_t fun_2(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, MUL_CONFIG_S* cfg);
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 //    show_dev_input(params);
-//    printf("this is x86 mul start\n");
+
     MUL_CONFIG_S *cfg = (MUL_CONFIG_S *) (params[0].addr);
-//    printf("this is device, the op type is mul\n");
 
-    float *input0_ptr = (float *) (inputs[0].addr);
-    float *input1_ptr = (float *) (inputs[1].addr);
-    float *output_ptr = (float *) (outputs[0].addr);
-
-    OPERAND_S ifmap0_tensor = *(OPERAND_S *) (params[1].addr);
-    OPERAND_S ifmap1_tensor = *(OPERAND_S *) (params[2].addr);
-
-    OPERAND_S *in0_tensor = &ifmap0_tensor;
-    OPERAND_S *in1_tensor = &ifmap1_tensor;
+    OPERAND_S *in0_tensor = (OPERAND_S *) (params[1].addr);
+    OPERAND_S *in1_tensor = (OPERAND_S *) (params[2].addr);
     OPERAND_S *out_tensor = (OPERAND_S *) (params[3].addr);
-
-    // 将两个输入 tensor 的 shape 维度对齐到一样
-    if (in0_tensor->dim_num_of_shapes == 1) {
-        int32_t dims_size = in0_tensor->shapes[0];
-        in0_tensor->shapes[0] = 1;
-        in0_tensor->shapes[in1_tensor->dim_num_of_shapes - 1] = dims_size;
-        in0_tensor->dim_num_of_shapes = in1_tensor->dim_num_of_shapes;
-    }
-
-    if (in1_tensor->dim_num_of_shapes == 1) {
-        int32_t dims_size = in1_tensor->shapes[0];
-        in1_tensor->shapes[0] = 1;
-        in1_tensor->shapes[in0_tensor->dim_num_of_shapes - 1] = dims_size;
-        in1_tensor->dim_num_of_shapes = in0_tensor->dim_num_of_shapes;
-    }
 
     int32_t in0_elem_size = operand_elem_size(in0_tensor);
     int32_t in1_elem_size = operand_elem_size(in1_tensor);
 
-    if (in0_elem_size == in1_elem_size) {
-        // 两个输入 tensor 一一对应，无需广播
-        for (int i = 0; i < in0_elem_size; ++i) {
-            output_ptr[i] = input0_ptr[i] * input1_ptr[i];
-        }
-    } else if (in0_elem_size == 1) {
-        for (int i = 0; i < in1_elem_size; ++i) {
-            output_ptr[i] = input0_ptr[0] * input1_ptr[i];
-        }
-    } else if (in1_elem_size == 1) {
-        for (int i = 0; i < in0_elem_size; ++i) {
-            output_ptr[i] = input0_ptr[i] * input1_ptr[0];
-        }
+    // 将 elem size 较大和较小的 tensor 和指针分别命名为 large 和 small
+    OPERAND_S ofmap_tensor, small_tensor, large_tensor;
+    ofmap_tensor = *out_tensor;
+    ofmap_tensor.p_data = outputs[0].addr;
+    if (in0_elem_size < in1_elem_size) {
+        small_tensor = *in0_tensor;
+        small_tensor.p_data = inputs[0].addr;
+        large_tensor = *in1_tensor;
+        large_tensor.p_data = inputs[1].addr;
     } else {
-        OPERAND_S *broadcast_tensor, *another_tensor;
-        float *broadcast_ptr, *another_ptr;
-        if (in0_elem_size < in1_elem_size) {
-            // in0 tensor 的一个或者多个维度需要做广播
-            broadcast_tensor = in0_tensor;
-            another_tensor = in1_tensor;
-            broadcast_ptr = input0_ptr;
-            another_ptr = input1_ptr;
-        } else if (in1_elem_size < in0_elem_size) {
-            // in1 tensor 的一个或者多个维度需要做广播
-            another_tensor = in0_tensor;
-            broadcast_tensor = in1_tensor;
-            another_ptr = input0_ptr;
-            broadcast_ptr = input1_ptr;
-        }
-
-        int32_t broadcast_dims[8];
-        int32_t broadcast_dims_num = 0;
-        for (int dims_i = 0; dims_i < SHAPE_LEN; ++dims_i) {
-            if (broadcast_tensor->shapes[dims_i] != another_tensor->shapes[dims_i]) {
-                broadcast_dims[broadcast_dims_num] = dims_i;
-                broadcast_dims_num++;
-            }
-        }
-
-        int32_t outter_elem_size = 1, broadcast_elem_size = 1, inner_elem_size = 1;
-        for (int dims_i = 0; dims_i < SHAPE_LEN; ++dims_i) {
-            if (dims_i < broadcast_dims[0]) {
-                outter_elem_size *= another_tensor->shapes[dims_i];
-            } else if (dims_i > broadcast_dims[broadcast_dims_num - 1]) {
-                inner_elem_size *= another_tensor->shapes[dims_i];
-            } else {
-                broadcast_elem_size *= another_tensor->shapes[dims_i];
-            }
-        }
-
-        // 开始做乘法
-        for (int outter_i = 0; outter_i < outter_elem_size; ++outter_i) {
-            float *cur_broadcast_ptr = broadcast_ptr + outter_i * inner_elem_size;
-            float *cur_another_ptr = another_ptr + outter_i * broadcast_elem_size * inner_elem_size;
-            for (int broadcast_i = 0; broadcast_i < broadcast_elem_size; ++broadcast_i) {
-                float *cur_ofmap_ptr = output_ptr + outter_i * broadcast_elem_size * inner_elem_size
-                        + broadcast_i * inner_elem_size;
-                for (int inner_i = 0; inner_i < inner_elem_size; ++inner_i) {
-                    cur_ofmap_ptr[inner_i] = cur_another_ptr[broadcast_i * inner_elem_size + inner_i]
-                            * cur_broadcast_ptr[inner_i];
-                }
-            }
-        }
-
+        small_tensor = *in1_tensor;
+        small_tensor.p_data = inputs[1].addr;
+        large_tensor = *in0_tensor;
+        large_tensor.p_data = inputs[0].addr;
     }
 
-//    LOG_DBG("end this op");
+    if (in0_elem_size == in1_elem_size) {
+        // 1、两个数组 elem size 完全相同，直接相加即可；
+        fun_0(ofmap_tensor, small_tensor, large_tensor, cfg);
+    } else if (operand_elem_size(&small_tensor) == 1) {
+        // 2、small 的 elem size 为 1，也就是要把这个标量广播到任意维度
+        fun_1(ofmap_tensor, small_tensor, large_tensor, cfg);
+    } else {
+        // 注意进入这个分支需要修改 shape 信息，所以要将 tensor 复制一份，不要在原始的 tensor 上修改
+        if (small_tensor.dim_num_of_shapes != large_tensor.dim_num_of_shapes) {
+            int32_t large_dims_num = large_tensor.dim_num_of_shapes;
+            int32_t small_dims_num = small_tensor.dim_num_of_shapes;
+            for (int dim_i = large_dims_num - 1; dim_i >= large_dims_num - small_dims_num; --dim_i) {
+                small_tensor.shapes[dim_i] = large_tensor.shapes[dim_i];
+            }
+            // 小维度数组的形状在最左边补 1
+            for (int dim_i = 0; dim_i < large_dims_num - small_dims_num; ++dim_i) {
+                small_tensor.shapes[dim_i] = 1;
+            }
+        }
+        // 此时两个 tensor 的维度长度都相同了, 做某些维度的广播乘法，这些广播的维度可能相邻也可能不相邻
+        // 根据上面规则 3，依次对比 tensor0 和 tensor1 的每个维度
+        int32_t dims_num = large_tensor.dim_num_of_shapes;
+        BOOL dims_correct = TRUE;
+        for (int dim_i = 0; dim_i < dims_num; ++dim_i) {
+            if (small_tensor.shapes[dim_i] != large_tensor.shapes[dim_i] && small_tensor.shapes[dim_i] != 1) {
+                dims_correct = FALSE;
+                break;
+            }
+        }
+        if (dims_correct == FALSE) {
+            LOG_ERR("mul op 的 shape 不符合广播规则\n");
+        }
+        fun_2(ofmap_tensor, small_tensor, large_tensor, cfg);
+    }
 
     return 0;
 }
+
+
+int32_t fun_0(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, MUL_CONFIG_S* cfg) {
+
+    float *input0_ptr = (float *) (small_tensor.p_data);
+    float *input1_ptr = (float *) (large_tensor.p_data);
+    float *output_ptr = (float *) (ofmap_tensor.p_data);
+
+    int32_t ofmap_elem_size = operand_elem_size(&ofmap_tensor);
+#pragma omp parallel for num_threads(8)
+    for (int i = 0; i < ofmap_elem_size; ++i) {
+        output_ptr[i] = input0_ptr[i] * input1_ptr[i];
+    }
+
+    return 0;
+}
+
+
+int32_t fun_1(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, MUL_CONFIG_S* cfg) {
+
+    float *small_ptr = (float *) (small_tensor.p_data);
+    float *large_ptr = (float *) (large_tensor.p_data);
+    float *output_ptr = (float *) (ofmap_tensor.p_data);
+
+    int32_t ofmap_elem_size = operand_elem_size(&ofmap_tensor);
+#pragma omp parallel for num_threads(8)
+    for (int i = 0; i < ofmap_elem_size; ++i) {
+        output_ptr[i] = large_ptr[i] * small_ptr[0];
+    }
+
+    return 0;
+}
+
+int32_t fun_2_dim3(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, MUL_CONFIG_S* cfg);
+int32_t fun_2_dim4(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, MUL_CONFIG_S* cfg);
+int32_t fun_2_dim5(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, MUL_CONFIG_S* cfg);
+int32_t fun_2_dim6(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, MUL_CONFIG_S* cfg);
+
+int32_t fun_2(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, MUL_CONFIG_S* cfg) {
+
+    int32_t ofmap_dims_num = ofmap_tensor.dim_num_of_shapes;
+    if (ofmap_dims_num <= 2) {
+        LOG_ERR("在 mul op 中，输出的 shape 维度 <= 2\n");
+    } else if (ofmap_dims_num <= 3) {
+        fun_2_dim3(ofmap_tensor, small_tensor, large_tensor, cfg);
+    } else if (ofmap_dims_num <= 4) {
+        fun_2_dim4(ofmap_tensor, small_tensor, large_tensor, cfg);
+    } else if (ofmap_dims_num <= 5) {
+        fun_2_dim5(ofmap_tensor, small_tensor, large_tensor, cfg);
+    } else if (ofmap_dims_num <= 6) {
+        fun_2_dim6(ofmap_tensor, small_tensor, large_tensor, cfg);
+    } else {
+        LOG_ERR("在 mul op 中，输出的 shape 维度 > 6\n");
+    }
+
+    return 0;
+}
+
+int32_t fun_2_dim3(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, MUL_CONFIG_S* cfg){
+
+    float *small_ptr = (float *) (small_tensor.p_data);
+    float *large_ptr = (float *) (large_tensor.p_data);
+    float *ofmap_ptr = (float *) (ofmap_tensor.p_data);
+
+    int32_t large_dim0 = large_tensor.shapes[0];
+    int32_t large_dim1 = large_tensor.shapes[1];
+    int32_t large_dim2 = large_tensor.shapes[2];
+
+
+    int32_t large_stride0 = large_dim1 * large_dim2;
+    int32_t large_stride1 = large_dim2;
+    int32_t large_stride2 = 1;
+
+    /*
+     * 注意：这里的 small_stride 的计算和普通的 stride 的计算逻辑有所不同。如果 small_dimX 为 1，则 small_strideX == 0，这是为了保
+     * 证在下面的 dimX_i 随着 large_dimX 增加时，不会导致本来需要广播的 small 随着 large_dimX 增加而增加
+     */
+    int32_t small_dim0 = small_tensor.shapes[0];
+    int32_t small_dim1 = small_tensor.shapes[1];
+    int32_t small_dim2 = small_tensor.shapes[2];
+
+    int32_t small_stride0 = (small_dim0 == 1) ? 0 : small_dim1 * small_dim2;
+    int32_t small_stride1 = (small_dim1 == 1) ? 0 : small_dim2;
+    int32_t small_stride2 = (small_dim2 == 1) ? 0 : 1;
+
+    // 开始做乘法
+#pragma omp parallel for num_threads(8)
+    for (int dim0_i = 0; dim0_i < large_dim0; ++dim0_i) {
+        float *cur_ofmap_ptr, *cur_large_ptr, *cur_small_ptr;
+        for (int dim1_i = 0; dim1_i < large_dim1; ++dim1_i) {
+            cur_ofmap_ptr = ofmap_ptr + dim0_i * large_stride0 + dim1_i * large_stride1;
+            cur_large_ptr = large_ptr + dim0_i * large_stride0 + dim1_i * large_stride1;
+            cur_small_ptr = small_ptr + dim0_i * small_stride0 + dim1_i * small_stride1;
+#pragma unroll 2
+            for (int dim2_i = 0; dim2_i < large_dim2; ++dim2_i) {
+                cur_ofmap_ptr[dim2_i] = cur_large_ptr[dim2_i] * cur_small_ptr[dim2_i * small_stride2];
+            }
+        }
+    }
+
+    return 0;
+}
+
+int32_t fun_2_dim4(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, MUL_CONFIG_S* cfg){
+
+    float *small_ptr = (float *) (small_tensor.p_data);
+    float *large_ptr = (float *) (large_tensor.p_data);
+    float *ofmap_ptr = (float *) (ofmap_tensor.p_data);
+
+    int32_t large_dim0 = large_tensor.shapes[0];
+    int32_t large_dim1 = large_tensor.shapes[1];
+    int32_t large_dim2 = large_tensor.shapes[2];
+    int32_t large_dim3 = large_tensor.shapes[3];
+
+    int32_t large_stride0 = large_dim1 * large_dim2 * large_dim3;
+    int32_t large_stride1 = large_dim2 * large_dim3;
+    int32_t large_stride2 = large_dim3;
+    int32_t large_stride3 = 1;
+
+    /*
+     * 注意：这里的 small_stride 的计算和普通的 stride 的计算逻辑有所不同。如果 small_dimX 为 1，则 small_strideX == 0，这是为了保
+     * 证在下面的 dimX_i 随着 large_dimX 增加时，不会导致本来需要广播的 small 随着 large_dimX 增加而增加
+     */
+    int32_t small_dim0 = small_tensor.shapes[0];
+    int32_t small_dim1 = small_tensor.shapes[1];
+    int32_t small_dim2 = small_tensor.shapes[2];
+    int32_t small_dim3 = small_tensor.shapes[3];
+
+    int32_t small_stride0 = (small_dim0 == 1) ? 0 : small_dim1 * small_dim2 * small_dim3;
+    int32_t small_stride1 = (small_dim1 == 1) ? 0 : small_dim2 * small_dim3;
+    int32_t small_stride2 = (small_dim2 == 1) ? 0 : small_dim3;
+    int32_t small_stride3 = (small_dim3 == 1) ? 0 : 1;
+
+    // 开始做乘法
+#pragma omp parallel for num_threads(8)
+    for (int dim0_i = 0; dim0_i < large_dim0; ++dim0_i) {
+        float *cur_ofmap_ptr, *cur_large_ptr, *cur_small_ptr;
+        for (int dim1_i = 0; dim1_i < large_dim1; ++dim1_i) {
+            for (int dim2_i = 0; dim2_i < large_dim2; ++dim2_i) {
+                cur_ofmap_ptr = ofmap_ptr + dim0_i * large_stride0 + dim1_i * large_stride1 + dim2_i * large_stride2;
+                cur_large_ptr = large_ptr + dim0_i * large_stride0 + dim1_i * large_stride1 + dim2_i * large_stride2;
+                cur_small_ptr = small_ptr + dim0_i * small_stride0 + dim1_i * small_stride1 + dim2_i * small_stride2;
+#pragma unroll 2
+                for (int dim3_i = 0; dim3_i < large_dim3; ++dim3_i) {
+                    cur_ofmap_ptr[dim3_i] = cur_large_ptr[dim3_i] * cur_small_ptr[dim3_i * small_stride3];
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+int32_t fun_2_dim5(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, MUL_CONFIG_S* cfg){
+
+    float *small_ptr = (float *) (small_tensor.p_data);
+    float *large_ptr = (float *) (large_tensor.p_data);
+    float *ofmap_ptr = (float *) (ofmap_tensor.p_data);
+
+    int32_t large_dim0 = large_tensor.shapes[0];
+    int32_t large_dim1 = large_tensor.shapes[1];
+    int32_t large_dim2 = large_tensor.shapes[2];
+    int32_t large_dim3 = large_tensor.shapes[3];
+    int32_t large_dim4 = large_tensor.shapes[4];
+
+    int32_t large_stride0 = large_dim1 * large_dim2 * large_dim3 * large_dim4;
+    int32_t large_stride1 = large_dim2 * large_dim3 * large_dim4;
+    int32_t large_stride2 = large_dim3 * large_dim4;
+    int32_t large_stride3 = large_dim4;
+    int32_t large_stride4 = 1;
+
+    /*
+     * 注意：这里的 small_stride 的计算和普通的 stride 的计算逻辑有所不同。如果 small_dimX 为 1，则 small_strideX == 0，这是为了保
+     * 证在下面的 dimX_i 随着 large_dimX 增加时，不会导致本来需要广播的 small 随着 large_dimX 增加而增加
+     */
+    int32_t small_dim0 = small_tensor.shapes[0];
+    int32_t small_dim1 = small_tensor.shapes[1];
+    int32_t small_dim2 = small_tensor.shapes[2];
+    int32_t small_dim3 = small_tensor.shapes[3];
+    int32_t small_dim4 = small_tensor.shapes[4];
+
+    int32_t small_stride0 = (small_dim0 == 1) ? 0 : small_dim1 * small_dim2 * small_dim3 * small_dim4;
+    int32_t small_stride1 = (small_dim1 == 1) ? 0 : small_dim2 * small_dim3 * small_dim4;
+    int32_t small_stride2 = (small_dim2 == 1) ? 0 : small_dim3 * small_dim4;
+    int32_t small_stride3 = (small_dim3 == 1) ? 0 : small_dim4;
+    int32_t small_stride4 = (small_dim4 == 1) ? 0 : 1;
+
+    // 开始做乘法
+#pragma omp parallel for num_threads(8)
+    for (int dim0_i = 0; dim0_i < large_dim0; ++dim0_i) {
+        float *cur_ofmap_ptr, *cur_large_ptr, *cur_small_ptr;
+        for (int dim1_i = 0; dim1_i < large_dim1; ++dim1_i) {
+            for (int dim2_i = 0; dim2_i < large_dim2; ++dim2_i) {
+                for (int dim3_i = 0; dim3_i < large_dim3; ++dim3_i) {
+                    cur_ofmap_ptr = ofmap_ptr + dim0_i * large_stride0 +
+                                    dim1_i * large_stride1 + dim2_i * large_stride2 + dim3_i * large_stride3;
+                    cur_large_ptr = large_ptr + dim0_i * large_stride0 +
+                                    dim1_i * large_stride1 + dim2_i * large_stride2 + dim3_i * large_stride3;
+                    cur_small_ptr = small_ptr + dim0_i * small_stride0 +
+                                    dim1_i * small_stride1 + dim2_i * small_stride2 + dim3_i * small_stride3;
+#pragma unroll 2
+                    for (int dim4_i = 0; dim4_i < large_dim4; ++dim4_i) {
+                        cur_ofmap_ptr[dim4_i] = cur_large_ptr[dim4_i] * cur_small_ptr[dim4_i * small_stride4];
+                    }
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+int32_t fun_2_dim6(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, MUL_CONFIG_S* cfg){
+
+    float *small_ptr = (float *) (small_tensor.p_data);
+    float *large_ptr = (float *) (large_tensor.p_data);
+    float *ofmap_ptr = (float *) (ofmap_tensor.p_data);
+
+    int32_t large_dim0 = large_tensor.shapes[0];
+    int32_t large_dim1 = large_tensor.shapes[1];
+    int32_t large_dim2 = large_tensor.shapes[2];
+    int32_t large_dim3 = large_tensor.shapes[3];
+    int32_t large_dim4 = large_tensor.shapes[4];
+    int32_t large_dim5 = large_tensor.shapes[5];
+
+    int32_t large_stride0 = large_dim1 * large_dim2 * large_dim3 * large_dim4 * large_dim5;
+    int32_t large_stride1 = large_dim2 * large_dim3 * large_dim4 * large_dim5;
+    int32_t large_stride2 = large_dim3 * large_dim4 * large_dim5;
+    int32_t large_stride3 = large_dim4 * large_dim5;
+    int32_t large_stride4 = large_dim5;
+    int32_t large_stride5 = 1;
+
+    /*
+     * 注意：这里的 small_stride 的计算和普通的 stride 的计算逻辑有所不同。如果 small_dimX 为 1，则 small_strideX == 0，这是为了保
+     * 证在下面的 dimX_i 随着 large_dimX 增加时，不会导致本来需要广播的 small 随着 large_dimX 增加而增加
+     */
+    int32_t small_dim0 = small_tensor.shapes[0];
+    int32_t small_dim1 = small_tensor.shapes[1];
+    int32_t small_dim2 = small_tensor.shapes[2];
+    int32_t small_dim3 = small_tensor.shapes[3];
+    int32_t small_dim4 = small_tensor.shapes[4];
+    int32_t small_dim5 = small_tensor.shapes[5];
+
+    int32_t small_stride0 = (small_dim0 == 1) ? 0 : small_dim1 * small_dim2 * small_dim3 * small_dim4 * small_dim5;
+    int32_t small_stride1 = (small_dim1 == 1) ? 0 : small_dim2 * small_dim3 * small_dim4 * small_dim5;
+    int32_t small_stride2 = (small_dim2 == 1) ? 0 : small_dim3 * small_dim4 * small_dim5;
+    int32_t small_stride3 = (small_dim3 == 1) ? 0 : small_dim4 * small_dim5;
+    int32_t small_stride4 = (small_dim4 == 1) ? 0 : small_dim5;
+    int32_t small_stride5 = (small_dim5 == 1) ? 0 : 1;
+
+    // 开始做乘法
+#pragma omp parallel for num_threads(8)
+    for (int dim0_i = 0; dim0_i < large_dim0; ++dim0_i) {
+        float *cur_ofmap_ptr, *cur_large_ptr, *cur_small_ptr;
+        for (int dim1_i = 0; dim1_i < large_dim1; ++dim1_i) {
+            for (int dim2_i = 0; dim2_i < large_dim2; ++dim2_i) {
+                for (int dim3_i = 0; dim3_i < large_dim3; ++dim3_i) {
+                    cur_ofmap_ptr = ofmap_ptr + dim0_i * large_stride0 +
+                                    dim1_i * large_stride1 + dim2_i * large_stride2 + dim3_i * large_stride3;
+                    cur_large_ptr = large_ptr + dim0_i * large_stride0 +
+                                    dim1_i * large_stride1 + dim2_i * large_stride2 + dim3_i * large_stride3;
+                    cur_small_ptr = small_ptr + dim0_i * small_stride0 +
+                                    dim1_i * small_stride1 + dim2_i * small_stride2 + dim3_i * small_stride3;
+#pragma unroll 2
+                    for (int dim4_i = 0; dim4_i < large_dim4; ++dim4_i) {
+                        for (int dim5_i = 0; dim5_i < large_dim5; ++dim5_i) {
+                            cur_ofmap_ptr[dim4_i * large_stride4 + dim5_i] =
+                                    cur_large_ptr[dim4_i * large_stride4 + dim5_i]
+                                    * cur_small_ptr[dim4_i * small_stride4 + dim5_i * small_stride5];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+

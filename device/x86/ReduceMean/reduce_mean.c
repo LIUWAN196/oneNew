@@ -48,18 +48,6 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
         OPERAND_S *in_tensor = (OPERAND_S *) (params[1].addr);
         OPERAND_S *out_tensor = (OPERAND_S *) (params[2].addr);
 
-//        printf("this is reduce mean\n");
-//        for (int i = 0; i < SHAPE_LEN; ++i) {
-//            printf("%d  ", in_tensor->shapes[i]);
-//        }
-//        printf("\n");
-//        for (int i = 0; i < SHAPE_LEN; ++i) {
-//            printf("%d  ", out_tensor->shapes[i]);
-//        }
-//        printf("\n");
-//        printf("cfg->axes_num is %d\n", cfg->axes_num);
-
-
         int32_t psum_elem_size = 1;
         for (int i = in_tensor->dim_num_of_shapes - 2; i < in_tensor->dim_num_of_shapes; ++i) {
             psum_elem_size *= in_tensor->shapes[i];
