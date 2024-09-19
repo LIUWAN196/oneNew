@@ -245,6 +245,11 @@ typedef struct
 typedef struct
 {
     BASE_CONFIG_S op_base_cfg;
+} EXP_CONFIG_S;
+
+typedef struct
+{
+    BASE_CONFIG_S op_base_cfg;
     char equation[32];
 } EINSUM_CONFIG_S;
 

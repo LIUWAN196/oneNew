@@ -15,7 +15,6 @@ int32_t fun_1(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_te
 int32_t fun_2(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_tensor, MUL_CONFIG_S* cfg);
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-//    show_dev_input(params);
 
     MUL_CONFIG_S *cfg = (MUL_CONFIG_S *) (params[0].addr);
 
@@ -51,6 +50,22 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     } else {
         // 注意进入这个分支需要修改 shape 信息，所以要将 tensor 复制一份，不要在原始的 tensor 上修改
         if (small_tensor.dim_num_of_shapes != large_tensor.dim_num_of_shapes) {
+            // 先将 small_tensor 最左边的 shape 为 1 的去掉
+            OPERAND_S tmp;
+            for (int i = 0; i < SHAPE_LEN; ++i) {
+                tmp.shapes[i] = 1;
+            }
+            int32_t tmp_idx = 0, small_idx;
+            for (small_idx = 0; small_idx < small_tensor.dim_num_of_shapes; ++small_idx) {
+                if (small_tensor.shapes[small_idx] != 1) {
+                    tmp.shapes[tmp_idx++] = small_tensor.shapes[small_idx];
+                }
+            }
+            tmp.dim_num_of_shapes = tmp_idx;
+            tmp.p_data = small_tensor.p_data;
+            small_tensor = tmp;
+
+            // 开始逐一对比 small_tensor 和 large_tensor
             int32_t large_dims_num = large_tensor.dim_num_of_shapes;
             int32_t small_dims_num = small_tensor.dim_num_of_shapes;
             for (int dim_i = large_dims_num - 1; dim_i >= large_dims_num - small_dims_num; --dim_i) {
@@ -146,7 +161,6 @@ int32_t fun_2_dim3(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S lar
     int32_t large_dim0 = large_tensor.shapes[0];
     int32_t large_dim1 = large_tensor.shapes[1];
     int32_t large_dim2 = large_tensor.shapes[2];
-
 
     int32_t large_stride0 = large_dim1 * large_dim2;
     int32_t large_stride1 = large_dim2;

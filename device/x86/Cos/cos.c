@@ -9,7 +9,7 @@
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
 {
-    COS_CONFIG_S cfg = (COS_CONFIG_S*)(params[0].addr);
+    COS_CONFIG_S* cfg = (COS_CONFIG_S*)(params[0].addr);
 //    printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 
     float* input_ptr = (float*)(inputs[0].addr);

@@ -10,6 +10,7 @@
 
 int eval_conv_transpose_mxn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
+//    show_dev_input(params);
     CONV_TRANSPOSE_CONFIG_S *cfg = (CONV_TRANSPOSE_CONFIG_S *) (params[0].addr);
 
     int32_t stride_x = cfg->strides[0];
@@ -45,6 +46,7 @@ int eval_conv_transpose_mxn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER
     int32_t out_h = out_tensor->shapes[2];
     int32_t out_w = out_tensor->shapes[3];
 
+#pragma omp parallel for num_threads(8)
     for (int outc_i = 0; outc_i < out_c; ++outc_i) {
         float * cur_input_ptr = input_ptr;
         float * cur_output_ptr = output_ptr + outc_i * out_h * out_w;
@@ -58,6 +60,7 @@ int eval_conv_transpose_mxn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER
                 float psum2 = 0.f;
                 float psum3 = 0.f;
                 float* ifmap_point_ptr = cur_input_ptr + inh_i * in_w + inw_i;
+#pragma unroll 8
                 for (int inc_i = 0; inc_i < in_c; ++inc_i) {
                     psum0 += ifmap_point_ptr[inc_i * in_h * in_w] * cur_weight_ptr[inc_i * out_c * kernel_h * kernel_w + 0];
                     psum1 += ifmap_point_ptr[inc_i * in_h * in_w] * cur_weight_ptr[inc_i * out_c * kernel_h * kernel_w + 1];

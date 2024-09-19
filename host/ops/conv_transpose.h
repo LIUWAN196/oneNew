@@ -45,7 +45,7 @@ public:
 //        }
 
         out->shapes[0] = 1;
-        out->shapes[1] = initial_operands[0].shapes[0];
+        out->shapes[1] = initial_operands[0].shapes[1];
 
         out->shapes[2] = in->shapes[2] * 2; // todo: using pad and kernel size and stride to calc
         out->shapes[3] = in->shapes[3] * 2; // todo: using pad and kernel size and stride to calc
