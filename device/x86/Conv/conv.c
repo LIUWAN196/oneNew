@@ -9,6 +9,176 @@
 #include <omp.h>
 #include "math.h"
 
+
+typedef struct {
+    int32_t M;
+    int32_t N;
+    int32_t K;
+
+    int32_t m_tile_size;
+    int32_t n_tile_size;
+    int32_t k_tile_size;
+} GEMM_TILE_INFO;
+
+int opt_gemm(float *ofmap_ptr, float *ifmap0_ptr, float *ifmap1_ptr, GEMM_TILE_INFO gemm_tile_info) {
+
+    int32_t M = gemm_tile_info.M;
+    int32_t N = gemm_tile_info.N;
+    int32_t K = gemm_tile_info.K;
+
+    const int32_t best_m_tile = gemm_tile_info.m_tile_size;
+    const int32_t best_n_tile = gemm_tile_info.n_tile_size;
+    const int32_t best_k_tile = gemm_tile_info.k_tile_size;
+    int32_t m_tile_size, n_tile_size, k_tile_size;
+    if (M < best_m_tile) {
+        m_tile_size = M;
+    } else {
+        int32_t m_tile_cnt = (int32_t) ceilf((float) M / (float) best_m_tile);
+        m_tile_size = M / m_tile_cnt;
+    }
+
+    if (N < best_n_tile) {
+        // 因为在 matmul 中对 n_tile 使用了 avx2 的并行计算，并行度为 8, 所以这里 n_tile_size 需要是 8 的整数倍
+        n_tile_size = (N >> 3) << 3;
+    } else {
+        int32_t n_tile_cnt = (int32_t) ceilf((float) N / (float) best_n_tile);
+        n_tile_size = ((N / n_tile_cnt) >> 3) << 3;
+    }
+
+    if (K < best_k_tile) {
+        // 因为在 sgemm 中对 k_tile 做了 unroll = 4 的展开, 所以这里 k_tile_size 需要是 4 的整数倍
+        k_tile_size = (K >> 2) << 2;
+    } else {
+        k_tile_size = best_k_tile;
+    }
+
+    // init ofmap buf
+    memset(ofmap_ptr, 0, M * N * sizeof(float));
+
+    // set tile params
+    int m_tile_cnt = M / m_tile_size;
+    int n_tile_cnt = (n_tile_size == 0) ? 0 : N / n_tile_size;
+    int k_tile_cnt = (k_tile_size == 0) ? 0 : K / k_tile_size;
+
+    // step 1: 这个循环处理 M、N、K 的整块部分
+#pragma omp parallel for num_threads(8)
+    for (int m_tile_i = 0; m_tile_i < m_tile_cnt; m_tile_i++) {
+        register int ofmap_offset = 0, ifmap0_offset = 0, ifmap1_offset = 0;
+        register float *cur_ofmap_ptr, *cur_ifmap0_st, *cur_ifmap1_st, *cur_ifmap1_ptr[4];
+        register __m256 psum_vec, ifmap0_vec[4], mul_res_vec[4];
+        for (int n_tile_i = 0; n_tile_i < n_tile_cnt; n_tile_i++) {
+            for (int k_tile_i = 0; k_tile_i < k_tile_cnt; k_tile_i++) {
+                ofmap_offset = (m_tile_i * m_tile_size) * N + n_tile_i * n_tile_size;
+                ifmap0_offset = (m_tile_i * m_tile_size) * K + k_tile_i * k_tile_size;
+                ifmap1_offset = (k_tile_i * k_tile_size) * N + n_tile_i * n_tile_size;
+                for (int m_i = 0; m_i < m_tile_size; m_i++) {
+                    cur_ofmap_ptr = ofmap_ptr + ofmap_offset + m_i * N;
+                    for (int k_i = 0; k_i < k_tile_size; k_i += 4) {
+                        cur_ifmap0_st = ifmap0_ptr + ifmap0_offset + m_i * K + k_i;
+                        cur_ifmap1_st = ifmap1_ptr + ifmap1_offset + k_i * N;
+                        ifmap0_vec[0] = _mm256_set1_ps(*(cur_ifmap0_st + 0));
+                        ifmap0_vec[1] = _mm256_set1_ps(*(cur_ifmap0_st + 1));
+                        ifmap0_vec[2] = _mm256_set1_ps(*(cur_ifmap0_st + 2));
+                        ifmap0_vec[3] = _mm256_set1_ps(*(cur_ifmap0_st + 3));
+                        cur_ifmap1_ptr[0] = cur_ifmap1_st + 0 * N;
+                        cur_ifmap1_ptr[1] = cur_ifmap1_st + 1 * N;
+                        cur_ifmap1_ptr[2] = cur_ifmap1_st + 2 * N;
+                        cur_ifmap1_ptr[3] = cur_ifmap1_st + 3 * N;
+                        for (int n_i = 0; n_i < n_tile_size; n_i += 8) {
+                            mul_res_vec[0] = _mm256_mul_ps(ifmap0_vec[0], _mm256_loadu_ps(cur_ifmap1_ptr[0] + n_i));
+                            mul_res_vec[1] = _mm256_mul_ps(ifmap0_vec[1], _mm256_loadu_ps(cur_ifmap1_ptr[1] + n_i));
+                            mul_res_vec[2] = _mm256_mul_ps(ifmap0_vec[2], _mm256_loadu_ps(cur_ifmap1_ptr[2] + n_i));
+                            mul_res_vec[3] = _mm256_mul_ps(ifmap0_vec[3], _mm256_loadu_ps(cur_ifmap1_ptr[3] + n_i));
+                            psum_vec = _mm256_loadu_ps(cur_ofmap_ptr + n_i);
+                            psum_vec = _mm256_add_ps(psum_vec, mul_res_vec[0]);
+                            psum_vec = _mm256_add_ps(psum_vec, mul_res_vec[1]);
+                            psum_vec = _mm256_add_ps(psum_vec, mul_res_vec[2]);
+                            psum_vec = _mm256_add_ps(psum_vec, mul_res_vec[3]);
+                            _mm256_storeu_ps(cur_ofmap_ptr + n_i, psum_vec);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // step 2: 这个循环处理 N 的尾部部分，即 [N - n_tile_cnt * n_tile_size, N] 部分
+    const int32_t n_tail = N - n_tile_cnt * n_tile_size;
+    if (n_tail != 0) {
+#pragma omp parallel for num_threads(8)
+        for (int m_tile_i = 0; m_tile_i < m_tile_cnt; m_tile_i++) {
+            register int ofmap_offset = 0, ifmap0_offset = 0, ifmap1_offset = 0;
+            register float *cur_ofmap_ptr, *cur_ifmap0_st, *cur_ifmap1_st, *cur_ifmap1_ptr;
+            register float psum_vec;
+            register float ifmap0;
+            for (int k_tile_i = 0; k_tile_i < k_tile_cnt; k_tile_i++) {
+                ofmap_offset = (m_tile_i * m_tile_size) * N + n_tile_cnt * n_tile_size;
+                ifmap0_offset = (m_tile_i * m_tile_size) * K + k_tile_i * k_tile_size;
+                ifmap1_offset = (k_tile_i * k_tile_size) * N + n_tile_cnt * n_tile_size;
+                for (int m_i = 0; m_i < m_tile_size; m_i++) {
+                    cur_ofmap_ptr = ofmap_ptr + ofmap_offset + m_i * N;
+                    for (int k_i = 0; k_i < k_tile_size; k_i ++) {
+                        cur_ifmap0_st = ifmap0_ptr + ifmap0_offset + m_i * K + k_i;
+                        cur_ifmap1_st = ifmap1_ptr + ifmap1_offset + k_i * N;
+                        ifmap0 = *(cur_ifmap0_st + 0);
+                        cur_ifmap1_ptr = cur_ifmap1_st + 0 * N;
+                        for (int n_i = 0; n_i < n_tail; n_i++) {
+                            psum_vec = ifmap0 * (*(cur_ifmap1_ptr + n_i));
+                            *(cur_ofmap_ptr + n_i) += psum_vec;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // step 3: 这个循环处理 M 的尾部部分，即 [M - m_tile_cnt * m_tile_size, M] 部分
+    const int32_t m_tail = M - m_tile_cnt * m_tile_size;
+    if (m_tail != 0) {
+#pragma omp parallel for num_threads(8)
+        for (int m_i = 0; m_i < m_tail; m_i++) {
+            register int ofmap_offset = (m_tile_cnt * m_tile_size) * N;
+            register int ifmap0_offset = (m_tile_cnt * m_tile_size) * K;
+            register float *cur_ofmap_ptr;
+            register float ifmap0_val;
+            register int k_i, n_i;
+            register __m256 ifmap0_vec, ifmap1_vec, mul_res_vec, psum_vec;
+            // 注意这里的 k 只需要处理到 k_tile_cnt * k_tile_size，后面的 k 在 step4 中计算
+            for (k_i = 0; k_i < k_tile_cnt * k_tile_size; k_i++) {
+                ifmap0_val = ifmap0_ptr[ifmap0_offset + m_i * K + k_i];
+                ifmap0_vec = _mm256_set1_ps(*(ifmap0_ptr + ifmap0_offset + m_i * K + k_i));
+                cur_ofmap_ptr = ofmap_ptr + ofmap_offset + m_i * N;
+                for (n_i = 0; n_i < N - 7; n_i += 8) {
+                    ifmap1_vec = _mm256_loadu_ps(ifmap1_ptr + k_i * N + n_i);
+                    mul_res_vec = _mm256_mul_ps(ifmap0_vec, ifmap1_vec);
+                    psum_vec = _mm256_loadu_ps(cur_ofmap_ptr + n_i);
+                    _mm256_storeu_ps(cur_ofmap_ptr + n_i, _mm256_add_ps(psum_vec, mul_res_vec));
+                }
+                for (; n_i < N; ++n_i) {
+                    *(cur_ofmap_ptr + n_i) += ifmap0_val * ifmap1_ptr[k_i * N + n_i];
+                }
+            }
+        }
+    }
+
+    // step 4: 这个循环处理 K 的尾部部分，即 [K - k_tile_cnt * k_tile_size, K] 部分
+    const int32_t k_tail = K - k_tile_cnt * k_tile_size;
+    int32_t k_tail_st = k_tile_cnt * k_tile_size;
+    if (k_tail != 0) {
+#pragma omp parallel for num_threads(8)
+        for (int m_i = 0; m_i < M; ++m_i) {
+            for (int k_i = k_tail_st; k_i < K; ++k_i) {
+                register float ifmap0_val = ifmap0_ptr[m_i * K + k_i];
+                for (int n_i = 0; n_i < N; ++n_i) {
+                    ofmap_ptr[m_i * N + n_i] += ifmap0_val * ifmap1_ptr[k_i * N + n_i];
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+
 int do_pad_conv(char *dst_ptr, char *src_ptr, OPERAND_S *src_data_desc, PAD_INNER_CONFIG_S *cfg) {
     float pad_value = 0;
     float *dst_f32 = (float *) dst_ptr;
@@ -75,7 +245,7 @@ int do_pad_conv_s8(char *dst_ptr, char *src_ptr, OPERAND_S *src_data_desc, PAD_I
 
 
 int do_pad_conv_new(char *dst_ptr, char *src_ptr, OPERAND_S *src_data_desc, PAD_INNER_CONFIG_S *pad_cfg) {
-    float pad_value = 0;
+
     float *dst_f32 = (float *) dst_ptr;
     float *src_f32 = (float *) src_ptr;
 
@@ -87,25 +257,26 @@ int do_pad_conv_new(char *dst_ptr, char *src_ptr, OPERAND_S *src_data_desc, PAD_
     int32_t dst_h = src_h + pad_cfg->top_pad + pad_cfg->bottom_pad;
     int32_t dst_w = src_w + pad_cfg->left_pad + pad_cfg->right_pad;
 
-    memset(dst_f32, 0, dst_c * dst_h * dst_w * sizeof(float));
-//    for (int i = 0; i < dst_c * dst_h * dst_w; ++i) {
-//        dst_f32[i] = pad_value;
-//    }
+    memset(dst_ptr, 0, dst_c * dst_h * dst_w * sizeof(float));
 
-    float *cur_dst_f32, *cur_src_f32;
-//#pragma omp parallel for num_threads(8)
+    const int32_t top_pad = pad_cfg->top_pad;
+    const int32_t bottom_pad = pad_cfg->bottom_pad;
+    const int32_t left_pad = pad_cfg->left_pad;
+
     for (int c_i = 0; c_i < dst_c; ++c_i) {
-//#pragma unroll 2
-        for (int h_i = pad_cfg->top_pad; h_i < dst_h - pad_cfg->bottom_pad; ++h_i) {
-            cur_dst_f32 = dst_f32 + c_i * dst_h * dst_w + h_i * dst_w;
-            cur_src_f32 = src_f32 + c_i * src_h * src_w + (h_i - pad_cfg->top_pad) * src_w;
-#pragma unroll 2
-            for (int w_i = pad_cfg->left_pad; w_i < dst_w - pad_cfg->right_pad; ++w_i) {
-                cur_dst_f32[w_i] = cur_src_f32[(w_i - pad_cfg->left_pad)];
-            }
+        float* cur_src_f32 = src_f32 + c_i * src_h * src_w - top_pad * src_w;
+        float* cur_dst_f32 = dst_f32 + c_i * dst_h * dst_w + left_pad;
+        int h_i = top_pad;
+        for (h_i = top_pad; h_i < dst_h - bottom_pad - 3; h_i += 4) {
+            memcpy(cur_dst_f32 + (h_i + 0) * dst_w, cur_src_f32 + (h_i + 0) * src_w, src_w * sizeof(float));
+            memcpy(cur_dst_f32 + (h_i + 1) * dst_w, cur_src_f32 + (h_i + 1) * src_w, src_w * sizeof(float));
+            memcpy(cur_dst_f32 + (h_i + 2) * dst_w, cur_src_f32 + (h_i + 2) * src_w, src_w * sizeof(float));
+            memcpy(cur_dst_f32 + (h_i + 3) * dst_w, cur_src_f32 + (h_i + 3) * src_w, src_w * sizeof(float));
+        }
+        for (; h_i < dst_h - bottom_pad; h_i++) {
+            memcpy(cur_dst_f32 + h_i * dst_w, cur_src_f32 + h_i * src_w, src_w * sizeof(float));
         }
     }
-
 
     return 0;
 }
@@ -160,35 +331,62 @@ int eval_1x1j1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outp
         input_ptr = (float *) src_pad_ptr;
     }
 
-    const int M = out_c;
-    const int N = out_h * out_w;
-    const int K = in_c;
+    GEMM_TILE_INFO gemm_tile_info;
+    gemm_tile_info.M = out_c;
+    gemm_tile_info.N = out_h * out_w;
+    gemm_tile_info.K = in_c;
 
-//    memset(output_ptr, 0, M * N * sizeof(float));
+    // 目前认为的 sgemm 的最佳配置为 m_tile_size = 32，n_tile_size = 1024，k_tile_size = 8；
+    const int32_t best_n_tile = 1024, best_k_tile = 8;
+    const int32_t num_threads = 8;
+    // 这里因为开了 num_threads 个线程，所以要保证 m_tile 为 num_threads 的倍数，不让有的线程创建了但是没有使用
+    int32_t best_m_tile = (gemm_tile_info.M / num_threads > 32) ? 32 : gemm_tile_info.M / num_threads;
+    best_m_tile = (best_m_tile == 0) ? gemm_tile_info.M : best_m_tile;
 
+    gemm_tile_info.m_tile_size = best_m_tile;
+    gemm_tile_info.n_tile_size = best_n_tile;
+    gemm_tile_info.k_tile_size = best_k_tile;
+    opt_gemm(output_ptr, weight_ptr, input_ptr, gemm_tile_info);
+
+    // 加偏置
 #pragma omp parallel for num_threads(8)
-    for (int i = 0; i < M; i++)
+    for (int i = 0; i < gemm_tile_info.M; i++)
     {
-        memset(&output_ptr[i * N], 0, N * sizeof(float));
-        int idx_a, idx_b, idx_c;
-        idx_c = i * N;
+        int idx = i * gemm_tile_info.N;
 #pragma unroll 8
-        for (int k = 0; k < K; k++)
-        {
-            idx_a = i * K + k;
-            idx_b = k * N;
-
-            int j = 0;
-            for (; j < N; j++)
-            {
-                output_ptr[idx_c + j] += weight_ptr[idx_a] * input_ptr[idx_b + j];
-            }
-        }
-#pragma unroll 8
-        for (int z = 0; z < N; ++z) {
-            output_ptr[idx_c + z] += bias_ptr[i];
+        for (int z = 0; z < gemm_tile_info.N; ++z) {
+            output_ptr[idx + z] += bias_ptr[i];
         }
     }
+
+
+
+//
+////    memset(output_ptr, 0, M * N * sizeof(float));
+//
+//#pragma omp parallel for num_threads(8)
+//    for (int i = 0; i < M; i++)
+//    {
+//        memset(&output_ptr[i * N], 0, N * sizeof(float));
+//        int idx_a, idx_b, idx_c;
+//        idx_c = i * N;
+//#pragma unroll 8
+//        for (int k = 0; k < K; k++)
+//        {
+//            idx_a = i * K + k;
+//            idx_b = k * N;
+//
+//            int j = 0;
+//            for (; j < N; j++)
+//            {
+//                output_ptr[idx_c + j] += weight_ptr[idx_a] * input_ptr[idx_b + j];
+//            }
+//        }
+//#pragma unroll 8
+//        for (int z = 0; z < N; ++z) {
+//            output_ptr[idx_c + z] += bias_ptr[i];
+//        }
+//    }
 
     if (cfg->pads[0] != 0) {
         free(src_pad_ptr);
@@ -198,7 +396,7 @@ int eval_1x1j1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outp
 }
 
 int im2col(float *input_col_ptr, float *input_ptr, OPERAND_S *in_tensor, OPERAND_S *out_tensor, OPERAND_S *weight_tensor,
-           CONV_CONFIG_S *cfg) {
+       CONV_CONFIG_S *cfg) {
 
     int32_t kernel_c = weight_tensor->shapes[1];
     int32_t kernel_h = weight_tensor->shapes[2];
@@ -217,40 +415,77 @@ int im2col(float *input_col_ptr, float *input_ptr, OPERAND_S *in_tensor, OPERAND
     int32_t stride_x = cfg->strides[0];
     int32_t stride_y = cfg->strides[1];
 
+    int32_t outHxoutH = out_h * out_h;
+    int32_t kWxoutHxoutH = kernel_w * out_h * out_h;
+    int32_t kHxkWxoutHxoutw = kernel_h * kernel_w * out_h * out_w;
+
+    if (kernel_h == 3 && kernel_w == 3) {
 #pragma omp parallel for num_threads(8)
-    for (int col_h1 = 0; col_h1 <in_c; ++col_h1) {
-        for (int col_h2 = 0; col_h2 < kernel_h; ++col_h2) {
-            for (int col_h3 = 0; col_h3 < kernel_w; ++col_h3) {
-                int32_t src_idx = col_h1 * kernel_h * kernel_w * out_h * out_w + col_h2 * kernel_w * out_h * out_h +
-                                  col_h3 * out_h * out_h;
-                int32_t dst_idx = col_h1 * in_h * in_w;
+        for (int col_h1 = 0; col_h1 < in_c; ++col_h1) {
+            int32_t cur_in_h, cur_in_w;
+            int32_t ifmap_offset, ofmap_offset;
+            int32_t cur_ifmap_offset, cur_ofmap_offset;
+            for (int col_h = 0; col_h < out_h; ++col_h) {
+                cur_in_h = col_h * stride_y;
+                ifmap_offset = col_h1 * kHxkWxoutHxoutw + col_h * out_w;
+                ofmap_offset = col_h1 * in_h * in_w + cur_in_h * in_w;
 #pragma unroll 2
-                for (int col_w = 0; col_w < out_h * out_w; ++col_w) {
-                    int cur_in_h = col_w / out_w * stride_y + col_h2;
-                    int cur_in_w = col_w % out_w * stride_x + col_h3;
-                    input_col_ptr[src_idx + col_w] = input_ptr[dst_idx + cur_in_h * in_w + cur_in_w];
+                for (int col_w = 0; col_w < out_w; ++col_w) {
+                    cur_in_w = col_w * stride_x;
+                    cur_ifmap_offset = ifmap_offset + col_w;
+                    cur_ofmap_offset = ofmap_offset + cur_in_w;
+                    *(input_col_ptr + cur_ifmap_offset + 0 * kWxoutHxoutH + 0 * outHxoutH)
+                            = *(input_ptr + cur_ofmap_offset + 0 * in_w + 0);
+                    *(input_col_ptr + cur_ifmap_offset + 0 * kWxoutHxoutH + 1 * outHxoutH)
+                            = *(input_ptr + cur_ofmap_offset + 0 * in_w + 1);
+                    *(input_col_ptr + cur_ifmap_offset + 0 * kWxoutHxoutH + 2 * outHxoutH)
+                            = *(input_ptr + cur_ofmap_offset + 0 * in_w + 2);
+
+                    *(input_col_ptr + cur_ifmap_offset + 1 * kWxoutHxoutH + 0 * outHxoutH)
+                            = *(input_ptr + cur_ofmap_offset + 1 * in_w + 0);
+                    *(input_col_ptr + cur_ifmap_offset + 1 * kWxoutHxoutH + 1 * outHxoutH)
+                            = *(input_ptr + cur_ofmap_offset + 1 * in_w + 1);
+                    *(input_col_ptr + cur_ifmap_offset + 1 * kWxoutHxoutH + 2 * outHxoutH)
+                            = *(input_ptr + cur_ofmap_offset + 1 * in_w + 2);
+
+                    *(input_col_ptr + cur_ifmap_offset + 2 * kWxoutHxoutH + 0 * outHxoutH)
+                            = *(input_ptr + cur_ofmap_offset + 2 * in_w + 0);
+                    *(input_col_ptr + cur_ifmap_offset + 2 * kWxoutHxoutH + 1 * outHxoutH)
+                            = *(input_ptr + cur_ofmap_offset + 2 * in_w + 1);
+                    *(input_col_ptr + cur_ifmap_offset + 2 * kWxoutHxoutH + 2 * outHxoutH)
+                            = *(input_ptr + cur_ofmap_offset + 2 * in_w + 2);
+                }
+            }
+        }
+    } else {
+#pragma omp parallel for num_threads(8)
+        for (int col_h1 = 0; col_h1 < in_c; ++col_h1) {
+            int32_t cur_in_h, cur_in_w;
+            int32_t ifmap_offset, ofmap_offset;
+            int32_t cur_ifmap_offset, cur_ofmap_offset;
+            for (int col_h = 0; col_h < out_h; ++col_h) {
+                cur_in_h = col_h * stride_y;
+                ifmap_offset = col_h1 * kHxkWxoutHxoutw + col_h * out_w;
+                ofmap_offset = col_h1 * in_h * in_w + cur_in_h * in_w;
+#pragma unroll 4
+                for (int col_w = 0; col_w < out_w; ++col_w) {
+                    cur_in_w = col_w * stride_x;
+                    cur_ifmap_offset = ifmap_offset + col_w;
+                    cur_ofmap_offset = ofmap_offset + cur_in_w;
+                    for (int col_h2 = 0; col_h2 < kernel_h; ++col_h2) {
+                        for (int col_h3 = 0; col_h3 < kernel_w; ++col_h3) {
+                            input_col_ptr[cur_ifmap_offset + col_h2 * kWxoutHxoutH + col_h3 * outHxoutH]
+                                    = input_ptr[cur_ofmap_offset + col_h2 * in_w + col_h3];
+                        }
+                    }
                 }
             }
         }
     }
 
-//#pragma omp parallel for num_threads(8)
-//    for (int col_h1 = 0; col_h1 <in_c; ++col_h1) {
-//        for (int col_h2 = 0; col_h2 < kernel_h; ++col_h2) {
-//            for (int col_h3 = 0; col_h3 < kernel_w; ++col_h3) {
-//#pragma unroll 8
-//                for (int col_w = 0; col_w < out_h * out_w; ++col_w) {
-//                    int cur_in_h = col_w / out_w * stride_y + col_h2;
-//                    int cur_in_w = col_w % out_w * stride_x + col_h3;
-//                    input_col_ptr[col_h1 * kernel_h * kernel_w * out_h * out_w + col_h2 * kernel_w * out_h * out_h +
-//                                  col_h3 * out_h * out_h + col_w] = input_ptr[col_h1 * in_h * in_w + cur_in_h * in_w + cur_in_w];
-//                }
-//            }
-//        }
-//    }
-
     return 0;
 }
+
 
 int im2col_s8(int8_t *input_col_ptr, int8_t *input_ptr, OPERAND_S *in_tensor, OPERAND_S *out_tensor, OPERAND_S *weight_tensor,
            CONV_CONFIG_S *cfg) {
@@ -360,42 +595,72 @@ int eval_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
     input_ptr = input_col_ptr;
 
 
-    const int M = out_c;
-    const int N = out_h * out_w;
-    const int K = in_c * kernel_h * kernel_w;
+    GEMM_TILE_INFO gemm_tile_info;
+    gemm_tile_info.M = out_c;
+    gemm_tile_info.N = out_h * out_w;
+    gemm_tile_info.K = in_c * kernel_h * kernel_w;
 
+    // 目前认为的 sgemm 的最佳配置为 m_tile_size = 32，n_tile_size = 1024，k_tile_size = 8；
+    const int32_t best_n_tile = 1024, best_k_tile = 8;
+    const int32_t num_threads = 8;
+    // 这里因为开了 num_threads 个线程，所以要保证 m_tile 为 num_threads 的倍数，不让有的线程创建了但是没有使用
+    int32_t best_m_tile = (gemm_tile_info.M / num_threads > 32) ? 32 : gemm_tile_info.M / num_threads;
+    best_m_tile = (best_m_tile == 0) ? gemm_tile_info.M : best_m_tile;
+
+    gemm_tile_info.m_tile_size = best_m_tile;
+    gemm_tile_info.n_tile_size = best_n_tile;
+    gemm_tile_info.k_tile_size = best_k_tile;
+    opt_gemm(output_ptr, weight_ptr, input_ptr, gemm_tile_info);
+
+    // 加偏置
 #pragma omp parallel for num_threads(8)
-    for (int i = 0; i < M; i++)
+    for (int i = 0; i < gemm_tile_info.M; i++)
     {
-        memset(&output_ptr[i * N], 0, N * sizeof(float));
-        int idx_a, idx_b, idx_c;
-        __m256 psum;
-        __m256 weight_vec;
-        __m256 sum_pre;
-        idx_c = i * N;
+        int idx = i * gemm_tile_info.N;
 #pragma unroll 8
-        for (int k = 0; k < K; k++)
-        {
-            idx_a = i * K + k;
-            idx_b = k * N;
-            int j = 0;
-            weight_vec = _mm256_set1_ps(weight_ptr[idx_a]);
-#pragma unroll 2
-            for (; j < N - 7; j+=8)
-            {
-                sum_pre = _mm256_loadu_ps(&output_ptr[idx_c + j]);
-                sum_pre = _mm256_fmadd_ps(weight_vec, _mm256_loadu_ps(&input_ptr[idx_b + j]), sum_pre);
-                _mm256_storeu_ps(&output_ptr[idx_c + j], sum_pre);
-            }
-            for (; j < N; ++j) {
-                output_ptr[idx_c + j] += weight_ptr[idx_a] * input_ptr[idx_b + j];
-            }
-        }
-#pragma unroll 8
-        for (int z = 0; z < N; ++z) {
-            output_ptr[idx_c + z] += bias_ptr[i];
+        for (int z = 0; z < gemm_tile_info.N; ++z) {
+            output_ptr[idx + z] += bias_ptr[i];
         }
     }
+
+
+
+//    const int M = out_c;
+//    const int N = out_h * out_w;
+//    const int K = in_c * kernel_h * kernel_w;
+//
+//#pragma omp parallel for num_threads(8)
+//    for (int i = 0; i < M; i++)
+//    {
+//        memset(&output_ptr[i * N], 0, N * sizeof(float));
+//        int idx_a, idx_b, idx_c;
+//        __m256 psum;
+//        __m256 weight_vec;
+//        __m256 sum_pre;
+//        idx_c = i * N;
+//#pragma unroll 8
+//        for (int k = 0; k < K; k++)
+//        {
+//            idx_a = i * K + k;
+//            idx_b = k * N;
+//            int j = 0;
+//            weight_vec = _mm256_set1_ps(weight_ptr[idx_a]);
+//#pragma unroll 2
+//            for (; j < N - 7; j+=8)
+//            {
+//                sum_pre = _mm256_loadu_ps(&output_ptr[idx_c + j]);
+//                sum_pre = _mm256_fmadd_ps(weight_vec, _mm256_loadu_ps(&input_ptr[idx_b + j]), sum_pre);
+//                _mm256_storeu_ps(&output_ptr[idx_c + j], sum_pre);
+//            }
+//            for (; j < N; ++j) {
+//                output_ptr[idx_c + j] += weight_ptr[idx_a] * input_ptr[idx_b + j];
+//            }
+//        }
+//#pragma unroll 8
+//        for (int z = 0; z < N; ++z) {
+//            output_ptr[idx_c + z] += bias_ptr[i];
+//        }
+//    }
 
     if (cfg->pads[0] != 0) {
         free(src_pad_ptr);
@@ -649,28 +914,13 @@ int eval_depthwise_conv_3x3_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs
 
 #pragma omp parallel for num_threads(8)
     for (int outc_i = 0; outc_i < out_c; ++outc_i) {
-//#pragma unroll 4
         for (int outh_i = 0; outh_i < out_h; ++outh_i) {
             float *cur_weight_ptr = weight_ptr + outc_i * kernel_h * kernel_w;
             float* cur_ofmp_ptr = output_ptr + outc_i * out_h * out_w + outh_i * out_w;
             float* cur_ifmp_ptr = input_ptr + outc_i * in_h * in_w + outh_i * stride_y * in_w;
-//            float* cur_ifmp_ptr;
 #pragma unroll 4
             for (int outw_i = 0; outw_i < out_w; ++outw_i) {
                 float psum = 0;
-//                cur_ifmp_ptr = cur_ifmp0_ptr + outw_i * stride_x;
-
-//                psum += cur_weight_ptr[0] * cur_ifmp_ptr[0 * in_w + 0];
-//                psum += cur_weight_ptr[1] * cur_ifmp_ptr[0 * in_w + 1];
-//                psum += cur_weight_ptr[2] * cur_ifmp_ptr[0 * in_w + 2];
-//
-//                psum += cur_weight_ptr[3] * cur_ifmp_ptr[1 * in_w + 0];
-//                psum += cur_weight_ptr[4] * cur_ifmp_ptr[1 * in_w + 1];
-//                psum += cur_weight_ptr[5] * cur_ifmp_ptr[1 * in_w + 2];
-//
-//                psum += cur_weight_ptr[6] * cur_ifmp_ptr[2 * in_w + 0];
-//                psum += cur_weight_ptr[7] * cur_ifmp_ptr[2 * in_w + 1];
-//                psum += cur_weight_ptr[8] * cur_ifmp_ptr[2 * in_w + 2];
 
                 psum += cur_weight_ptr[0] * cur_ifmp_ptr[0 * in_w + 0 + outw_i * stride_x];
                 psum += cur_weight_ptr[1] * cur_ifmp_ptr[0 * in_w + 1 + outw_i * stride_x];
@@ -1556,10 +1806,6 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
             output_ptr[elem_i] = output_ptr[elem_i] > 0 ? output_ptr[elem_i] : 0;
         }
     } else if (cfg->act_type == SILU) {
-//        for (int elem_i = 0; elem_i < ofmap_elem_size; ++elem_i) {
-//            output_ptr[elem_i] = output_ptr[elem_i] / (1 + expf(-1 * output_ptr[elem_i]));
-//        }
-
         float *silu_lut = (float *) (inputs[BUF_MAXNUM - 1].addr);
         float single_limit = 8.0f;
         float inv_single_limit = -1 * single_limit;
@@ -1577,17 +1823,35 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
             }
         }
     } else if (cfg->act_type == CLIP) {
+        int aligned_size = (ofmap_elem_size / 8) * 8;
+
         float max = cfg->clip_max;
         float min = cfg->clip_min;
-        float tmp;
-#pragma unroll 8
-        for (int elem_i = 0; elem_i < ofmap_elem_size; ++elem_i) {
+        __m256 min_vec = _mm256_set1_ps(min);  // 将min广播到所有元素
+        __m256 max_vec = _mm256_set1_ps(max);  // 将max广播到所有元素
+
+#pragma omp parallel for num_threads(8)
+        for (int elem_i = 0; elem_i < aligned_size; elem_i += 8) {
+            __m256 vec = _mm256_loadu_ps(&output_ptr[elem_i]);
+
+            // 执行clamp操作
+            vec = _mm256_max_ps(vec, min_vec);
+            vec = _mm256_min_ps(vec, max_vec);
+
+            // 存储结果
+            _mm256_storeu_ps(&output_ptr[elem_i], vec);
+        }
+
+        for (int32_t elem_i = aligned_size; elem_i < ofmap_elem_size; elem_i ++) {
             output_ptr[elem_i] = (output_ptr[elem_i] > min) ? output_ptr[elem_i] : min;
             output_ptr[elem_i] = (output_ptr[elem_i] < max) ? output_ptr[elem_i] : max;
-
-//            tmp = (output_ptr[elem_i] > min) ? output_ptr[elem_i] : min;
-//            output_ptr[elem_i] = (tmp < max) ? tmp : max;
         }
+
+//#pragma unroll 8
+//        for (int elem_i = 0; elem_i < ofmap_elem_size; ++elem_i) {
+//            output_ptr[elem_i] = (output_ptr[elem_i] > min) ? output_ptr[elem_i] : min;
+//            output_ptr[elem_i] = (output_ptr[elem_i] < max) ? output_ptr[elem_i] : max;
+//        }
     } else if (cfg->act_type == LEAKYRELU) {
         float alpha = cfg->leaky_relu_alpha;
         for (int elem_i = 0; elem_i < ofmap_elem_size; ++elem_i) {
