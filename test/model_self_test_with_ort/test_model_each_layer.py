@@ -100,7 +100,7 @@ if __name__ == '__main__':
         if (key == "/model.28/Reshape_18_output_0") :
             continue
 
-        if (key == "/model.22/Mul_output_0") :
+        if (key == "onnx::Conv_336") :
             # continue
             a = 101
             # onenew_data_path = (np.fromfile(onenew_data_path, dtype=np.int32))

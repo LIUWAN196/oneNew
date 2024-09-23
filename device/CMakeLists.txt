@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10.1)
 project(device)
 
 set(CMAKE_CXX_FLAGS_DEBUG "-std=c++11 -mavx2 -O3 -g")
-set(CMAKE_C_FLAGS_DEBUG "-std=c++11 -mavx2 -O3 -g")
+set(CMAKE_C_FLAGS_DEBUG "-std=c11 -mavx2 -O3 -g")
 
 set (NN_COMMON "/home/e0006809/Desktop/oneNew-main/infer/common")
 

@@ -68,7 +68,7 @@ public:
         one_file.close();
 
         // step 2: load one file
-        one_buf_ptr = (char *) malloc(one_file_size);
+        one_buf_ptr = (char *) aligned_alloc(32, one_file_size);
         FILE *file_p = NULL;
 
         file_p = fopen(one_path, "r");
@@ -399,7 +399,7 @@ int extractor::new_output_buf() {
         }
         int32_t elem_size = operand_elem_size(&operand.second);
         int32_t buf_size = elem_size * sizeof(float);
-        int64_t cur_operand_ptr = (int64_t)malloc(buf_size);
+        int64_t cur_operand_ptr = (int64_t)aligned_alloc(32, buf_size);
 
         operand_buf_map[operand.first] = {cur_operand_ptr, elem_size, buf_size};
         if (elem_size != 0 && startsWithAbc(operand.first.c_str())) {

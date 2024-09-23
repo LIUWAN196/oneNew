@@ -47,7 +47,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     float *in_pose2_ptr = (float *) (inputs[5].addr);
 
 //    float *output_ptr = (float *) (outputs[0].addr);
-    float *output_ptr = (float *) malloc(1024 * 1024);
+    float *output_ptr = (float *) aligned_alloc(32, 1024 * 1024);
 
     OPERAND_S *in0_tensor = (OPERAND_S *) (params[1].addr);
     OPERAND_S *in1_tensor = (OPERAND_S *) (params[2].addr);
@@ -89,10 +89,10 @@ int segement_impl(char **out_ptr, char **in_ptr, char *cfg) {
     SEGMENT_CONFIG_S *segment_cfg = (SEGMENT_CONFIG_S *) cfg;
     int ifmap_num = segment_cfg->ifmap_num;
 
-    POSE_DETECTION_OFMAP_S *alternative_box_ptr = (POSE_DETECTION_OFMAP_S *) malloc(20 * 1024 * sizeof(POSE_DETECTION_OFMAP_S));
+    POSE_DETECTION_OFMAP_S *alternative_box_ptr = (POSE_DETECTION_OFMAP_S *) aligned_alloc(32, 20 * 1024 * sizeof(POSE_DETECTION_OFMAP_S));
 
-    float *cur_ifmap_nhwc_ptr = (float *) malloc(8 * 1024 * 1024 * sizeof(float));
-    float *cur_ifmap_pose_nhwc_ptr = (float *) malloc(8 * 1024 * 1024 * sizeof(float));
+    float *cur_ifmap_nhwc_ptr = (float *) aligned_alloc(32, 8 * 1024 * 1024 * sizeof(float));
+    float *cur_ifmap_pose_nhwc_ptr = (float *) aligned_alloc(32, 8 * 1024 * 1024 * sizeof(float));
     int box_num = 0;
     for (int ifmap_i = 0; ifmap_i < ifmap_num / 2; ifmap_i++) {
         float *cur_ifmap_nchw_ptr = (float *) in_ptr[ifmap_i];
@@ -176,8 +176,8 @@ int yolov8_seg_nms(char *out_ptr, POSE_DETECTION_OFMAP_S *alternative_box_ptr, S
     POSE_DETECTION_OFMAP_S *final_info_ptr = (POSE_DETECTION_OFMAP_S *) out_ptr;
 
     // step 0: sort score
-    float *score_sorted_ptr = (float *) malloc(box_num * sizeof(float));
-    int *idx_sorted_ptr = (int *) malloc(box_num * sizeof(int));
+    float *score_sorted_ptr = (float *) aligned_alloc(32, box_num * sizeof(float));
+    int *idx_sorted_ptr = (int *) aligned_alloc(32, box_num * sizeof(int));
     for (int box_i = 0; box_i < box_num; box_i++) {
         score_sorted_ptr[box_i] = alternative_box_ptr[box_i].box_info.score;
         idx_sorted_ptr[box_i] = box_i;

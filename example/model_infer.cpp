@@ -627,7 +627,7 @@ int do_mobile_sam(std::unordered_map<std::string, std::string> cfg_info_map) {
     BUF_INFO_S encoder_ofmap_info = io_buf_map[ofmap];
 
 
-//    char *image_embeddings_buf = (char*) malloc(256*64*64*sizeof(float));
+//    char *image_embeddings_buf = (char*) aligned_alloc(32, 256*64*64*sizeof(float));
 //    std::string file_name = "/home/wanzai/桌面/mobile_sam_test_img/image_embeddings";
 //    load_bin(file_name.c_str(), 256*64*64*sizeof(float), image_embeddings_buf);
 //    BUF_INFO_S encoder_ofmap_info = {(int64_t)image_embeddings_buf, 256*64*64, 256*64*64*sizeof(float)};

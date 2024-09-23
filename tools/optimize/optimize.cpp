@@ -109,7 +109,7 @@ int main(int argc, char **argv)
     one_file.close();
 
     // step 2: load one file
-    char *one_buf_ptr = (char *)malloc(one_file_size);
+    char *one_buf_ptr = (char *)aligned_alloc(32, one_file_size);
     FILE *file_p = NULL;
 
     file_p = fopen(one_file_path, "r");
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
     size_t do_fusion = optimize_type.find("op_fusion");
     if (do_fusion != std::string::npos) {
 //        LOG_DBG("into the op_fusion\n");
-        char *fused_one_buf_ptr = (char *)malloc(one_file_size);
+        char *fused_one_buf_ptr = (char *)aligned_alloc(32, one_file_size);
         op_fusion(fused_one_buf_ptr, one_buf_ptr, cfg_info_map);
 
         char* tmp_ptr = one_buf_ptr;
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
     // do model quant
     size_t do_quant = optimize_type.find("model_quant");
     if (do_quant != std::string::npos) {
-        char *quant_one_buf_ptr = (char *)malloc(one_file_size);
+        char *quant_one_buf_ptr = (char *)aligned_alloc(32, one_file_size);
         model_quant(quant_one_buf_ptr, one_buf_ptr, cfg_info_map);
 
         char* tmp_ptr = one_buf_ptr;
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 //    // du auto_tuning
 //    size_t do_tuning = optimize_type.find("auto_tuning");
 //    if (do_tuning != std::string::npos) {
-//        char *tuning_one_buf_ptr = (char *)malloc(one_file_size);
+//        char *tuning_one_buf_ptr = (char *)aligned_alloc(32, one_file_size);
 //        auto_tuning(tuning_one_buf_ptr, one_buf_ptr, cfg_info_map);
 //
 //        char* tmp_ptr = one_buf_ptr;

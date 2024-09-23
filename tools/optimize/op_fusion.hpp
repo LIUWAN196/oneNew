@@ -52,7 +52,7 @@ typedef int (*FillFuseOpCfg)(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set
 
 int fill_conv_relu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, std::vector<BASE_CONFIG_S *> sub_op_cfg){
 
-    CONV_CONFIG_S* conv_relu_cfg = (CONV_CONFIG_S*) malloc(sizeof(CONV_CONFIG_S));
+    CONV_CONFIG_S* conv_relu_cfg = (CONV_CONFIG_S*) aligned_alloc(32, sizeof(CONV_CONFIG_S));
     memcpy(conv_relu_cfg, sub_op_cfg[0], sizeof(CONV_CONFIG_S));
 
     // 修改消费者 op 为 relu 的输出 op
@@ -80,7 +80,7 @@ int fill_conv_relu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_s
 
 int fill_conv_clip_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, std::vector<BASE_CONFIG_S *> sub_op_cfg){
 
-    CONV_CONFIG_S* conv_clip_cfg = (CONV_CONFIG_S*) malloc(sizeof(CONV_CONFIG_S));
+    CONV_CONFIG_S* conv_clip_cfg = (CONV_CONFIG_S*) aligned_alloc(32, sizeof(CONV_CONFIG_S));
     memcpy(conv_clip_cfg, sub_op_cfg[0], sizeof(CONV_CONFIG_S));
 
     // 修改消费者 op 为 clip 的输出 op
@@ -110,7 +110,7 @@ int fill_conv_clip_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_s
 
 int fill_conv_leaky_relu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, std::vector<BASE_CONFIG_S *> sub_op_cfg){
 
-    CONV_CONFIG_S* conv_leakyrelu_cfg = (CONV_CONFIG_S*) malloc(sizeof(CONV_CONFIG_S));
+    CONV_CONFIG_S* conv_leakyrelu_cfg = (CONV_CONFIG_S*) aligned_alloc(32, sizeof(CONV_CONFIG_S));
     memcpy(conv_leakyrelu_cfg, sub_op_cfg[0], sizeof(CONV_CONFIG_S));
 
     // 修改消费者 op 为 leakyrelu 的输出 op
@@ -139,7 +139,7 @@ int fill_conv_leaky_relu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op
 
 int fill_conv_silu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, std::vector<BASE_CONFIG_S *> sub_op_cfg){
 
-    CONV_CONFIG_S* conv_silu_cfg = (CONV_CONFIG_S*) malloc(sizeof(CONV_CONFIG_S));
+    CONV_CONFIG_S* conv_silu_cfg = (CONV_CONFIG_S*) aligned_alloc(32, sizeof(CONV_CONFIG_S));
     memcpy(conv_silu_cfg, sub_op_cfg[0], sizeof(CONV_CONFIG_S));
 
     // 修改消费者 op 为 mul 的输出 op
@@ -167,7 +167,7 @@ int fill_conv_silu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_s
 
 int fill_conv_hardsilu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, std::vector<BASE_CONFIG_S *> sub_op_cfg){
 
-    CONV_CONFIG_S* conv_hardsilu_cfg = (CONV_CONFIG_S*) malloc(sizeof(CONV_CONFIG_S));
+    CONV_CONFIG_S* conv_hardsilu_cfg = (CONV_CONFIG_S*) aligned_alloc(32, sizeof(CONV_CONFIG_S));
     memcpy(conv_hardsilu_cfg, sub_op_cfg[0], sizeof(CONV_CONFIG_S));
 
     // 修改消费者 op 为 mul 的输出 op
@@ -200,7 +200,7 @@ int fill_conv_hardsilu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_c
 
 int fill_gelu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, std::vector<BASE_CONFIG_S *> sub_op_cfg){
 
-    GELU_CONFIG_S* gelu_cfg = (GELU_CONFIG_S*) malloc(sizeof(GELU_CONFIG_S));
+    GELU_CONFIG_S* gelu_cfg = (GELU_CONFIG_S*) aligned_alloc(32, sizeof(GELU_CONFIG_S));
     memcpy(gelu_cfg, sub_op_cfg[1], sizeof(DIV_CONFIG_S));
     memset(gelu_cfg->op_base_cfg.op_type, 0, OP_TYPE_LEN);
 
@@ -229,7 +229,7 @@ int fill_gelu_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, s
 
 int fill_layer_normalization_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fuse_op_cfg_set, std::vector<BASE_CONFIG_S *> sub_op_cfg){
 
-    LAYERNORMALIZATION_CONFIG_S * ln_cfg = (LAYERNORMALIZATION_CONFIG_S*) malloc(sizeof(LAYERNORMALIZATION_CONFIG_S));
+    LAYERNORMALIZATION_CONFIG_S * ln_cfg = (LAYERNORMALIZATION_CONFIG_S*) aligned_alloc(32, sizeof(LAYERNORMALIZATION_CONFIG_S));
     memcpy(ln_cfg, sub_op_cfg[1], sizeof(LAYERNORMALIZATION_CONFIG_S));
     memset(ln_cfg->op_base_cfg.op_type, 0, OP_TYPE_LEN);
 

@@ -28,8 +28,8 @@ int eval_ofmap_bmhwn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
         in1_elem_size *= in1_tensor->shapes[i];
     }
 
-    float *in0_transed_ptr = (float *) malloc(in0_elem_size * sizeof(float));
-    float *in1_transed_ptr = (float *) malloc(in1_elem_size * sizeof(float));
+    float *in0_transed_ptr = (float *) aligned_alloc(32, in0_elem_size * sizeof(float));
+    float *in1_transed_ptr = (float *) aligned_alloc(32, in1_elem_size * sizeof(float));
 
     // step 1: do in0:  bmchw --> bmhwc
     {
@@ -186,7 +186,7 @@ int eval_ofmap_bkhw(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S 
         in1_elem_size *= in1_tensor->shapes[i];
     }
 
-    float *in0_transed_ptr = (float *) malloc(in0_elem_size * sizeof(float));
+    float *in0_transed_ptr = (float *) aligned_alloc(32, in0_elem_size * sizeof(float));
 
     // step 1: do in0:  bchw --> bhwc
     {

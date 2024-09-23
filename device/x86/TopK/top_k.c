@@ -21,7 +21,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     int32_t in_elem_size = operand_elem_size(in_tensor);
     int32_t out_elem_size = operand_elem_size(out_indices_tensor);
 
-    float *ifmap_ptr = (float *) malloc(in_elem_size * sizeof(float ));
+    float *ifmap_ptr = (float *) aligned_alloc(32, in_elem_size * sizeof(float ));
     memcpy(ifmap_ptr, input_ptr, in_elem_size * sizeof(float ));
 
     for (int i = 0; i < out_elem_size; ++i) {

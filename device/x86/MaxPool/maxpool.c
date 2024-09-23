@@ -36,7 +36,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     void *src_pad_ptr;
     if (cfg->pads[0] != 0){
         // do pad
-        src_pad_ptr = malloc(in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float));
+        src_pad_ptr = aligned_alloc(32, in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float));
         PAD_INNER_CONFIG_S pad_cfg;
         pad_cfg.h = cfg->pads[0];
         pad_cfg.w = cfg->pads[0];
@@ -49,11 +49,12 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     }
 
     // loop params
-    float *tmp_input_ptr;
-    float *tmp_output_ptr;
-    float *cur_input_ptr;
-    float *cur_output_ptr;
+#pragma omp parallel for num_threads(8)
     for (int n_i = 0; n_i < out_n; ++n_i) {
+        float *tmp_input_ptr;
+        float *tmp_output_ptr;
+        float *cur_input_ptr;
+        float *cur_output_ptr;
         for (int c_i = 0; c_i < out_c; ++c_i) {
             tmp_output_ptr = output_ptr + n_i * out_c * out_h * out_w + c_i * out_h * out_w;
             tmp_input_ptr = input_ptr + n_i * in_c * in_h * in_w + c_i * in_h * in_w;

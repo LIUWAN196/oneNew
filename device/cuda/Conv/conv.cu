@@ -152,7 +152,7 @@ int eval_1x1j1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outp
     void *src_pad_ptr;
     if (cfg->pads[0] != 0) {
         // do pad
-        src_pad_ptr = malloc(in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float));
+        src_pad_ptr = aligned_alloc(32, in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float));
         PAD_INNER_CONFIG_S pad_cfg;
         pad_cfg.h = cfg->pads[0];
         pad_cfg.w = cfg->pads[0];
@@ -247,7 +247,7 @@ int eval_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
     void *src_pad_ptr;
     if (cfg->pads[0] != 0) {
         // do pad
-        src_pad_ptr = malloc(in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float));
+        src_pad_ptr = aligned_alloc(32, in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float));
         PAD_INNER_CONFIG_S pad_cfg;
         pad_cfg.h = cfg->pads[0];
         pad_cfg.w = cfg->pads[0];
@@ -259,7 +259,7 @@ int eval_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
         input_ptr = (float *) src_pad_ptr;
     }
 
-    float *input_col_ptr = (float *) malloc(in_c * kernel_w * kernel_h * out_h * out_w * sizeof(float));
+    float *input_col_ptr = (float *) aligned_alloc(32, in_c * kernel_w * kernel_h * out_h * out_w * sizeof(float));
     im2col(input_col_ptr, input_ptr, in_tensor, out_tensor, weight_tensor, cfg);
     input_ptr = input_col_ptr;
 

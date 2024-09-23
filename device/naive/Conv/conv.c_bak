@@ -72,7 +72,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     void *src_pad_ptr;
     if (cfg->pads[0] != 0){
         // do pad
-        src_pad_ptr = malloc(in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float ));
+        src_pad_ptr = aligned_alloc(32, in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float ));
         PAD_INNER_CONFIG_S pad_cfg;
         pad_cfg.h = cfg->pads[0];
         pad_cfg.w = cfg->pads[0];
