@@ -5,7 +5,7 @@ set -e
 onnx_dir="/media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/onnx_model"
 root_dir="/home/wanzai/桌面/oneNew"
 
-function ci_sam_clip_main() {
+function ci_mobile_sam_main() {
     echo -e "\033[32m        ********  test mobile sam model  ********        \033[0m"
     # do decoder onnx2one
     if [ -d ${root_dir}/test/model_daily_test/tmp_one_model_path/mobile_sam_decoder ]; then
@@ -33,7 +33,7 @@ function ci_sam_clip_main() {
 # 这里的 $@ 是获取所有向脚本传递的参数
 #main $@
 
-ci_sam_clip_main $@
+ci_mobile_sam_main $@
 
 
 

@@ -51,12 +51,6 @@ int32_t rt_cfg_check(std::unordered_map<std::string, std::string>& cfg_info_map)
         return -1;
     }
 
-    std::string input_data_path = cfg_info_map["input_data_path"];
-    if (input_data_path.empty()) {
-        LOG_ERR("the args: input_data_path must be set");
-        return -1;
-    }
-
     std::string model_exc_type = str2lower_str(cfg_info_map["model_exc_type"]);
     if (model_exc_type.empty()) {    // default args: efficient_exc
         set_default_args(cfg_info_map, "model_exc_type", "efficient_exc");
@@ -387,8 +381,13 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
     std::string token_list;
     // 使用一个无限循环来持续读取输入
     while (true) {
-        std::cout << "请输入字符串（输入'exit'退出）: ";
-        std::getline(std::cin, token_list); // 读取一整行输入
+        std::string yml_token = str2lower_str(cfg_info_map["token"]);
+        if (yml_token.empty()) {    // default args: true
+            std::cout << "please enter token（exit the program using 'exit'）>: ";
+            std::getline(std::cin, token_list); // 读取一整行输入
+        } else {
+            token_list = yml_token;
+        }
 
         // 检查是否输入了'exit'以退出循环
         if (token_list == "exit") {
@@ -433,7 +432,7 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
 
         std::string txt_ofmap = "text_features";
 
-        BUF_INFO_S ofmap_info = io_buf_map[txt_ofmap];
+        BUF_INFO_S ofmap_info = txt_io_buf_map[txt_ofmap];
         std::vector<float> clip_txt_ofmap(ofmap_info.elem_size);
         memcpy(&clip_txt_ofmap[0], (void *)ofmap_info.st_ptr, ofmap_info.buf_size);
 

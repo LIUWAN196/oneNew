@@ -5,11 +5,10 @@ do_preprocess: true
 do_postprocess: false
 
 
-one_file_path: /media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/one_model/opt_clip_img.one
-img_folder_path: /home/wanzai/桌面/clip_model-img/aa/
-input_data_path: /home/wanzai/桌面/clip_model-img/dark_horse.jpeg
+one_file_path: /media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/clip_img.one
+img_folder_path: /home/wanzai/桌面/clip_model-img/
 
-clip_txt_one_file_path: /media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/one_model/opt_clip_txt.one
+clip_txt_one_file_path: /media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/todo/clip_txt.one
 
 model_exc_type: efficient_exc
 

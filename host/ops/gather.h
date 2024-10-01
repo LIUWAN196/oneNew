@@ -24,10 +24,6 @@ public:
         // fill op config
         memcpy(&(gather_ptr->gather_cfg), cfg_ptr, sizeof(GATHER_CONFIG_S));
 
-        // // fill op type and op name
-        // op_type = relu_cfg_ptr;
-        // op_name = relu_cfg_ptr + OP_TYPE_LEN;
-
         op_ptr = gather_ptr;
 
         return 0;
@@ -39,9 +35,7 @@ public:
         for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
             out->shapes[dim_i] = 1;
         }
-//        if (strcmp(gather_cfg.op_base_cfg.op_name, "/model.28/decoder/layers.4/cross_attn/Reshape_7") == 0) {
-//            LOG_DBG("indices is %d ", gather_cfg.indices);
-//        }
+
         if (gather_cfg.indices_from_ifmap == TRUE) {
             if (initial_operands.size() != 0) {
                 data = &initial_operands[0];
@@ -50,11 +44,17 @@ public:
             }
             idx = &operand_stu_map[in_operands[1]];
             if (gather_cfg.axis == 0) {
-                out->dim_num_of_shapes = data->dim_num_of_shapes;
-                for (int i = 0; i < data->dim_num_of_shapes; ++i) {
-                    out->shapes[i] = data->shapes[i];
+                out->dim_num_of_shapes = idx->dim_num_of_shapes + 1;
+                for (int i = 0; i < idx->dim_num_of_shapes; ++i) {
+                    out->shapes[i] = idx->shapes[i];
                 }
-                out->shapes[0] = idx->shapes[0];
+                out->shapes[out->dim_num_of_shapes - 1] = data->shapes[data->dim_num_of_shapes - 1];
+
+//                out->dim_num_of_shapes = data->dim_num_of_shapes;
+//                for (int i = 0; i < data->dim_num_of_shapes; ++i) {
+//                    out->shapes[i] = data->shapes[i];
+//                }
+//                out->shapes[0] = idx->shapes[0];
             } else if (gather_cfg.axis == 1) {
                 out->dim_num_of_shapes = data->dim_num_of_shapes;
                 for (int i = 0; i < data->dim_num_of_shapes; ++i) {
@@ -71,9 +71,6 @@ public:
             }
 
         } else {
-//            if (strcmp(gather_cfg.op_base_cfg.op_name, "/model.28/decoder/layers.4/cross_attn/Reshape_7") == 0) {
-//                LOG_DBG("indices is %d ", gather_cfg.indices);
-//            }
             data = &operand_stu_map[in_operands[0]];
 
             int32_t gather_axis = gather_cfg.axis;
@@ -88,14 +85,6 @@ public:
             for (int dim_i = gather_axis; dim_i < data->dim_num_of_shapes; ++dim_i) {
                 out->shapes[dim_i] = data->shapes[dim_i + 1];
             }
-
-//            int32_t gather_axis = gather_cfg.axis;
-//
-//            out->dim_num_of_shapes = data->dim_num_of_shapes - gather_axis;
-//            out->shapes[0] = 1;
-//            for (int dim_i = 1; dim_i < out->dim_num_of_shapes; ++dim_i) {
-//                out->shapes[dim_i] = data->shapes[dim_i + gather_axis];
-//            }
         }
 
         params_vec.resize(1 + in_operands.size() + out_operands.size());

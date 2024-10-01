@@ -1,0 +1,21 @@
+# resnet50 runtime config
+
+do_preprocess: true
+
+do_postprocess: false
+
+
+one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/clip_img/clip_img.one
+
+img_folder_path: /home/wanzai/桌面/clip_model-img/
+
+clip_txt_one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/clip_txt/clip_txt.one
+
+model_exc_type: efficient_exc
+
+resize_shapes: [256, 256]
+crop_shapes: [224, 224]
+normal_mean: [0.5f, 0.5f, 0.5f]
+normal_std: [0.5f, 0.5f, 0.5f]
+
+token: "[49406, 589, 533, 320, 1125, 539, 320, 1929, 4919, 525, 320, 1901, 11024, 49407, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]"
