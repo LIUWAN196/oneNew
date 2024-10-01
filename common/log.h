@@ -6,24 +6,17 @@
 
 // 1、定义几个日志等级，用于打印信息和调试
 typedef enum {
+    NO_LOG_LEVEL = 0,  // 不会有任何日志打印
     ERR_LEVEL = 1,
     DBG_LEVEL = 2,
     MSG_LEVEL = 3
 } LOG_LEVEL;
 
-// 加 NDEBUG 来关闭 assert，避免影响性能
-//#define NDEBUG
-// 暂时手动定义日志等级为 MSG_LEVEL 级别，便于调试
-#define LOG_LEV MSG_LEVEL
-
-#include <assert.h>
+//// 暂时手动定义日志等级为 MSG_LEVEL 级别，便于调试
+//#define LOG_LEV MSG_LEVEL
 
 // 3、打印调试信息
 #ifdef LOG_LEV
-#define CHECK(info) \
-do {                \
-    assert(info);   \
-} while (0)
 
 #define log_printf(file, func, line, level, fmt, ...)                                                            \
     do {                                                                                                         \

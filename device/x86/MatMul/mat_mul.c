@@ -28,6 +28,12 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
         out_loop *= in0_tensor->shapes[i];
     }
 
+//    if (strcmp(cfg->op_base_cfg.op_name, "/image_encoder/layers.1/blocks.0/mlp/fc1/MatMul") == 0) {
+//        int a = 1;
+//
+//        printf("cfg->op_base_cfg.op_name is %c\n", cfg->op_base_cfg.op_name);
+//        printf("aaaa is %d, cfg->op_base_cfg.op_name is %c\n", a, cfg->op_base_cfg.op_name);
+//    }
     int32_t M = in0_tensor->shapes[in0_tensor->dim_num_of_shapes - 2];
     int32_t K = in0_tensor->shapes[in0_tensor->dim_num_of_shapes - 1];
     int32_t N = out_tensor->shapes[out_tensor->dim_num_of_shapes - 1];
@@ -60,7 +66,15 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
             gemm_tile_info.m_tile_size = best_m_tile;
             gemm_tile_info.n_tile_size = best_n_tile;
             gemm_tile_info.k_tile_size = best_k_tile;
-            opt_gemm_single_threads(cur_output_ptr, cur_input0_ptr, cur_input1_ptr, gemm_tile_info);
+
+            const int32_t avx2_align_size = 32;
+            if (gemm_tile_info.M % avx2_align_size == 0
+            && gemm_tile_info.N % avx2_align_size == 0
+            && gemm_tile_info.K % avx2_align_size == 0) {
+                opt_gemm_aligned_single_threads(cur_output_ptr, cur_input0_ptr, cur_input1_ptr, gemm_tile_info);
+            } else {
+                opt_gemm_single_threads(cur_output_ptr, cur_input0_ptr, cur_input1_ptr, gemm_tile_info);
+            }
         }
     } else {
         float *cur_input0_ptr, *cur_input1_ptr, *cur_output_ptr;
@@ -87,7 +101,15 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
             gemm_tile_info.m_tile_size = best_m_tile;
             gemm_tile_info.n_tile_size = best_n_tile;
             gemm_tile_info.k_tile_size = best_k_tile;
-            opt_gemm(cur_output_ptr, cur_input0_ptr, cur_input1_ptr, gemm_tile_info);
+            const int32_t avx2_align_size = 32;
+            opt_gemm_multi_threads(cur_output_ptr, cur_input0_ptr, cur_input1_ptr, gemm_tile_info);
+//            if (gemm_tile_info.M % avx2_align_size == 0
+//                && gemm_tile_info.N % avx2_align_size == 0
+//                && gemm_tile_info.K % avx2_align_size == 0) {
+//                opt_gemm_aligned_multi_threads(cur_output_ptr, cur_input0_ptr, cur_input1_ptr, gemm_tile_info);
+//            } else {
+//                opt_gemm_multi_threads(cur_output_ptr, cur_input0_ptr, cur_input1_ptr, gemm_tile_info);
+//            }
         }
     }
 

@@ -12,7 +12,7 @@ metrics_img_path: /media/wanzai/File/imageNet/
 
 metrics_img_num: 500
 
-model_exc_type: release
+model_exc_type: efficient_exc
 
 postprocess_type: classification
 

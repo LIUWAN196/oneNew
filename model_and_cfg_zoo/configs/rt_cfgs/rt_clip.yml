@@ -11,7 +11,7 @@ input_data_path: /home/wanzai/桌面/clip_model-img/dark_horse.jpeg
 
 clip_txt_one_file_path: /media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/one_model/opt_clip_txt.one
 
-model_exc_type: release
+model_exc_type: efficient_exc
 
 ofmap_folder: /media/wanzai/File/model_and_cfg_and_ofmap_folder/ofmap4debug/clip/
 

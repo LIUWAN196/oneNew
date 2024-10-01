@@ -1,0 +1,28 @@
+
+# runtime params
+
+onnx_file_path: /media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/onnx_model/mobile_sam_encoder.onnx
+
+do_preprocess: true
+
+do_postprocess: false
+
+one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/mobile_sam_encoder/mobile_sam_encoder.one
+
+dump_ifmap&ofmap: true
+
+input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/dog.png
+
+model_exc_type: efficient_exc
+
+ofmap_folder: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_ofmap_path/mobile_sam_encoder/
+
+resize_shapes: [1024, 1024]
+crop_shapes: [1024, 1024]
+normal_mean: [0.485ff, 0.456ff, 0.406ff]
+normal_std: [58.395f, 57.12f, 57.375f]
+
+# opt params
+optimize_type: op_fusion
+
+

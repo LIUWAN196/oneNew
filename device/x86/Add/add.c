@@ -51,17 +51,21 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     } else {
         // 注意进入这个分支需要修改 shape 信息，所以要将 tensor 复制一份，不要在原始的 tensor 上修改
         if (small_tensor.dim_num_of_shapes != large_tensor.dim_num_of_shapes) {
+            OPERAND_S tmp;
+            for (int i = 0; i < SHAPE_LEN; ++i) {
+                tmp.shapes[i] = 1;
+            }
             int32_t large_dims_num = large_tensor.dim_num_of_shapes;
             int32_t small_dims_num = small_tensor.dim_num_of_shapes;
-            for (int dim_i = large_dims_num - 1; dim_i >= large_dims_num - small_dims_num; --dim_i) {
-                small_tensor.shapes[dim_i] = large_tensor.shapes[dim_i];
+
+            for (int32_t small_idx = 0; small_idx < small_dims_num; ++small_idx) {
+                tmp.shapes[small_idx + (large_dims_num - small_dims_num)] = small_tensor.shapes[small_idx];
             }
-            // 小维度数组的形状在最左边补 1
-            for (int dim_i = 0; dim_i < large_dims_num - small_dims_num; ++dim_i) {
-                small_tensor.shapes[dim_i] = 1;
-            }
+            tmp.dim_num_of_shapes = large_tensor.dim_num_of_shapes;
+            tmp.p_data = small_tensor.p_data;
+            small_tensor = tmp;
         }
-        // 此时两个 tensor 的维度长度都相同了, 做某些维度的广播加法，这些广播的维度可能相邻也可能不相邻
+        // 此时两个 tensor 的维度长度都相同了, 做某些维度的广播减法，这些广播的维度可能相邻也可能不相邻
         // 根据上面规则 3，依次对比 tensor0 和 tensor1 的每个维度
         int32_t dims_num = large_tensor.dim_num_of_shapes;
         BOOL dims_correct = TRUE;

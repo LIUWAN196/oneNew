@@ -7,9 +7,8 @@
 #include "log.h"
 //#define OP_LIB_DIR "/home/wanzai/桌面/"
 
-#define OP_NAIVE_LIB_DIR "/home/wanzai/桌面/oneNew/cmake-build-debug/device/naive/"
-#define OP_X86_LIB_DIR "/home/wanzai/桌面/oneNew/cmake-build-debug/device/x86/"
-#define OP_CU_LIB_DIR "/home/wanzai/桌面/oneNew/cmake-build-debug/device/cuda/"
+//#define OP_X86_LIB_DIR "/home/wanzai/桌面/oneNew/cmake-build-debug/device/x86/"
+//#define OP_CU_LIB_DIR "/home/wanzai/桌面/oneNew/cmake-build-debug/device/cuda/"
 
 #define EPSILON (1e-20)
 #define BUF_MAXNUM 12

@@ -19,7 +19,7 @@ void print_dim(const ::onnx::TensorShapeProto_Dimension &dim)
 		std::cout << dim.dim_value();
 		break;
 	default:
-        CHECK(false && "should never happen");
+        LOG_ERR("should never happen");
 	}
 }
 

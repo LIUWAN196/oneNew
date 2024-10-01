@@ -58,21 +58,21 @@ int32_t rt_cfg_check(std::unordered_map<std::string, std::string>& cfg_info_map)
     }
 
     std::string model_exc_type = str2lower_str(cfg_info_map["model_exc_type"]);
-    if (model_exc_type.empty()) {    // default args: release
-        set_default_args(cfg_info_map, "model_exc_type", "release");
+    if (model_exc_type.empty()) {    // default args: efficient_exc
+        set_default_args(cfg_info_map, "model_exc_type", "efficient_exc");
     }
-    if (str2lower_str(cfg_info_map["model_exc_type"]) != "release" &&
-        str2lower_str(cfg_info_map["model_exc_type"]) != "debug" &&
-        str2lower_str(cfg_info_map["model_exc_type"]) != "tracing") {
-        LOG_ERR("the args: model_exc_type must be set: release or debug or tracing");
+    if (str2lower_str(cfg_info_map["model_exc_type"]) != "efficient_exc" &&
+        str2lower_str(cfg_info_map["model_exc_type"]) != "ofmap_dumping" &&
+        str2lower_str(cfg_info_map["model_exc_type"]) != "perf_profiling") {
+        LOG_ERR("the args: model_exc_type must be set: efficient_exc or ofmap_dumping or perf_profiling");
         return -1;
     }
 
-    if (str2lower_str(cfg_info_map["model_exc_type"]) == "debug" ||
+    if (str2lower_str(cfg_info_map["model_exc_type"]) == "ofmap_dumping" ||
         str2lower_str(cfg_info_map["dump_ifmap&ofmap"]) == "true") {
         std::string ofmap_folder = cfg_info_map["ofmap_folder"];
         if (ofmap_folder.empty()) {
-            LOG_ERR("the args: ofmap_folder must be set, when model_exc_type is debug or dump_ifmap&ofmap is true");
+            LOG_ERR("the args: ofmap_folder must be set, when model_exc_type is ofmap_dumping or dump_ifmap&ofmap is true");
             return -1;
         }
     }
@@ -132,11 +132,11 @@ int32_t rt_cfg_check(std::unordered_map<std::string, std::string>& cfg_info_map)
         set_default_args(cfg_info_map, "topk", "5");
     }
 
-    if (str2lower_str(cfg_info_map["model_exc_type"]) != "tracing") {
+    if (str2lower_str(cfg_info_map["model_exc_type"]) != "perf_profiling") {
         return 0;
     }
 
-    // into there, the model_exc_type must be tracing
+    // into there, the model_exc_type must be perf_profiling
     std::string hw_power = cfg_info_map["hw_computing_power (GOPS)"];
     if (hw_power.empty()) {
         LOG_ERR("the args: hw_computing_power (GOPS) must be set, for example: 3200");
@@ -419,10 +419,10 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
         std::string txt_ifmap_name("model_ifmap.bin");
         std::string txt_ifmap_path = txt_ifmap_folder + txt_ifmap_name;
 
-        if (cfg_info_map["model_exc_type"] == "debug") {
+        if (cfg_info_map["model_exc_type"] == "ofmap_dumping") {
             write_bin(txt_ifmap_path.c_str(), texts.size() * sizeof(float), (char *)&texts[0]);
             txt_exe_net->impl_dump_ofmap(txt_io_buf_map, cfg_info_map);
-        } else if (cfg_info_map["model_exc_type"] == "tracing") {
+        } else if (cfg_info_map["model_exc_type"] == "perf_profiling") {
             const int32_t repeat_cnt = 5;  // 前 4 次预热，最后保留下来的是第五次的耗时
             for (int cnt_i = 0; cnt_i < repeat_cnt; ++cnt_i) {
                 txt_exe_net->impl_tracing(txt_io_buf_map, cfg_info_map);
@@ -691,6 +691,8 @@ int main(int argc, char **argv)
     std::unordered_map<std::string, std::string> cfg_info_map;
     yml2map(cfg_info_map, rt_cfg_txt_str);
 
+//    LOG_MSG("start abcded");
+
     rt_cfg_check(cfg_info_map);
 
     std::string clip_model = str2lower_str(cfg_info_map["clip_txt_one_file_path"]);
@@ -755,10 +757,10 @@ int main(int argc, char **argv)
     std::string ifmap_name("model_ifmap.bin");
     std::string ifmap_path = ifmap_folder + ifmap_name;
 
-    if (cfg_info_map["model_exc_type"] == "debug") {
+    if (cfg_info_map["model_exc_type"] == "ofmap_dumping") {
         write_bin(ifmap_path.c_str(), in_elem_size * sizeof(float), (char *)&in_buf[0]);
         exe_net->impl_dump_ofmap(io_buf_map, cfg_info_map);
-    } else if (cfg_info_map["model_exc_type"] == "tracing") {
+    } else if (cfg_info_map["model_exc_type"] == "perf_profiling") {
         const int32_t repeat_cnt = 5;  // 前 4 次预热，最后保留下来的是第五次的耗时
         for (int cnt_i = 0; cnt_i < repeat_cnt; ++cnt_i) {
             exe_net->impl_tracing(io_buf_map, cfg_info_map);

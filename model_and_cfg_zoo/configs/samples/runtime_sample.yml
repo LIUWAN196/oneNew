@@ -22,14 +22,14 @@ dump_ifmap&ofmap: false
 input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/dog.png
 
 
-# 5、（可选项）选择网络执行模式        默认为：release，可选项为：release、debug、tracing
-# release: 网络直接执行，不打印任何内容，也不 dump 任何东西
-# debug： 执行过程中，会将每层的输出 feature map dump 下来，便于和 onnxruntime 结果比对，进行 debug。并且在网络结束后，会打印网络整体执行耗时，以及每类 op 的耗时时长和占比
-# tracing: 执行网络，并统计每个 op 的耗时和整体网络的耗时。在网络结束后 dump csv，后续使用 tools/timeline/csv2json，获得网络执行的 timeline.json，在 chrome://tracing/ 中直观分析每个 op 的耗时和硬件利用率
-model_exc_type: release
+# 5、（可选项）选择网络执行模式        默认为：efficient_exc，可选项为：efficient_exc、ofmap_dumping、perf_profiling
+# efficient_exc: 网络直接执行，不打印任何内容，也不 dump 任何东西
+# ofmap_dumping： 执行过程中，会将每层的输出 feature map dump 下来，便于和 onnxruntime 结果比对，进行 ofmap_dumping。并且在网络结束后，会打印网络整体执行耗时，以及每类 op 的耗时时长和占比
+# perf_profiling: 执行网络，并统计每个 op 的耗时和整体网络的耗时。在网络结束后 dump csv，后续使用 tools/timeline/csv2json，获得网络执行的 timeline.json，在 chrome://tracing/ 中直观分析每个 op 的耗时和硬件利用率
+model_exc_type: efficient_exc
 
 
-# 6、（必选/可选项）如果 5 中 model_exc_type: debug，则必须指定 out feature map dump 下来的存放路径；如果 model_exc_type 为其他值或者不传参，则这个路径可以为空
+# 6、（必选/可选项）如果 5 中 model_exc_type: ofmap_dumping，则必须指定 out feature map dump 下来的存放路径；如果 model_exc_type 为其他值或者不传参，则这个路径可以为空
 # 注意：这里的路径应该选择一个已有的一个文件夹路径
 ofmap_folder: /media/wanzai/File/model_and_cfg_and_ofmap_folder/ofmap4debug/resnet50/
 
@@ -47,7 +47,7 @@ normal_mean: [0.485ff, 0.456ff, 0.406ff]
 normal_std: [0.229f, 0.224f, 0.225f]
 
 
-# 9、（必选/可选项）如果 5 中 model_exc_type: tracing，则可以填写下面的参数；如果为 release 或者 debug，则下面参数不用填写
+# 9、（必选/可选项）如果 5 中 model_exc_type: perf_profiling，则可以填写下面的参数；如果为 efficient_exc 或者 ofmap_dumping，则下面参数不用填写
 # 9.1、（可选项）填写 cpu 的型号和信息，这些的型号和信息可以填写任意想记录的信息，也可以不填写
 cpu: 12400F
 cpu_hw_info: 2.5g * 8thread * 8 (avx2 = 8 * float32)

@@ -8,7 +8,7 @@ one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_pa
 
 input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/dog.png
 
-model_exc_type: tracing
+model_exc_type: perf_profiling
 
 ofmap_folder: /media/wanzai/File/model_and_cfg_and_ofmap_folder/ofmap4debug/swin_t/
 
@@ -24,5 +24,5 @@ cpu: 12400F
 cpu_hw_info: 2.5g * 8thread * 8 (avx2 = 8 * float32)
 hw_computing_power (GOPS): 160
 model name: swin_t
-tracing_csv_path: /home/wanzai/桌面/oneNew/tools/tracing/timeline_info/swin_t.csv
+tracing_csv_path: /home/wanzai/桌面/oneNew/tools/perf_profiling/timeline_info/swin_t.csv
 

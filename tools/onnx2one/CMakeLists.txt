@@ -1,6 +1,6 @@
 find_package(protobuf CONFIG)
 
-set(CMAKE_BUILD_TYPE DEBUG)
+#set(CMAKE_BUILD_TYPE DEBUG)
 
 find_package(OpenMP REQUIRED)
 find_package(OpenCV REQUIRED)

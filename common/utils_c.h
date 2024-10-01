@@ -10,7 +10,7 @@ inline int32_t align_buf_size(int32_t ori_size)
     return (ori_size + 63) & (~63);
 }
 
-inline int32_t operand_elem_size(OPERAND_S *cur_operand)
+int32_t operand_elem_size(OPERAND_S *cur_operand)
 {
     int32_t elem_size = 1;
     for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {

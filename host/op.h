@@ -60,20 +60,15 @@ public:
 //        snprintf(op_cuda_lib_path, sizeof(op_cuda_lib_path), "%s%s%s%s%s", OP_CU_LIB_DIR, op_lib_name.c_str(), "/lib",
 //                 op_lib_name.c_str(), "_cu.so");
 
-        snprintf(op_x86_lib_path, sizeof(op_x86_lib_path), "%s%s%s%s%s", OP_X86_LIB_DIR, op_lib_name.c_str(), "/lib",
+        snprintf(op_x86_lib_path, sizeof(op_x86_lib_path), "%s%s%s%s%s%s", OP_X86_LIB_DIR, "/", op_lib_name.c_str(), "/lib",
                  op_lib_name.c_str(), "_x86.so");
-
-        snprintf(op_naive_lib_path, sizeof(op_naive_lib_path), "%s%s%s%s%s", OP_NAIVE_LIB_DIR, op_lib_name.c_str(), "/lib",
-                 op_lib_name.c_str(), ".so");
+//        std::cout << op_x86_lib_path << std::endl;
 
 //        void *cuda_handle = NULL;
 //        cuda_handle = dlopen(op_cuda_lib_path, RTLD_LAZY);
 
         void *x86_handle = NULL;
         x86_handle = dlopen(op_x86_lib_path, RTLD_LAZY);
-
-        void *naive_handle = NULL;
-        naive_handle = dlopen(op_naive_lib_path, RTLD_LAZY);
 
 //        if (cuda_handle != NULL) {
 //            std::cout << "the handle of " << op_type << " op (cuda platform)  is find. " << std::endl;
@@ -84,12 +79,6 @@ public:
         if (x86_handle != NULL) {
 //            std::cout << "the handle of " << op_type << " op (x86 platform)  is find. " << std::endl;
             evla_impl = (int (*)(BUFFER_INFO_S *, BUFFER_INFO_S *, BUFFER_INFO_S *)) dlsym(x86_handle, "eval");
-            return 0;
-        }
-
-        if (naive_handle != NULL) {
-//            std::cout << "the handle of " << op_type << " op (naive platform)  is find. " << std::endl;
-            evla_impl = (int (*)(BUFFER_INFO_S *, BUFFER_INFO_S *, BUFFER_INFO_S *)) dlsym(naive_handle, "eval");
             return 0;
         }
 
@@ -209,6 +198,8 @@ public:
         prepare_init_operand_data();
 
 //        BASE_CONFIG_S* cfg = (BASE_CONFIG_S*)(this->params_vec[0].addr);
+
+        show_dev_input(&(this->params_vec[0]));
 
         int ret = evla_impl(&(this->params_vec[0]), &(this->inputs_vec[0]), &(this->outputs_vec[0]));
         return 0;

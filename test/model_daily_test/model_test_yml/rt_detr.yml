@@ -13,7 +13,7 @@ dump_ifmap&ofmap: true
 
 input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/dog.png
 
-model_exc_type: release
+model_exc_type: efficient_exc
 
 ofmap_folder: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_ofmap_path/rt_detr/
 
