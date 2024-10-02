@@ -41,7 +41,7 @@ public:
         out->shapes[1] = in->shapes[1]; // out w equal in c
         out->dim_num_of_shapes = in->dim_num_of_shapes;
 
-        params_vec.resize(1 + in_operands.size() + out_operands.size());
+
 inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&global_avgpool_cfg);

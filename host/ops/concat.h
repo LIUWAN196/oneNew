@@ -72,7 +72,7 @@ public:
 //        LOG_DBG("the op name is %s, ofmap shape is: %d %d %d %d %d %d %d", concat_cfg.op_base_cfg.op_name,
 //                out->shapes[0], out->shapes[1], out->shapes[2], out->shapes[3], out->shapes[4], out->shapes[5],
 //                out->shapes[6]);
-        params_vec.resize(1 + in_operands.size() + out_operands.size());
+
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&concat_cfg);
@@ -107,9 +107,9 @@ public:
 
 
         // 下面是输入操作数是否在 init 中
-        int32_t *head_ptr = (int32_t *) one_buf_ptr;
-        int32_t init_cnt = head_ptr[3];
-        char *cur_init_info_ptr = (char *) (one_buf_ptr + head_ptr[4]);
+        ONE_MODEL_DESC_S *one_model_desc_ptr = (ONE_MODEL_DESC_S *) one_buf_ptr;
+        int32_t init_cnt = one_model_desc_ptr->init_cnt;
+        char *cur_init_info_ptr = (char *)(one_buf_ptr) + one_model_desc_ptr->init_info_offset;
 
         std::string first_oprand = this->in_operands[0];
         std::string second_oprand = this->in_operands[1];

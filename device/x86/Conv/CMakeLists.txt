@@ -11,6 +11,9 @@ project(Conv_x86)
 #include_directories(/usr/local/cuda/include)
 #link_directories(/usr/local/cuda/lib64)
 
+#add_compile_options(-mfma)
+
+find_package(Threads REQUIRED)
 find_package(OpenMP REQUIRED)
 
 #set(CMAKE_C_FLAGS_RELEASE "-O3")
@@ -22,6 +25,9 @@ include_directories(
 add_library(Conv_x86 SHARED conv.c)
 #cuda_add_library(Conv_x86 SHARED conv.cu)
 
-target_link_libraries(Conv_x86 PUBLIC OpenMP::OpenMP_CXX)
-target_link_libraries(Conv_x86 PUBLIC OpenMP::OpenMP_C)
+target_link_libraries(Conv_x86 Threads::Threads)
+target_link_libraries(Conv_x86 OpenMP::OpenMP_CXX)
+target_link_libraries(Conv_x86 OpenMP::OpenMP_C)
+#target_link_libraries(Conv_x86 PUBLIC OpenMP::OpenMP_CXX)
+#target_link_libraries(Conv_x86 PUBLIC OpenMP::OpenMP_C)
 

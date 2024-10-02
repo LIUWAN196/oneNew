@@ -47,7 +47,7 @@ public:
         out->shapes[2] = in->shapes[2] + pad_cfg.pads[2] + pad_cfg.pads[4 + 2];
         out->shapes[3] = in->shapes[3] + pad_cfg.pads[3] + pad_cfg.pads[4 + 3];
 
-        params_vec.resize(1 + in_operands.size() + out_operands.size());
+
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&pad_cfg);

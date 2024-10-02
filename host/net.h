@@ -160,11 +160,6 @@ public:
                 for (auto operand_name : operand_names) {
                     if (operand_name == init_operands) {
                         init_operands_list.insert(operand_name);
-//                        op_in_operands.second.erase(std::remove(op_in_operands.second.begin(), op_in_operands.second.end(), operand_name),
-//                                                    op_in_operands.second.end());
-//                        operand_names.erase(std::remove(operand_names.begin(), operand_names.end(), operand_name),
-//                                            operand_names.end());
-//                        std::cout << "erase " << operand_name << " operands" << std::endl;
                     }
                 }
             }
@@ -390,6 +385,11 @@ bool startsWithAbc(const std::string& str) {
 
 int extractor::new_output_buf() {
 //    printf("start new_output_buf\n");
+
+    // 开辟一块公共空间，不允许在设备侧 malloc
+    ONE_MODEL_DESC_S* one_model = (ONE_MODEL_DESC_S*)net_ptr->one_buf_ptr;
+    PUBLIC_BUF_INFO_S* publice_buf = &one_model->useful_info.public_buf_info;
+    publice_buf->public_buf_ptr = (int64_t)aligned_alloc(32, publice_buf->public_buf_size);
 
     int64_t total_buf_size = 0;
     int32_t op_idx = 0;

@@ -6,6 +6,8 @@ find_package(OpenCV REQUIRED)
 find_package(Threads REQUIRED)
 find_package(OpenMP REQUIRED)
 
+add_compile_options(-mfma)
+
 include_directories(${ROOT_DIR_PATH}/host)
 include_directories(${ROOT_DIR_PATH}/host/ops)
 

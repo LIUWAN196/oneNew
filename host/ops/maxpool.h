@@ -51,7 +51,7 @@ public:
                 (in->shapes[3] + max_pool_cfg.pads[1] + max_pool_cfg.pads[3] - max_pool_cfg.kernel_shape[1]) / max_pool_cfg.strides[1] +
                 1;
 
-        params_vec.resize(1 + in_operands.size() + out_operands.size());
+
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&max_pool_cfg);
@@ -66,6 +66,13 @@ public:
 
     int fill_operands(char *one_buf_ptr) override
     {
+        ONE_MODEL_DESC_S *one_model_desc_ptr = (ONE_MODEL_DESC_S *) one_buf_ptr;
+
+        USEFUL_INFO_S* useful_ptr =  &one_model_desc_ptr->useful_info;
+        BUFFER_INFO_S useful_info;
+        useful_info.addr = (int64_t) useful_ptr;
+        params_vec[BUF_MAXNUM - 1] = useful_info;
+
         // fill op type and op name
         op_type = (char *)(&(this->max_pool_cfg));
         op_name = (char *)((int64_t)&(this->max_pool_cfg) + OP_TYPE_LEN);

@@ -117,6 +117,11 @@ int eval_1x1j1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outp
 
     CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
 //     printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
+    USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
+    int64_t public_buf_size = useful_info->public_buf_info.public_buf_size;
+    int64_t public_buf_ptr = useful_info->public_buf_info.public_buf_ptr;
+    int64_t rem_buf_size = public_buf_size;
+    int64_t rem_buf_ptr = public_buf_ptr;
 
     float *input_ptr = (float *) (inputs[0].addr);
     float *weight_ptr = (float *) (inputs[1].addr);
@@ -150,8 +155,17 @@ int eval_1x1j1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outp
     void *src_pad_ptr;
     if (cfg->pads[0] != 0) {
         // do pad
-        src_pad_ptr = aligned_alloc(32, in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) *
-                                        sizeof(float));
+        int64_t pad_need_buf_size = in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) *
+                                   sizeof(float);
+
+        if (pad_need_buf_size < rem_buf_size) {
+            src_pad_ptr = (void *)rem_buf_ptr;
+            rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
+            rem_buf_size -= (pad_need_buf_size + 31) & (~32);
+        } else {
+            LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+        }
+
         PAD_INNER_CONFIG_S pad_cfg;
         pad_cfg.h = cfg->pads[0];
         pad_cfg.w = cfg->pads[0];
@@ -159,7 +173,7 @@ int eval_1x1j1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outp
         in_h = in_h + 2 * cfg->pads[0];
         in_w = in_w + 2 * cfg->pads[0];
 
-        do_pad_conv(src_pad_ptr, input_ptr, in_tensor, &pad_cfg);
+        do_pad_conv((char *)src_pad_ptr, (char *)input_ptr, in_tensor, &pad_cfg);
         input_ptr = (float *) src_pad_ptr;
     }
 
@@ -169,7 +183,10 @@ int eval_1x1j1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outp
     gemm_tile_info.K = in_c;
 
     // 目前认为的 sgemm 的最佳配置为 m_tile_size = 32，n_tile_size = 1024，k_tile_size = 8；
-    const int32_t best_n_tile = 1024, best_k_tile = 8;
+//    const int32_t best_m_tile = useful_info->block_info.x86_gemm_multi_threads_tile_m;
+    const int32_t best_n_tile = useful_info->block_info.x86_gemm_multi_threads_tile_n;
+    const int32_t best_k_tile = useful_info->block_info.x86_gemm_multi_threads_tile_k;
+//    const int32_t best_n_tile = 1024, best_k_tile = 8;
     const int32_t num_threads = 8;
     // 这里因为开了 num_threads 个线程，所以要保证 m_tile 为 num_threads 的倍数，不让有的线程创建了但是没有使用
     int32_t best_m_tile = (gemm_tile_info.M / num_threads > 32) ? 32 : gemm_tile_info.M / num_threads;
@@ -194,39 +211,6 @@ int eval_1x1j1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outp
         for (int z = 0; z < gemm_tile_info.N; ++z) {
             output_ptr[idx + z] += bias_ptr[i];
         }
-    }
-
-
-
-//
-////    memset(output_ptr, 0, M * N * sizeof(float));
-//
-//#pragma omp parallel for num_threads(8)
-//    for (int i = 0; i < M; i++)
-//    {
-//        memset(&output_ptr[i * N], 0, N * sizeof(float));
-//        int idx_a, idx_b, idx_c;
-//        idx_c = i * N;
-//#pragma unroll 8
-//        for (int k = 0; k < K; k++)
-//        {
-//            idx_a = i * K + k;
-//            idx_b = k * N;
-//
-//            int j = 0;
-//            for (; j < N; j++)
-//            {
-//                output_ptr[idx_c + j] += weight_ptr[idx_a] * input_ptr[idx_b + j];
-//            }
-//        }
-//#pragma unroll 8
-//        for (int z = 0; z < N; ++z) {
-//            output_ptr[idx_c + z] += bias_ptr[i];
-//        }
-//    }
-
-    if (cfg->pads[0] != 0) {
-        free(src_pad_ptr);
     }
 
     return 0;
@@ -454,10 +438,16 @@ int im2col_s8(int8_t *input_col_ptr, int8_t *input_ptr, OPERAND_S *in_tensor, OP
     return 0;
 }
 
-
 int eval_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
+
+    USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
+    int64_t public_buf_size = useful_info->public_buf_info.public_buf_size;
+    int64_t public_buf_ptr = useful_info->public_buf_info.public_buf_ptr;
+    int64_t rem_buf_size = public_buf_size;
+    int64_t rem_buf_ptr = public_buf_ptr;
+
 //    // printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 
 //    if (strcmp(cfg->op_base_cfg.op_name, "Conv_80") == 0) {
@@ -510,17 +500,34 @@ int eval_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
         pad_cfg.right_pad = cfg->pads[3];
 
         // do pad
-        src_pad_ptr = aligned_alloc(32, in_n * in_c * (in_h + pad_cfg.top_pad + pad_cfg.bottom_pad) *
-                                        (in_w + pad_cfg.left_pad + pad_cfg.right_pad) * sizeof(float));
+        int64_t pad_need_buf_size = in_n * in_c * (in_h + pad_cfg.top_pad + pad_cfg.bottom_pad) *
+                                    (in_w + pad_cfg.left_pad + pad_cfg.right_pad) * sizeof(float);
+
+        if (pad_need_buf_size < rem_buf_size) {
+            src_pad_ptr = (void *)rem_buf_ptr;
+            rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
+            rem_buf_size -= (pad_need_buf_size + 31) & (~32);
+        } else {
+            LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+        }
 
         in_h = in_h + pad_cfg.top_pad + pad_cfg.bottom_pad;
         in_w = in_w + pad_cfg.left_pad + pad_cfg.right_pad;
 
-        do_pad_conv_new(src_pad_ptr, input_ptr, in_tensor, &pad_cfg);
+        do_pad_conv_new((char *)src_pad_ptr, (char *)input_ptr, in_tensor, &pad_cfg);
         input_ptr = (float *) src_pad_ptr;
     }
 
-    float *input_col_ptr = aligned_alloc(32, in_c * kernel_w * kernel_h * out_h * out_w * sizeof(float));
+    float *input_col_ptr;
+    int64_t col_need_buf_size = in_c * kernel_w * kernel_h * out_h * out_w * sizeof(float);
+
+    if (col_need_buf_size < rem_buf_size) {
+        input_col_ptr = (float *)rem_buf_ptr;
+        rem_buf_ptr += (col_need_buf_size + 31) & (~32);
+        rem_buf_size -= (col_need_buf_size + 31) & (~32);
+    } else {
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, col_need_buf_size);
+    }
     im2col(input_col_ptr, input_ptr, in_tensor, out_tensor, weight_tensor, cfg);
     input_ptr = input_col_ptr;
 
@@ -531,21 +538,28 @@ int eval_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
     gemm_tile_info.K = in_c * kernel_h * kernel_w;
 
     // 目前认为的 sgemm 的最佳配置为 m_tile_size = 32，n_tile_size = 1024，k_tile_size = 8；
-    const int32_t best_n_tile = 1024, best_k_tile = 8;
+//    const int32_t best_m_tile = useful_info->block_info.x86_gemm_multi_threads_tile_m;
+    const int32_t best_n_tile = useful_info->block_info.x86_gemm_multi_threads_tile_n;
+    const int32_t best_k_tile = useful_info->block_info.x86_gemm_multi_threads_tile_k;
+
     const int32_t num_threads = 8;
-    // 这里因为开了 num_threads 个线程，所以要保证 m_tile 为 num_threads 的倍数，不让有的线程创建了但是没有使用
+//    // 这里因为开了 num_threads 个线程，所以要保证 m_tile 为 num_threads 的倍数，不让有的线程创建了但是没有使用
     int32_t best_m_tile = (gemm_tile_info.M / num_threads > 32) ? 32 : gemm_tile_info.M / num_threads;
     best_m_tile = (best_m_tile == 0) ? gemm_tile_info.M : best_m_tile;
 
     gemm_tile_info.m_tile_size = best_m_tile;
     gemm_tile_info.n_tile_size = best_n_tile;
     gemm_tile_info.k_tile_size = best_k_tile;
-    const int32_t avx2_align_size = 32;
-    if (gemm_tile_info.N % avx2_align_size == 0 && gemm_tile_info.K % avx2_align_size == 0) {
-        opt_gemm_aligned_multi_threads(output_ptr, weight_ptr, input_ptr, gemm_tile_info);
-    } else {
-        opt_gemm_multi_threads(output_ptr, weight_ptr, input_ptr, gemm_tile_info);
-    }
+
+
+    opt_gemm_multi_threads(output_ptr, weight_ptr, input_ptr, gemm_tile_info);
+
+//    const int32_t avx2_align_size = 32;
+//    if (gemm_tile_info.N % avx2_align_size == 0 && gemm_tile_info.K % avx2_align_size == 0) {
+//        opt_gemm_aligned_multi_threads(output_ptr, weight_ptr, input_ptr, gemm_tile_info);
+//    } else {
+//        opt_gemm_multi_threads(output_ptr, weight_ptr, input_ptr, gemm_tile_info);
+//    }
 
     // 加偏置
 #pragma omp parallel for num_threads(8)
@@ -557,56 +571,18 @@ int eval_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
         }
     }
 
-
-
-//    const int M = out_c;
-//    const int N = out_h * out_w;
-//    const int K = in_c * kernel_h * kernel_w;
-//
-//#pragma omp parallel for num_threads(8)
-//    for (int i = 0; i < M; i++)
-//    {
-//        memset(&output_ptr[i * N], 0, N * sizeof(float));
-//        int idx_a, idx_b, idx_c;
-//        __m256 psum;
-//        __m256 weight_vec;
-//        __m256 sum_pre;
-//        idx_c = i * N;
-//#pragma unroll 8
-//        for (int k = 0; k < K; k++)
-//        {
-//            idx_a = i * K + k;
-//            idx_b = k * N;
-//            int j = 0;
-//            weight_vec = _mm256_set1_ps(weight_ptr[idx_a]);
-//#pragma unroll 2
-//            for (; j < N - 7; j+=8)
-//            {
-//                sum_pre = _mm256_loadu_ps(&output_ptr[idx_c + j]);
-//                sum_pre = _mm256_fmadd_ps(weight_vec, _mm256_loadu_ps(&input_ptr[idx_b + j]), sum_pre);
-//                _mm256_storeu_ps(&output_ptr[idx_c + j], sum_pre);
-//            }
-//            for (; j < N; ++j) {
-//                output_ptr[idx_c + j] += weight_ptr[idx_a] * input_ptr[idx_b + j];
-//            }
-//        }
-//#pragma unroll 8
-//        for (int z = 0; z < N; ++z) {
-//            output_ptr[idx_c + z] += bias_ptr[i];
-//        }
-//    }
-
-    if (cfg->pads[0] != 0) {
-        free(src_pad_ptr);
-    }
-    free(input_col_ptr);
-
     return 0;
 }
 
 int eval_mxn_img2col_no_bias(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
+    USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
+    int64_t public_buf_size = useful_info->public_buf_info.public_buf_size;
+    int64_t public_buf_ptr = useful_info->public_buf_info.public_buf_ptr;
+    int64_t rem_buf_size = public_buf_size;
+    int64_t rem_buf_ptr = public_buf_ptr;
+
 //    // printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 
 //    if (strcmp(cfg->op_base_cfg.op_name, "Conv_80") == 0) {
@@ -653,20 +629,36 @@ int eval_mxn_img2col_no_bias(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFE
         pad_cfg.right_pad = cfg->pads[3];
 
         // do pad
-        src_pad_ptr = aligned_alloc(32, in_n * in_c * (in_h + pad_cfg.top_pad + pad_cfg.bottom_pad) *
-                                        (in_w + pad_cfg.left_pad + pad_cfg.right_pad) * sizeof(float));
+        int64_t pad_need_buf_size = in_n * in_c * (in_h + pad_cfg.top_pad + pad_cfg.bottom_pad) *
+                                    (in_w + pad_cfg.left_pad + pad_cfg.right_pad) * sizeof(float);
+
+        if (pad_need_buf_size < rem_buf_size) {
+            src_pad_ptr = (void *)rem_buf_ptr;
+            rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
+            rem_buf_size -= (pad_need_buf_size + 31) & (~32);
+        } else {
+            LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+        }
 
         in_h = in_h + pad_cfg.top_pad + pad_cfg.bottom_pad;
         in_w = in_w + pad_cfg.left_pad + pad_cfg.right_pad;
 
-        do_pad_conv_new(src_pad_ptr, input_ptr, in_tensor, &pad_cfg);
+        do_pad_conv_new((char *)src_pad_ptr, (char *)input_ptr, in_tensor, &pad_cfg);
         input_ptr = (float *) src_pad_ptr;
     }
 
-    float *input_col_ptr = aligned_alloc(32, in_c * kernel_w * kernel_h * out_h * out_w * sizeof(float));
+    float *input_col_ptr;
+    int64_t col_need_buf_size = in_c * kernel_w * kernel_h * out_h * out_w * sizeof(float);
+
+    if (col_need_buf_size < rem_buf_size) {
+        input_col_ptr = (float *)rem_buf_ptr;
+        rem_buf_ptr += (col_need_buf_size + 31) & (~32);
+        rem_buf_size -= (col_need_buf_size + 31) & (~32);
+    } else {
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, col_need_buf_size);
+    }
     im2col(input_col_ptr, input_ptr, in_tensor, out_tensor, weight_tensor, cfg);
     input_ptr = input_col_ptr;
-
 
     const int M = out_c;
     const int N = out_h * out_w;
@@ -698,11 +690,6 @@ int eval_mxn_img2col_no_bias(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFE
         }
     }
 
-    if (cfg->pads[0] != 0) {
-        free(src_pad_ptr);
-    }
-    free(input_col_ptr);
-
     return 0;
 }
 
@@ -710,6 +697,11 @@ int eval_mxn_img2col_no_bias(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFE
 int eval_depthwise_conv_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
+    USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
+    int64_t public_buf_size = useful_info->public_buf_info.public_buf_size;
+    int64_t public_buf_ptr = useful_info->public_buf_info.public_buf_ptr;
+    int64_t rem_buf_size = public_buf_size;
+    int64_t rem_buf_ptr = public_buf_ptr;
 
     int32_t stride_x = cfg->strides[0];
     int32_t stride_y = cfg->strides[1];
@@ -754,13 +746,21 @@ int eval_depthwise_conv_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs
         pad_cfg.right_pad = cfg->pads[3];
 
         // do pad
-        src_pad_ptr = aligned_alloc(32, in_n * in_c * (in_h + pad_cfg.top_pad + pad_cfg.bottom_pad) *
-                                        (in_w + pad_cfg.left_pad + pad_cfg.right_pad) * sizeof(float));
+        int64_t pad_need_buf_size = in_n * in_c * (in_h + pad_cfg.top_pad + pad_cfg.bottom_pad) *
+                                    (in_w + pad_cfg.left_pad + pad_cfg.right_pad) * sizeof(float);
+
+        if (pad_need_buf_size < rem_buf_size) {
+            src_pad_ptr = (void *)rem_buf_ptr;
+            rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
+            rem_buf_size -= (pad_need_buf_size + 31) & (~32);
+        } else {
+            LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+        }
 
         in_h = in_h + pad_cfg.top_pad + pad_cfg.bottom_pad;
         in_w = in_w + pad_cfg.left_pad + pad_cfg.right_pad;
 
-        do_pad_conv_new(src_pad_ptr, input_ptr, in_tensor, &pad_cfg);
+        do_pad_conv_new((char *)src_pad_ptr, (char *)input_ptr, in_tensor, &pad_cfg);
         input_ptr = (float *) src_pad_ptr;
     }
 
@@ -781,17 +781,18 @@ int eval_depthwise_conv_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs
         }
     }
 
-
-    if (cfg->pads[0] != 0) {
-        free(src_pad_ptr);
-    }
-
     return 0;
 }
 
 int eval_depthwise_conv_3x3_pad1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
+
+    USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
+    int64_t public_buf_size = useful_info->public_buf_info.public_buf_size;
+    int64_t public_buf_ptr = useful_info->public_buf_info.public_buf_ptr;
+    int64_t rem_buf_size = public_buf_size;
+    int64_t rem_buf_ptr = public_buf_ptr;
 
     int32_t stride_x = cfg->strides[0];
     int32_t stride_y = cfg->strides[1];
@@ -836,7 +837,15 @@ int eval_depthwise_conv_3x3_pad1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, B
      * 2、在步骤 1 计算完毕后，可以发现，out_w_i = 0 和 = out_w - 1 因为没有做 left pad 和 right pad，所以的结果是错误的，再对这两列进行计算即可
      */
     // 做 top bottom 的 pad
-    float *input_pad_h_ptr = (float *)aligned_alloc(32, in_c * (top_pad + in_h + bottom_pad) * in_w * sizeof(float));
+    float *input_pad_h_ptr;
+    int64_t pad_need_buf_size = in_c * (top_pad + in_h + bottom_pad) * in_w * sizeof(float);
+    if (pad_need_buf_size < rem_buf_size) {
+        input_pad_h_ptr = (void *)rem_buf_ptr;
+        rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
+        rem_buf_size -= (pad_need_buf_size + 31) & (~32);
+    } else {
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+    }
 
 #pragma omp parallel for num_threads(8)
     for (int c_i = 0; c_i < in_c; ++c_i) {
@@ -916,14 +925,18 @@ int eval_depthwise_conv_3x3_pad1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, B
         }
     }
 
-    free(input_pad_h_ptr);
-
     return 0;
 }
 
 int eval_mxn_img2col_W8A32_with_input_scale(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
+
+    USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
+    int64_t public_buf_size = useful_info->public_buf_info.public_buf_size;
+    int64_t public_buf_ptr = useful_info->public_buf_info.public_buf_ptr;
+    int64_t rem_buf_size = public_buf_size;
+    int64_t rem_buf_ptr = public_buf_ptr;
 
     int32_t stride_x = cfg->strides[0];
     int32_t stride_y = cfg->strides[1];
@@ -958,8 +971,22 @@ int eval_mxn_img2col_W8A32_with_input_scale(BUFFER_INFO_S *params, BUFFER_INFO_S
     float tmp;
     float ifmap_scale = cfg->input_scale;
     float opposite_ifmap_scale = 1.0f / ifmap_scale;
-    float *input_f32_ptr = (float *) aligned_alloc(32, in_c * in_h * in_w * sizeof(float));
-    int8_t *input_s8_ptr = (int8_t *) aligned_alloc(32, in_c * in_h * in_w * sizeof(int8_t));
+
+    int32_t dequant_need_buf_size = in_c * in_h * in_w * sizeof(float) + in_c * in_h * in_w * sizeof(int8_t);
+
+    float *input_f32_ptr;
+    int8_t *input_s8_ptr;
+    if (dequant_need_buf_size < rem_buf_size) {
+        input_f32_ptr = (void *)rem_buf_ptr;
+        rem_buf_ptr += (dequant_need_buf_size + 31) & (~32);
+        rem_buf_size -= (dequant_need_buf_size + 31) & (~32);
+        input_s8_ptr = (void *)rem_buf_ptr;
+        rem_buf_ptr += (dequant_need_buf_size + 31) & (~32);
+        rem_buf_size -= (dequant_need_buf_size + 31) & (~32);
+    } else {
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, dequant_need_buf_size);
+    }
+
 
 #pragma unroll 4
     for (int i = 0; i < in_c * in_h * in_w; ++i) {
@@ -980,9 +1007,16 @@ int eval_mxn_img2col_W8A32_with_input_scale(BUFFER_INFO_S *params, BUFFER_INFO_S
     int8_t *src_s8_pad_ptr;
     // do pad
     if (cfg->pads[0] != 0) {
-        src_s8_pad_ptr = (int8_t *) aligned_alloc(32,
-                                                  in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) *
-                                                  sizeof(int8_t));
+        int64_t pad_need_buf_size = in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(int8_t);
+
+        if (pad_need_buf_size < rem_buf_size) {
+            src_s8_pad_ptr = (int8_t *)rem_buf_ptr;
+            rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
+            rem_buf_size -= (pad_need_buf_size + 31) & (~32);
+        } else {
+            LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+        }
+
         PAD_INNER_CONFIG_S pad_cfg;
         pad_cfg.h = cfg->pads[0];
         pad_cfg.w = cfg->pads[0];
@@ -994,7 +1028,17 @@ int eval_mxn_img2col_W8A32_with_input_scale(BUFFER_INFO_S *params, BUFFER_INFO_S
         ifmap_ptr = (int8_t *) src_s8_pad_ptr;
     }
 
-    int8_t *input_col_ptr = aligned_alloc(32, in_c * kernel_w * kernel_h * out_h * out_w * sizeof(int8_t));
+    int8_t *input_col_ptr;
+    int64_t col_need_buf_size = in_c * kernel_w * kernel_h * out_h * out_w * sizeof(int8_t);
+
+    if (col_need_buf_size < rem_buf_size) {
+        input_col_ptr = (int8_t *)rem_buf_ptr;
+        rem_buf_ptr += (col_need_buf_size + 31) & (~32);
+        rem_buf_size -= (col_need_buf_size + 31) & (~32);
+    } else {
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, col_need_buf_size);
+    }
+
     im2col_s8(input_col_ptr, ifmap_ptr, in_tensor, out_tensor, weight_tensor, cfg);
 
     // weight and ifmap all s8
@@ -1031,13 +1075,6 @@ int eval_mxn_img2col_W8A32_with_input_scale(BUFFER_INFO_S *params, BUFFER_INFO_S
         }
     }
 
-    if (cfg->pads[0] != 0) {
-        free(src_s8_pad_ptr);
-    }
-    free(input_f32_ptr);
-    free(input_s8_ptr);
-    free(input_col_ptr);
-
     // ==============================================================================
     // trans output to float
     float *cur_output_ptr;
@@ -1057,6 +1094,12 @@ int
 eval_mxn_img2col_W8A32_with_input_scale_no_bias(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
+
+    USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
+    int64_t public_buf_size = useful_info->public_buf_info.public_buf_size;
+    int64_t public_buf_ptr = useful_info->public_buf_info.public_buf_ptr;
+    int64_t rem_buf_size = public_buf_size;
+    int64_t rem_buf_ptr = public_buf_ptr;
 
     int32_t stride_x = cfg->strides[0];
     int32_t stride_y = cfg->strides[1];
@@ -1089,8 +1132,21 @@ eval_mxn_img2col_W8A32_with_input_scale_no_bias(BUFFER_INFO_S *params, BUFFER_IN
     float tmp;
     float ifmap_scale = cfg->input_scale;
     float opposite_ifmap_scale = 1.0f / ifmap_scale;
-    float *input_f32_ptr = (float *) aligned_alloc(32, in_c * in_h * in_w * sizeof(float));
-    int8_t *input_s8_ptr = (int8_t *) aligned_alloc(32, in_c * in_h * in_w * sizeof(int8_t));
+
+    int32_t dequant_need_buf_size = in_c * in_h * in_w * sizeof(float) + in_c * in_h * in_w * sizeof(int8_t);
+
+    float *input_f32_ptr;
+    int8_t *input_s8_ptr;
+    if (dequant_need_buf_size < rem_buf_size) {
+        input_f32_ptr = (void *)rem_buf_ptr;
+        rem_buf_ptr += (dequant_need_buf_size + 31) & (~32);
+        rem_buf_size -= (dequant_need_buf_size + 31) & (~32);
+        input_s8_ptr = (void *)rem_buf_ptr;
+        rem_buf_ptr += (dequant_need_buf_size + 31) & (~32);
+        rem_buf_size -= (dequant_need_buf_size + 31) & (~32);
+    } else {
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, dequant_need_buf_size);
+    }
 
 #pragma unroll 4
     for (int i = 0; i < in_c * in_h * in_w; ++i) {
@@ -1111,9 +1167,16 @@ eval_mxn_img2col_W8A32_with_input_scale_no_bias(BUFFER_INFO_S *params, BUFFER_IN
     int8_t *src_s8_pad_ptr;
     // do pad
     if (cfg->pads[0] != 0) {
-        src_s8_pad_ptr = (int8_t *) aligned_alloc(32,
-                                                  in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) *
-                                                  sizeof(int8_t));
+        int64_t pad_need_buf_size = in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(int8_t);
+
+        if (pad_need_buf_size < rem_buf_size) {
+            src_s8_pad_ptr = (int8_t *)rem_buf_ptr;
+            rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
+            rem_buf_size -= (pad_need_buf_size + 31) & (~32);
+        } else {
+            LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+        }
+
         PAD_INNER_CONFIG_S pad_cfg;
         pad_cfg.h = cfg->pads[0];
         pad_cfg.w = cfg->pads[0];
@@ -1125,7 +1188,17 @@ eval_mxn_img2col_W8A32_with_input_scale_no_bias(BUFFER_INFO_S *params, BUFFER_IN
         ifmap_ptr = (int8_t *) src_s8_pad_ptr;
     }
 
-    int8_t *input_col_ptr = aligned_alloc(32, in_c * kernel_w * kernel_h * out_h * out_w * sizeof(int8_t));
+    int8_t *input_col_ptr;
+    int64_t col_need_buf_size = in_c * kernel_w * kernel_h * out_h * out_w * sizeof(int8_t);
+
+    if (col_need_buf_size < rem_buf_size) {
+        input_col_ptr = (int8_t *)rem_buf_ptr;
+        rem_buf_ptr += (col_need_buf_size + 31) & (~32);
+        rem_buf_size -= (col_need_buf_size + 31) & (~32);
+    } else {
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, col_need_buf_size);
+    }
+
     im2col_s8(input_col_ptr, ifmap_ptr, in_tensor, out_tensor, weight_tensor, cfg);
 
     // weight and ifmap all s8
@@ -1160,12 +1233,6 @@ eval_mxn_img2col_W8A32_with_input_scale_no_bias(BUFFER_INFO_S *params, BUFFER_IN
         }
     }
 
-    if (cfg->pads[0] != 0) {
-        free(src_s8_pad_ptr);
-    }
-    free(input_f32_ptr);
-    free(input_s8_ptr);
-    free(input_col_ptr);
 
     // ==============================================================================
     // trans output to float
@@ -1209,6 +1276,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     } else {
         // normal conv
         if (cfg->ifmap_quant2 == TYPE_INT8) {
+//            printf("goto the int8\n");
             // ifmap with input scale, weight is s8, bias is s32
             eval_mxn_img2col_W8A32_with_input_scale(params, inputs, outputs);
         } else {
@@ -1311,7 +1379,12 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     return 0;
 }
 
-
-
+//
+//#include <stdio.h>
+//
+//extern "C" __attribute__((visibility("default"))) int
+//eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+//    return eval_impl(params, inputs, outputs);
+//}
 
 

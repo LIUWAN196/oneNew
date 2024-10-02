@@ -86,7 +86,7 @@ public:
 
 //        std::cout << "out->operand_name is; " << out->operand_name << std::endl;
 
-        params_vec.resize(1 + in_operands.size() + out_operands.size());
+
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&reduce_sum_cfg);

@@ -87,7 +87,7 @@ public:
             }
         }
 
-        params_vec.resize(1 + in_operands.size() + out_operands.size());
+
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&gather_cfg);
@@ -118,7 +118,7 @@ public:
 //                out->shapes[2] = 512;
 //                out->dim_num_of_shapes = 3;
 //
-//                params_vec.resize(1 + in_operands.size() + out_operands.size());
+//
 //                inputs_vec.resize(in_operands.size());
 //                BUFFER_INFO_S params;
 //                params.addr = (int64_t) (&gather_cfg);
@@ -134,7 +134,7 @@ public:
 //                out->shapes[1] = 512;
 //                out->dim_num_of_shapes = 2;
 //
-//                params_vec.resize(1 + in_operands.size() + out_operands.size());
+//
 //                inputs_vec.resize(in_operands.size());
 //                BUFFER_INFO_S params;
 //                params.addr = (int64_t) (&gather_cfg);
@@ -155,7 +155,7 @@ public:
 //                out->shapes[dim_i] = in->shapes[dim_i + gather_axis];
 //            }
 //
-//            params_vec.resize(1 + in_operands.size() + out_operands.size());
+//
 //            inputs_vec.resize(in_operands.size());
 //            BUFFER_INFO_S params;
 //            params.addr = (int64_t) (&gather_cfg);
@@ -186,9 +186,9 @@ public:
 
         // 下面是看第一个输入操作数是否在 init 中
         // set the weight and bias
-        int32_t *head_ptr = (int32_t *) one_buf_ptr;
-        int32_t init_cnt = head_ptr[3];
-        char *cur_init_info_ptr = (char *) (one_buf_ptr + head_ptr[4]);
+        ONE_MODEL_DESC_S *one_model_desc_ptr = (ONE_MODEL_DESC_S *) one_buf_ptr;
+        int32_t init_cnt = one_model_desc_ptr->init_cnt;
+        char *cur_init_info_ptr = (char *)(one_buf_ptr) + one_model_desc_ptr->init_info_offset;
         std::string first_oprand = this->in_operands[0];
         for (int32_t init_i = 0; init_i < init_cnt; init_i++) {
             OPERAND_S *operand_ptr = (OPERAND_S *) cur_init_info_ptr;

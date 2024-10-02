@@ -12,6 +12,12 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 //    printf("this is x86 mul start\n");
     TOP_K_CONFIG_S *cfg = (TOP_K_CONFIG_S *) (params[0].addr);
 
+    USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
+    int64_t public_buf_size = useful_info->public_buf_info.public_buf_size;
+    int64_t public_buf_ptr = useful_info->public_buf_info.public_buf_ptr;
+    int64_t rem_buf_size = public_buf_size;
+    int64_t rem_buf_ptr = public_buf_ptr;
+
     float *input_ptr = (float *) (inputs[0].addr);
     int32_t *out_indices_ptr = (int32_t *) (outputs[1].addr);
 
@@ -21,7 +27,16 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     int32_t in_elem_size = operand_elem_size(in_tensor);
     int32_t out_elem_size = operand_elem_size(out_indices_tensor);
 
-    float *ifmap_ptr = (float *) aligned_alloc(32, in_elem_size * sizeof(float ));
+    float *ifmap_ptr;
+    int64_t ifmap_need_buf_size = in_elem_size * sizeof(float );
+    if (ifmap_need_buf_size < rem_buf_size) {
+        ifmap_ptr = (void *)rem_buf_ptr;
+        rem_buf_ptr += (ifmap_need_buf_size + 31) & (~32);
+        rem_buf_size -= (ifmap_need_buf_size + 31) & (~32);
+    } else {
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, ifmap_need_buf_size);
+    }
+
     memcpy(ifmap_ptr, input_ptr, in_elem_size * sizeof(float ));
 
     for (int i = 0; i < out_elem_size; ++i) {
@@ -38,10 +53,6 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
         out_indices_ptr[i] = indices;
 //        LOG_DBG("top %d  idx is %d", i, indices);
     }
-
-    free(ifmap_ptr);
-//    LOG_DBG("这是 topk 算子的结束");
-//    LOG_DBG("这是 topk 算子的结束");
 
     return 0;
 }

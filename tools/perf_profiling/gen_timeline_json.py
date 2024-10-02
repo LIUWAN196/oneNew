@@ -35,14 +35,14 @@ if __name__ == '__main__':
     # csv_file_name = 'timeline_info/mobilenet_v2.csv'
     # json_file_name = 'timeline_info/mobilenet_v2.json'
 
-    # csv_file_name = 'timeline_info/resnet50.csv'
-    # json_file_name = 'timeline_info/resnet50.json'
+    csv_file_name = 'timeline_info/resnet50.csv'
+    json_file_name = 'timeline_info/resnet50.json'
 
     # csv_file_name = 'timeline_info/swin_t.csv'
     # json_file_name = 'timeline_info/swin_t.json'
 
-    csv_file_name = 'timeline_info/yolov5s.csv'
-    json_file_name = 'timeline_info/yolov5s.json'
+    # csv_file_name = 'timeline_info/yolov5s.csv'
+    # json_file_name = 'timeline_info/yolov5s.json'
 
 
     dataset=load_csv(csv_file_name)

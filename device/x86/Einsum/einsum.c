@@ -8,6 +8,12 @@
 #include "string.h"
 
 int eval_ofmap_bmhwn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+    USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
+    int64_t public_buf_size = useful_info->public_buf_info.public_buf_size;
+    int64_t public_buf_ptr = useful_info->public_buf_info.public_buf_ptr;
+    int64_t rem_buf_size = public_buf_size;
+    int64_t rem_buf_ptr = public_buf_ptr;
+
     // in0:  bmchw --> bmhwc          in1: bnmc  --> bmnc
     // do  ofmap = gemm(in0, in1)   --> bmhwn
     OPERAND_S *in0_tensor = (OPERAND_S *) (params[1].addr);
@@ -28,8 +34,21 @@ int eval_ofmap_bmhwn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
         in1_elem_size *= in1_tensor->shapes[i];
     }
 
-    float *in0_transed_ptr = (float *) aligned_alloc(32, in0_elem_size * sizeof(float));
-    float *in1_transed_ptr = (float *) aligned_alloc(32, in1_elem_size * sizeof(float));
+    int64_t ifmap_need_buf_size = in0_elem_size * sizeof(float) + in1_elem_size * sizeof(float);
+
+    float *in0_transed_ptr;
+    float *in1_transed_ptr;
+    if (ifmap_need_buf_size < rem_buf_size) {
+        in0_transed_ptr = (void *)rem_buf_ptr;
+        rem_buf_ptr += (in0_elem_size * sizeof(float) + 31) & (~32);
+        rem_buf_size -= (in0_elem_size * sizeof(float) + 31) & (~32);
+
+        in1_transed_ptr = (void *)rem_buf_ptr;
+        rem_buf_ptr += (in1_elem_size * sizeof(float) + 31) & (~32);
+        rem_buf_size -= (in1_elem_size * sizeof(float) + 31) & (~32);
+    } else {
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, ifmap_need_buf_size);
+    }
 
     // step 1: do in0:  bmchw --> bmhwc
     {
@@ -157,15 +176,16 @@ int eval_ofmap_bmhwn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
         }
     }
 
-
-    // step 4: free buffer
-    free(in0_transed_ptr);
-    free(in1_transed_ptr);
-
     return 0;
 }
 
 int eval_ofmap_bkhw(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+    USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
+    int64_t public_buf_size = useful_info->public_buf_info.public_buf_size;
+    int64_t public_buf_ptr = useful_info->public_buf_info.public_buf_ptr;
+    int64_t rem_buf_size = public_buf_size;
+    int64_t rem_buf_ptr = public_buf_ptr;
+
     // in0:  bchw --> bhwc          in1: bkc
     // do  ofmap = gemm(in1, in0)   --> bkc * bhwc --> bkhw
     OPERAND_S *in0_tensor = (OPERAND_S *) (params[1].addr);
@@ -186,7 +206,16 @@ int eval_ofmap_bkhw(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S 
         in1_elem_size *= in1_tensor->shapes[i];
     }
 
-    float *in0_transed_ptr = (float *) aligned_alloc(32, in0_elem_size * sizeof(float));
+
+    int64_t ifmap_need_buf_size = in0_elem_size * sizeof(float);
+    float *in0_transed_ptr;
+    if (ifmap_need_buf_size < rem_buf_size) {
+        in0_transed_ptr = (void *)rem_buf_ptr;
+        rem_buf_ptr += (in0_elem_size * sizeof(float) + 31) & (~32);
+        rem_buf_size -= (in0_elem_size * sizeof(float) + 31) & (~32);
+    } else {
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, ifmap_need_buf_size);
+    }
 
     // step 1: do in0:  bchw --> bhwc
     {
@@ -267,10 +296,6 @@ int eval_ofmap_bkhw(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S 
             }
         }
     }
-
-
-    // step 4: free buffer
-    free(in0_transed_ptr);
 
     return 0;
 }

@@ -56,7 +56,7 @@ public:
         out->shapes[2] = in1->shapes[1];
         out->shapes[3] = in1->shapes[2];
 
-        params_vec.resize(1 + in_operands.size() + out_operands.size());
+
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&grid_sample_cfg);

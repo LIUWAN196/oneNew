@@ -146,16 +146,16 @@ int main(int argc, char **argv)
         free(tmp_ptr);
     }
 
-//    // du auto_tuning
-//    size_t do_tuning = optimize_type.find("auto_tuning");
-//    if (do_tuning != std::string::npos) {
-//        char *tuning_one_buf_ptr = (char *)aligned_alloc(32, one_file_size);
-//        auto_tuning(tuning_one_buf_ptr, one_buf_ptr, cfg_info_map);
-//
-//        char* tmp_ptr = one_buf_ptr;
-//        one_buf_ptr = tuning_one_buf_ptr;
-//        free(tmp_ptr);
-//    }
+    // do auto_tuning
+    size_t do_tuning = optimize_type.find("auto_tuning");
+    if (do_tuning != std::string::npos) {
+        LOG_DBG("auto_tuning");
+        ONE_MODEL_DESC_S* one_model = (ONE_MODEL_DESC_S*)one_buf_ptr;
+        BLOCK_INFO_S* block_info = &one_model->useful_info.block_info;
+        auto_tuning(block_info);
+        LOG_DBG("m n k is %d, %d, %d", block_info->x86_gemm_single_threads_tile_m, block_info->x86_gemm_single_threads_tile_n, block_info->x86_gemm_single_threads_tile_k);
+        LOG_DBG("m n k is %d, %d, %d", block_info->x86_gemm_multi_threads_tile_m, block_info->x86_gemm_multi_threads_tile_n, block_info->x86_gemm_multi_threads_tile_k);
+    }
 
     // step 10: dump the optimize_one_buf_ptr as .one
     FILE *opt_file_p = fopen(opt_one_file_path, "w");

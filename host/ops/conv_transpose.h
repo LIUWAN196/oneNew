@@ -57,7 +57,7 @@ public:
 //                1;
         out->dim_num_of_shapes = in->dim_num_of_shapes;
 
-        params_vec.resize(1 + in_operands.size() + out_operands.size());
+
 inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&conv_transpose_cfg);
@@ -90,9 +90,9 @@ inputs_vec.resize(in_operands.size());
         }
 
         // set the weight and bias
-        int32_t *head_ptr = (int32_t *) one_buf_ptr;
-        int32_t init_cnt = head_ptr[3];
-        char *cur_init_info_ptr = (char *) (one_buf_ptr + head_ptr[4]);
+        ONE_MODEL_DESC_S *one_model_desc_ptr = (ONE_MODEL_DESC_S *) one_buf_ptr;
+        int32_t init_cnt = one_model_desc_ptr->init_cnt;
+        char *cur_init_info_ptr = (char *)(one_buf_ptr) + one_model_desc_ptr->init_info_offset;
 
         // 用于存放 weight bias 的描述和数据
         initial_operands.resize(2);

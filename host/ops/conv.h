@@ -56,7 +56,7 @@ public:
                 (in->shapes[3] + conv_cfg.pads[1] + conv_cfg.pads[3] - conv_cfg.kernel_shape[1]) / conv_cfg.strides[1] +
                 1;
 
-        params_vec.resize(1 + in_operands.size() + out_operands.size());
+
         inputs_vec.resize(BUF_MAXNUM);
 //        inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
@@ -68,6 +68,15 @@ public:
     };
 
     int fill_operands(char *one_buf_ptr) override {
+        ONE_MODEL_DESC_S *one_model_desc_ptr = (ONE_MODEL_DESC_S *) one_buf_ptr;
+        int32_t init_cnt = one_model_desc_ptr->init_cnt;
+        char *cur_init_info_ptr = (char *)(one_buf_ptr) + one_model_desc_ptr->init_info_offset;
+
+        USEFUL_INFO_S* useful_ptr =  &one_model_desc_ptr->useful_info;
+        BUFFER_INFO_S useful_info;
+        useful_info.addr = (int64_t) useful_ptr;
+        params_vec[BUF_MAXNUM - 1] = useful_info;
+
         // fill op type and op name
         op_type = (char *) (&(this->conv_cfg));
         op_name = (char *) ((int64_t) &(this->conv_cfg) + OP_TYPE_LEN);
@@ -87,9 +96,6 @@ public:
         }
 
         // set the weight and bias
-        int32_t *head_ptr = (int32_t *) one_buf_ptr;
-        int32_t init_cnt = head_ptr[3];
-        char *cur_init_info_ptr = (char *) (one_buf_ptr + head_ptr[4]);
 
         // 用于存放 weight bias 的描述和数据
         if (conv_cfg.has_bias == TRUE) {

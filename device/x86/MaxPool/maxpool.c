@@ -10,6 +10,12 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     MAX_POOL_CONFIG_S *cfg = (MAX_POOL_CONFIG_S *) (params[0].addr);
 //    printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 
+    USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
+    int64_t public_buf_size = useful_info->public_buf_info.public_buf_size;
+    int64_t public_buf_ptr = useful_info->public_buf_info.public_buf_ptr;
+    int64_t rem_buf_size = public_buf_size;
+    int64_t rem_buf_ptr = public_buf_ptr;
+
     int32_t kernel_h = cfg->kernel_shape[0];
     int32_t kernel_w = cfg->kernel_shape[1];
 
@@ -36,7 +42,16 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     void *src_pad_ptr;
     if (cfg->pads[0] != 0){
         // do pad
-        src_pad_ptr = aligned_alloc(32, in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float));
+        int64_t pad_need_buf_size = in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(float);
+
+        if (pad_need_buf_size < rem_buf_size) {
+            src_pad_ptr = (void *)rem_buf_ptr;
+            rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
+            rem_buf_size -= (pad_need_buf_size + 31) & (~32);
+        } else {
+            LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+        }
+
         PAD_INNER_CONFIG_S pad_cfg;
         pad_cfg.h = cfg->pads[0];
         pad_cfg.w = cfg->pads[0];
@@ -75,33 +90,6 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
             }
         }
     }
-
-
-    if (cfg->pads[0] != 0){
-        free(src_pad_ptr);
-    }
-
-    // write_bin(replace_char(cfg->out_operand_name[0]), out_n * out_c * out_h * out_w * sizeof(float), output_ptr);
-
-
-
-//    for (int i = 0; i < 3 * 10 * 10; ++i) {
-//        if (i % 10 == 0){
-//            printf("\n");
-//        }
-//        printf("%f  ", input_ptr[i]);
-//    }
-//
-//    printf("===========================\n");
-//    for (int i = 0; i < 3 * 5 * 5; ++i) {
-//        if (i % 5 == 0){
-//            printf("\n");
-//        }
-//        printf("%f  ", output_ptr[i]);
-//    }
-
-    int a = 101;
-
 
     return 0;
 }

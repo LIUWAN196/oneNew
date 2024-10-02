@@ -3,17 +3,17 @@ cmake_minimum_required(VERSION 3.10.1)
 project(device/x86)
 
 
-# 根据 CMAKE_BUILD_TYPE 设置不同的编译选项
-if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-    # Debug 版本使用 O1 优化并支持调试 -g
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -std=c++11 -mavx2 -O1 -g")
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -std=c11 -mavx2 -O1 -g")
-elseif(CMAKE_BUILD_TYPE STREQUAL "RELEASE")
-    # Release 版本使用 O3 优化，不支持 -g
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -std=c++11 -mavx2 -O3")
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -std=c11 -mavx2 -O3")
-#    add_compile_options(-mfma)
-endif ()
+## 根据 CMAKE_BUILD_TYPE 设置不同的编译选项
+#if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+#    # Debug 版本使用 O1 优化并支持调试 -g
+#    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -std=c++11 -mavx2 -O1 -g")
+#    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -std=c11 -mavx2 -O1 -g")
+#elseif(CMAKE_BUILD_TYPE STREQUAL "RELEASE")
+#    # Release 版本使用 O3 优化，不支持 -g
+#    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -std=c++11 -mavx2 -O3")
+#    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -std=c11 -mavx2 -O3")
+##    add_compile_options(-mfma)
+#endif ()
 
 
 #set(CMAKE_CXX_FLAGS_DEBUG "-std=c++11 -mavx2 -O3 -g")

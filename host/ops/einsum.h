@@ -67,7 +67,7 @@ public:
 //        LOG_ERR("this einsum equation is %s", einsum_cfg.equation);
 
 
-        params_vec.resize(1 + in_operands.size() + out_operands.size());
+
         inputs_vec.resize(BUF_MAXNUM);
 //        inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
@@ -79,6 +79,15 @@ public:
     };
 
     int fill_operands(char *one_buf_ptr) override {
+        ONE_MODEL_DESC_S *one_model_desc_ptr = (ONE_MODEL_DESC_S *) one_buf_ptr;
+        int32_t init_cnt = one_model_desc_ptr->init_cnt;
+        char *cur_init_info_ptr = (char *)(one_buf_ptr) + one_model_desc_ptr->init_info_offset;
+
+        USEFUL_INFO_S* useful_ptr =  &one_model_desc_ptr->useful_info;
+        BUFFER_INFO_S useful_info;
+        useful_info.addr = (int64_t) useful_ptr;
+        params_vec[BUF_MAXNUM - 1] = useful_info;
+
         // fill op type and op name
         op_type = (char *) (&(this->einsum_cfg));
         op_name = (char *) ((int64_t) &(this->einsum_cfg) + OP_TYPE_LEN);
@@ -98,9 +107,7 @@ public:
         }
 
         // set the weight and bias
-        int32_t *head_ptr = (int32_t *) one_buf_ptr;
-        int32_t init_cnt = head_ptr[3];
-        char *cur_init_info_ptr = (char *) (one_buf_ptr + head_ptr[4]);
+
 
 
         initial_operands.resize(1);

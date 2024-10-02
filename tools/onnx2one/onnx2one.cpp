@@ -1312,8 +1312,8 @@ int main(int argc, char **argv)
 	int32_t align_io_cfg_size = io_cfg_cnt * align_buf_size(sizeof(IO_CONFIG_S));
 
 	// step 4: malloc space for .one file
-	int head_size = 64; // 64 bytes, to store version information and the num of node and init parameters
-	int one_file_size = head_size + align_cfg_size + align_init_size + align_io_cfg_size;
+	int align_head_size = align_buf_size(sizeof(ONE_MODEL_DESC_S)); // to store version information and the num of node and init parameters
+	int one_file_size = align_head_size + align_cfg_size + align_init_size + align_io_cfg_size;
 	char *one_file_buf = NULL;
 	one_file_buf = (char *)calloc(one_file_size, sizeof(int8_t));
 
@@ -1326,11 +1326,11 @@ int main(int argc, char **argv)
 	// step 5: fill the head information
     ONE_MODEL_DESC_S *one_model_info_ptr = (ONE_MODEL_DESC_S *)one_file_buf;
     one_model_info_ptr->node_cnt = node_cnt;
-    one_model_info_ptr->node_cfg_offset = head_size; // the offset of first node cfg from one_file_buf
+    one_model_info_ptr->node_cfg_offset = align_head_size; // the offset of first node cfg from one_file_buf
     one_model_info_ptr->init_cnt= init_cnt;
-    one_model_info_ptr->init_info_offset = head_size + align_cfg_size; // the offset of first init info from one_file_buf
+    one_model_info_ptr->init_info_offset = align_head_size + align_cfg_size; // the offset of first init info from one_file_buf
     one_model_info_ptr->io_cfg_cnt = io_cfg_cnt;
-    one_model_info_ptr->io_cfg_offset = head_size + align_cfg_size + align_init_size; // the offset of first io op cfg from one_file_buf
+    one_model_info_ptr->io_cfg_offset = align_head_size + align_cfg_size + align_init_size; // the offset of first io op cfg from one_file_buf
 
     // step 6: fill the init info
     char *init_info_ptr = (char *)(one_file_buf + one_model_info_ptr->init_info_offset);
@@ -1347,7 +1347,28 @@ int main(int argc, char **argv)
     // step 9: fill producer and consumer of each op
     fill_producer_and_consumer(one_file_buf);
 
-    // step 10: dump .one file
+    // step 10: set default PUBLIC_BUF_INFO_S and BLOCK-INFO_S
+    {
+        const int32_t public_buf_size = 512 * 1024 * 1024;
+        PUBLIC_BUF_INFO_S* public_buf_info_ptr = &one_model_info_ptr->useful_info.public_buf_info;
+        public_buf_info_ptr->public_buf_size = public_buf_size;
+
+        BLOCK_INFO_S* bloc_info_ptr = &one_model_info_ptr->useful_info.block_info;
+        // x86 block params
+        bloc_info_ptr->x86_gemm_single_threads_tile_m = 32;
+        bloc_info_ptr->x86_gemm_single_threads_tile_n = 1024;
+        bloc_info_ptr->x86_gemm_single_threads_tile_k = 8;
+        bloc_info_ptr->x86_gemm_multi_threads_tile_m = 32;
+        bloc_info_ptr->x86_gemm_multi_threads_tile_n = 1024;
+        bloc_info_ptr->x86_gemm_multi_threads_tile_k = 8;
+
+        // cuda block params
+        bloc_info_ptr->cuda_gemm_tile_m = 16;
+        bloc_info_ptr->cuda_gemm_tile_n = 16;
+        bloc_info_ptr->cuda_gemm_tile_k = 16;
+    }
+
+    // step 11: dump .one file
 	FILE *file_p = fopen(one_path, "w");
 	fwrite((void *)one_file_buf, 1, one_file_size, file_p);
 	fclose(file_p);

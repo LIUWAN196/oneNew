@@ -10,6 +10,9 @@
 //#define OP_X86_LIB_DIR "/home/wanzai/桌面/oneNew/cmake-build-debug/device/x86/"
 //#define OP_CU_LIB_DIR "/home/wanzai/桌面/oneNew/cmake-build-debug/device/cuda/"
 
+#define ONE_NODEL_MAGIC_NUM (123456)
+#define USEFUL_INFO_MAGIC_NUM (45678)
+
 #define EPSILON (1e-20)
 #define BUF_MAXNUM 12
 #define OPERAND_MAXNUM 8
@@ -21,13 +24,51 @@
 
 typedef struct
 {
-    int32_t time_stamp;
+    int32_t x86_gemm_single_threads_tile_m;
+    int32_t x86_gemm_single_threads_tile_n;
+    int32_t x86_gemm_single_threads_tile_k;
+    int32_t x86_gemm_multi_threads_tile_m;
+    int32_t x86_gemm_multi_threads_tile_n;
+    int32_t x86_gemm_multi_threads_tile_k;
+    int32_t cuda_gemm_tile_m;
+    int32_t cuda_gemm_tile_n;
+    int32_t cuda_gemm_tile_k;
+} BLOCK_INFO_S;
+
+typedef struct
+{
+    int64_t public_buf_size;
+    int64_t public_buf_ptr;
+} PUBLIC_BUF_INFO_S;
+
+typedef struct
+{
+    int64_t kv_cache_buf_size;
+    int64_t kv_cache_buf_ptr;
+    int64_t prompts_amount;
+    int64_t max_token_supported;
+    int64_t cur_token_index;
+} KV_CACHE_INFO_S;
+
+typedef struct
+{
+    int32_t useful_info_magic_num;
+    BLOCK_INFO_S block_info;
+    PUBLIC_BUF_INFO_S public_buf_info;
+    KV_CACHE_INFO_S kv_cache_info;
+} USEFUL_INFO_S;
+
+typedef struct
+{
+    int32_t one_model_magic_num;
+    int32_t version;
     int32_t node_cnt;
     int32_t node_cfg_offset;
     int32_t init_cnt;
     int32_t init_info_offset;
     int32_t io_cfg_cnt;
     int32_t io_cfg_offset;
+    USEFUL_INFO_S useful_info;
 } ONE_MODEL_DESC_S;
 
 typedef struct

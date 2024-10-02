@@ -30,6 +30,7 @@
 #include "../../common/utils_cpp.hpp"
 #include "model_quant.hpp"
 #include "op_fusion.hpp"
+#include "auto_tuning.hpp"
 
 typedef std::unordered_map<std::string, std::string> CFG_MAP;
 

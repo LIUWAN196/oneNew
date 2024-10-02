@@ -48,7 +48,7 @@ public:
             out->dim_num_of_shapes = in->dim_num_of_shapes - 1;
         }
 
-        params_vec.resize(1 + in_operands.size() + out_operands.size());
+
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&argmax_cfg);
