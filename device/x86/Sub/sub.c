@@ -17,7 +17,7 @@ int32_t fun_2(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_te
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 //    show_dev_input(params);
 
-    SUB_CONFIG_S *cfg = (MUL_CONFIG_S *) (params[0].addr);
+    SUB_CONFIG_S *cfg = (SUB_CONFIG_S *) (params[0].addr);
 
     OPERAND_S *in0_tensor = (OPERAND_S *) (params[1].addr);
     OPERAND_S *in1_tensor = (OPERAND_S *) (params[2].addr);

@@ -117,7 +117,6 @@ public:
 
     int prepare_init_operand_data() override {
         // set desc struct
-        // todo What is passed in here is not a real structure, and conv does not need to pass in a structure
 
 //        params_vec: cfg / ifmap desc / weight desc / bias desc / ofmap desc
         BUFFER_INFO_S weight_desc;

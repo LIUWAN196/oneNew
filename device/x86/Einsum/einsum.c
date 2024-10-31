@@ -47,7 +47,7 @@ int eval_ofmap_bmhwn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
         rem_buf_ptr += (in1_elem_size * sizeof(float) + 31) & (~32);
         rem_buf_size -= (in1_elem_size * sizeof(float) + 31) & (~32);
     } else {
-        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, ifmap_need_buf_size);
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)ifmap_need_buf_size);
     }
 
     // step 1: do in0:  bmchw --> bmhwc
@@ -214,7 +214,7 @@ int eval_ofmap_bkhw(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S 
         rem_buf_ptr += (in0_elem_size * sizeof(float) + 31) & (~32);
         rem_buf_size -= (in0_elem_size * sizeof(float) + 31) & (~32);
     } else {
-        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, ifmap_need_buf_size);
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)ifmap_need_buf_size);
     }
 
     // step 1: do in0:  bchw --> bhwc

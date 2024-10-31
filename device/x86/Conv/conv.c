@@ -163,7 +163,7 @@ int eval_1x1j1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outp
             rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
             rem_buf_size -= (pad_need_buf_size + 31) & (~32);
         } else {
-            LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+            LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)pad_need_buf_size);
         }
 
         PAD_INNER_CONFIG_S pad_cfg;
@@ -508,7 +508,7 @@ int eval_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
             rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
             rem_buf_size -= (pad_need_buf_size + 31) & (~32);
         } else {
-            LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+            LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)pad_need_buf_size);
         }
 
         in_h = in_h + pad_cfg.top_pad + pad_cfg.bottom_pad;
@@ -526,7 +526,7 @@ int eval_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
         rem_buf_ptr += (col_need_buf_size + 31) & (~32);
         rem_buf_size -= (col_need_buf_size + 31) & (~32);
     } else {
-        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, col_need_buf_size);
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)col_need_buf_size);
     }
     im2col(input_col_ptr, input_ptr, in_tensor, out_tensor, weight_tensor, cfg);
     input_ptr = input_col_ptr;
@@ -637,7 +637,7 @@ int eval_mxn_img2col_no_bias(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFE
             rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
             rem_buf_size -= (pad_need_buf_size + 31) & (~32);
         } else {
-            LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+            LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)pad_need_buf_size);
         }
 
         in_h = in_h + pad_cfg.top_pad + pad_cfg.bottom_pad;
@@ -655,7 +655,7 @@ int eval_mxn_img2col_no_bias(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFE
         rem_buf_ptr += (col_need_buf_size + 31) & (~32);
         rem_buf_size -= (col_need_buf_size + 31) & (~32);
     } else {
-        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, col_need_buf_size);
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)col_need_buf_size);
     }
     im2col(input_col_ptr, input_ptr, in_tensor, out_tensor, weight_tensor, cfg);
     input_ptr = input_col_ptr;
@@ -754,7 +754,7 @@ int eval_depthwise_conv_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs
             rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
             rem_buf_size -= (pad_need_buf_size + 31) & (~32);
         } else {
-            LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+            LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)pad_need_buf_size);
         }
 
         in_h = in_h + pad_cfg.top_pad + pad_cfg.bottom_pad;
@@ -844,7 +844,7 @@ int eval_depthwise_conv_3x3_pad1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, B
         rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
         rem_buf_size -= (pad_need_buf_size + 31) & (~32);
     } else {
-        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)pad_need_buf_size);
     }
 
 #pragma omp parallel for num_threads(8)
@@ -984,7 +984,7 @@ int eval_mxn_img2col_W8A32_with_input_scale(BUFFER_INFO_S *params, BUFFER_INFO_S
         rem_buf_ptr += (dequant_need_buf_size + 31) & (~32);
         rem_buf_size -= (dequant_need_buf_size + 31) & (~32);
     } else {
-        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, dequant_need_buf_size);
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)dequant_need_buf_size);
     }
 
 
@@ -1014,7 +1014,7 @@ int eval_mxn_img2col_W8A32_with_input_scale(BUFFER_INFO_S *params, BUFFER_INFO_S
             rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
             rem_buf_size -= (pad_need_buf_size + 31) & (~32);
         } else {
-            LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+            LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)pad_need_buf_size);
         }
 
         PAD_INNER_CONFIG_S pad_cfg;
@@ -1036,7 +1036,7 @@ int eval_mxn_img2col_W8A32_with_input_scale(BUFFER_INFO_S *params, BUFFER_INFO_S
         rem_buf_ptr += (col_need_buf_size + 31) & (~32);
         rem_buf_size -= (col_need_buf_size + 31) & (~32);
     } else {
-        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, col_need_buf_size);
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)col_need_buf_size);
     }
 
     im2col_s8(input_col_ptr, ifmap_ptr, in_tensor, out_tensor, weight_tensor, cfg);
@@ -1145,7 +1145,7 @@ eval_mxn_img2col_W8A32_with_input_scale_no_bias(BUFFER_INFO_S *params, BUFFER_IN
         rem_buf_ptr += (dequant_need_buf_size + 31) & (~32);
         rem_buf_size -= (dequant_need_buf_size + 31) & (~32);
     } else {
-        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, dequant_need_buf_size);
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)dequant_need_buf_size);
     }
 
 #pragma unroll 4
@@ -1174,7 +1174,7 @@ eval_mxn_img2col_W8A32_with_input_scale_no_bias(BUFFER_INFO_S *params, BUFFER_IN
             rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
             rem_buf_size -= (pad_need_buf_size + 31) & (~32);
         } else {
-            LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+            LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)pad_need_buf_size);
         }
 
         PAD_INNER_CONFIG_S pad_cfg;
@@ -1196,7 +1196,7 @@ eval_mxn_img2col_W8A32_with_input_scale_no_bias(BUFFER_INFO_S *params, BUFFER_IN
         rem_buf_ptr += (col_need_buf_size + 31) & (~32);
         rem_buf_size -= (col_need_buf_size + 31) & (~32);
     } else {
-        LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, col_need_buf_size);
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)col_need_buf_size);
     }
 
     im2col_s8(input_col_ptr, ifmap_ptr, in_tensor, out_tensor, weight_tensor, cfg);

@@ -96,9 +96,9 @@ void quant_conv_weight_bias(char *one_buf_ptr)
 {
     Manager &m = Manager::getInstance();
 
-    int32_t *head_ptr = (int32_t *)one_buf_ptr;
-    int32_t node_cnt = head_ptr[1];
-    char *cur_node_cfg_ptr = (char *)(one_buf_ptr + head_ptr[2]);
+    ONE_MODEL_DESC_S *one_model_info_ptr = (ONE_MODEL_DESC_S *)one_buf_ptr;
+    int32_t node_cnt = one_model_info_ptr->node_cnt;
+    char *cur_node_cfg_ptr = (char *) (one_buf_ptr + one_model_info_ptr->node_cfg_offset);
 
     std::vector<OPERAND_S *> weight_operand_ptr_vec;
     std::vector<OPERAND_S *> bias_operand_ptr_vec;
@@ -110,8 +110,8 @@ void quant_conv_weight_bias(char *one_buf_ptr)
             CONV_CONFIG_S *conv_cfg = (CONV_CONFIG_S *)cur_node_cfg_ptr;
 
             // quant weight and bias
-            int32_t init_cnt = head_ptr[3];
-            char *cur_init_info_ptr = (char *)(one_buf_ptr + head_ptr[4]);
+            int32_t init_cnt = one_model_info_ptr->init_cnt;
+            char *cur_init_info_ptr = (char *)(one_buf_ptr + one_model_info_ptr->init_info_offset);
             char *weight_ptr, *bias_ptr;
             int32_t * weight_shapes;
             int weight_n, weight_c, weight_h, weight_w;
@@ -768,9 +768,9 @@ int32_t model_quant(char *quant_one_buf_ptr, char *one_buf_ptr, CFG_MAP cfg_info
     int32_t calibrate_img_num = img_num_vec[0];
 //    std::cout << "============= using img num: " << calibrate_img_num << " to quant, using time is: " << elapsed << " s. =============="<< std::endl;
 
-    int32_t *head_ptr = (int32_t *)quant_one_buf_ptr;
-    int32_t node_cnt = head_ptr[1];
-    char *cur_node_cfg_ptr = (char *)(quant_one_buf_ptr + head_ptr[2]);
+    ONE_MODEL_DESC_S *one_model_info_ptr = (ONE_MODEL_DESC_S *)quant_one_buf_ptr;
+    int32_t node_cnt = one_model_info_ptr->node_cnt;
+    char *cur_node_cfg_ptr = (char *) (quant_one_buf_ptr + one_model_info_ptr->node_cfg_offset);
 
     Manager &m = Manager::getInstance();
 

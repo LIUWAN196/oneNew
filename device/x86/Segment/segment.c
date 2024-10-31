@@ -63,12 +63,12 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     in_ptr[5] = (char *) in_mask2_ptr;
     out_ptr[0] = (char *) output_ptr;
 
-    segement_impl(out_ptr, in_ptr, &segment_cfg);
+    segement_impl(out_ptr, in_ptr, (char *)&segment_cfg);
 
     // show the output
     SEGMENT_OFMAP0_S *boxes_info_ptr = (SEGMENT_OFMAP0_S *) out_ptr[0];
 
-    write_bin("segment_ofmap.bin", 100 * sizeof(SEGMENT_OFMAP0_S), output_ptr);
+    write_bin("segment_ofmap.bin", 100 * sizeof(SEGMENT_OFMAP0_S), (char *)output_ptr);
 
 //    BOX_INFO_S *cur_box = &boxes_info_ptr[0];
     int box_i = 0;
@@ -114,7 +114,7 @@ int segement_impl(char **out_ptr, char **in_ptr, char *cfg) {
         }
 
         // step 1: do yolo v8 seg decode
-        yolov8_seg_box_decode(&box_num, alternative_box_ptr, cur_ifmap_nhwc_ptr, cur_ifmap_mask_nhwc_ptr, segment_cfg,
+        yolov8_seg_box_decode(&box_num, alternative_box_ptr, (char *)cur_ifmap_nhwc_ptr,  (char *)cur_ifmap_mask_nhwc_ptr, segment_cfg,
                               ifmap_i);
     }
     // step 2: do nms
@@ -209,8 +209,8 @@ int yolov8_seg_nms(char *out_ptr, SEGMENT_OFMAP0_S *alternative_box_ptr, SEGMENT
                 continue;
             }
 
-            BOX_INFO_S *keep_box = &alternative_box_ptr[idx_sorted_ptr[i]];
-            BOX_INFO_S *check_box = &alternative_box_ptr[idx_sorted_ptr[j]];
+            BOX_INFO_S *keep_box = (BOX_INFO_S *)&alternative_box_ptr[idx_sorted_ptr[i]];
+            BOX_INFO_S *check_box = (BOX_INFO_S *)&alternative_box_ptr[idx_sorted_ptr[j]];
             // step 2.2: compute iou
             if (iou(keep_box, check_box) > segment_cfg->iou_threshold) {
                 score_sorted_ptr[j] = 0.0f;  // step 2.3: suppress boxes with high overlap

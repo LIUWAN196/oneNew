@@ -49,12 +49,6 @@ public:
                     out->shapes[i] = idx->shapes[i];
                 }
                 out->shapes[out->dim_num_of_shapes - 1] = data->shapes[data->dim_num_of_shapes - 1];
-
-//                out->dim_num_of_shapes = data->dim_num_of_shapes;
-//                for (int i = 0; i < data->dim_num_of_shapes; ++i) {
-//                    out->shapes[i] = data->shapes[i];
-//                }
-//                out->shapes[0] = idx->shapes[0];
             } else if (gather_cfg.axis == 1) {
                 out->dim_num_of_shapes = data->dim_num_of_shapes;
                 for (int i = 0; i < data->dim_num_of_shapes; ++i) {
@@ -87,80 +81,10 @@ public:
             }
         }
 
-
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&gather_cfg);
         params_vec[0] = params;
-
-//        if (strcmp(gather_cfg.op_base_cfg.op_name, "/model.28/Gather_9") == 0) {
-//            LOG_DBG("%s", gather_cfg.op_base_cfg.op_name);
-//            LOG_DBG("out shape is %d %d %d %d", data->shapes[0], data->shapes[1], data->shapes[2], data->shapes[3]);
-//            LOG_DBG("out shape is %d %d %d %d", idx->shapes[0], idx->shapes[1], idx->shapes[2], idx->shapes[3]);
-//            LOG_DBG("out shape is %d %d %d %d", out->shapes[0], out->shapes[1], out->shapes[2], out->shapes[3]);
-//        }
-
-//
-//        if (strcmp(gather_cfg.op_base_cfg.op_name, "/model.28/Gather_10") == 0) {
-//            LOG_DBG("%s", gather_cfg.op_base_cfg.op_name);
-//        }
-//
-//        if (gather_cfg.indices_from_ifmap == TRUE) {
-//            if (initial_operands.size() != 0) {
-//                int32_t gather_axis = gather_cfg.axis;
-//
-//                OPERAND_S* out = &operand_stu_map[out_operands[0]];
-//                for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
-//                    out->shapes[dim_i] = 1;
-//                }
-//                // todo: create shape infer from input
-//                out->shapes[1] = 77;
-//                out->shapes[2] = 512;
-//                out->dim_num_of_shapes = 3;
-//
-//
-//                inputs_vec.resize(in_operands.size());
-//                BUFFER_INFO_S params;
-//                params.addr = (int64_t) (&gather_cfg);
-//                params_vec[0] = params;
-//            } else {
-//                int32_t gather_axis = gather_cfg.axis;
-//
-//                OPERAND_S* out = &operand_stu_map[out_operands[0]];
-//                for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
-//                    out->shapes[dim_i] = 1;
-//                }
-//                // todo: create shape infer from input
-//                out->shapes[1] = 512;
-//                out->dim_num_of_shapes = 2;
-//
-//
-//                inputs_vec.resize(in_operands.size());
-//                BUFFER_INFO_S params;
-//                params.addr = (int64_t) (&gather_cfg);
-//                params_vec[0] = params;
-//            }
-//        } else {
-//            int32_t gather_axis = gather_cfg.axis;
-//
-//            OPERAND_S* out = &operand_stu_map[out_operands[0]];
-//
-//            for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
-//                out->shapes[dim_i] = 1;
-//            }
-//
-//            out->dim_num_of_shapes = in->dim_num_of_shapes - gather_axis;
-//            out->shapes[0] = 1;
-//            for (int dim_i = 1; dim_i < out->dim_num_of_shapes; ++dim_i) {
-//                out->shapes[dim_i] = in->shapes[dim_i + gather_axis];
-//            }
-//
-//
-//            inputs_vec.resize(in_operands.size());
-//            BUFFER_INFO_S params;
-//            params.addr = (int64_t) (&gather_cfg);
-//            params_vec[0] = params;
-//        }
 
         return 0;
     };
@@ -216,7 +140,6 @@ public:
 
     int prepare_init_operand_data() override {
         // set desc struct
-        // todo What is passed in here is not a real structure, and conv does not need to pass in a structure
 
         if (initial_operands.size() != 0) {
             BUFFER_INFO_S first_operand_desc;

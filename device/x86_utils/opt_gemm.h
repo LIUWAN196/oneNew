@@ -6,6 +6,7 @@
 #define ONENEW_OPT_GEMM_H
 
 #include "stdint.h"
+#include "math.h"
 
 typedef struct {
     int32_t M;

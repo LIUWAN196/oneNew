@@ -43,15 +43,25 @@ public:
         // the out shape equal in shape
 
         if (reduce_sum_cfg.keepdims == 1) {
-            memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
-
             // reduce sum 后的维度保留
             out->dim_num_of_shapes = in->dim_num_of_shapes;
-            // todo: 这是为 clip txt 特别定制的，需要修改为通用的
+
+            // 目前只支持输入只有一个维度的 shape 不为 1
+            int32_t shape_bigger_1 = 0;
+            for (int dim_i = 0; dim_i < in->dim_num_of_shapes; ++dim_i){
+                if (in->shapes[dim_i] > 1) {
+                    shape_bigger_1 ++;
+                }
+            }
+            if (shape_bigger_1 != 1) {
+                LOG_ERR("抱歉，ReduceSum 算子，目前只支持 keepdims == 1 时，输入只有一个维度的 shape 不为 1");
+            }
+
             for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
                 out->shapes[dim_i] = 1;
             }
-        } else if (reduce_sum_cfg.keepdims == 0) {
+        } else
+            if (reduce_sum_cfg.keepdims == 0) {
             memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
 
             out->shapes[in->dim_num_of_shapes - 1] = 1;

@@ -49,7 +49,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
             rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
             rem_buf_size -= (pad_need_buf_size + 31) & (~32);
         } else {
-            LOG_ERR("remaining buf size is %d, but need buf size is %d", rem_buf_size, pad_need_buf_size);
+            LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)pad_need_buf_size);
         }
 
         PAD_INNER_CONFIG_S pad_cfg;
@@ -59,7 +59,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
         in_h = in_h + 2 * cfg->pads[0];
         in_w = in_w + 2 * cfg->pads[0];
 
-        do_pad_avgpool(src_pad_ptr, input_ptr, in_tensor, &pad_cfg);
+        do_pad_avgpool((char*)src_pad_ptr, (char*)input_ptr, in_tensor, &pad_cfg);
         input_ptr = (float *)src_pad_ptr;
     }
 

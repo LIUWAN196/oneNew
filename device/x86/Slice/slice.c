@@ -7,8 +7,6 @@
 
 int eval_less5dims(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
-//    show_dev_input(params);
-
     SLICE_CONFIG_S *cfg = (SLICE_CONFIG_S *) (params[0].addr);
 
     float *input_ptr = (float *) (inputs[0].addr);
@@ -16,7 +14,6 @@ int eval_less5dims(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *
 
     OPERAND_S *in_tensor = (OPERAND_S *) (params[1].addr);
     OPERAND_S *out_tensor = (OPERAND_S *) (params[2].addr);
-
 
     int32_t st1 = 0, step1 = 1;
     int32_t st2 = 0, step2 = 1;
@@ -50,9 +47,6 @@ int eval_less5dims(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *
         step2 = cfg->steps[1];
     }
 
-//    LOG_MSG("st1 is %d, step1 is %d, st2 is %d, step2 is %d\n", st1, step1, st2, step2);
-//    LOG_ERR("end slice");
-
     int32_t inner_elem_size = 1;
     for (int i = 3; i < SHAPE_LEN; ++i) {
         inner_elem_size *= in_tensor->shapes[i];
@@ -69,15 +63,6 @@ int eval_less5dims(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *
             }
         }
     }
-//    for (int out1_i = 0; out1_i < out_tensor->shapes[1]; ++out1_i) {
-//        for (int out2_i = 0; out2_i < out_tensor->shapes[2]; ++out2_i) {
-//            float *cur_ofmap_ptr = output_ptr + out1_i * out_tensor->shapes[2] * inner_elem_size + out2_i * inner_elem_size;
-//            float *cur_ifmap_ptr = input_ptr + (out1_i + st1) * step1 * in_tensor->shapes[2] * inner_elem_size
-//                    + (out2_i + st2) * step2 * inner_elem_size;
-//            memcpy(cur_ofmap_ptr, cur_ifmap_ptr, inner_elem_size * sizeof(float));
-//
-//        }
-//    }
 
     return 0;
 }
@@ -87,10 +72,7 @@ int eval_equal5dims(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S 
 //    show_dev_input(params);
 
     SLICE_CONFIG_S *cfg = (SLICE_CONFIG_S *) (params[0].addr);
-//    printf("yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
-//    if (strcmp(cfg->op_base_cfg.op_name, "/model.28/decoder/layers.0/cross_attn/Slice") == 0) {
-//        show_dev_input(params);
-//    }
+
     float *input_ptr = (float *) (inputs[0].addr);
     float *output_ptr = (float *) (outputs[0].addr);
 
@@ -125,10 +107,8 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     if (cfg->axes[0] == 5) {
         eval_equal5dims(params, inputs, outputs);
     } else {
-        // todo:这是为 rt detr 的特例，需要改为通用的
         eval_less5dims(params, inputs, outputs);
     }
-//    printf("yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 
     return 0;
 }

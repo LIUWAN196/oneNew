@@ -48,30 +48,18 @@ public:
             out->shapes[flatten_cfg.axis] *= in->shapes[dim_i];
         }
 
-        if (out->shapes[0] == 1 && out->shapes[1] == 1 && out->shapes[2] == 512) {
-            // todo: 这是为 clip txt 特别定制的，需要修改为通用的
-            out->shapes[0] = 77;
-            out->shapes[1] = 512;
-            out->shapes[2] = 1;
-            out->dim_num_of_shapes = 2;
-        } else if (in->shapes[0] == 1 && in->shapes[1] == 8400 && in->shapes[2] == 256) {
-            // todo: 这是为 rt detr 特别定制的，需要修改为通用的
-            out->shapes[0] = 8400;
-            out->shapes[1] = 256;
+        if (in->dim_num_of_shapes == 3 && in->shapes[0] == 1 && flatten_cfg.axis == 2) {
+            // 这是 clip txt 和 rt detr 模型中的特例，实际上和 onnx 的 flatten 推断是不符合的？
+            out->shapes[0] = in->shapes[1];
+            out->shapes[1] = in->shapes[2];
             out->shapes[2] = 1;
             out->dim_num_of_shapes = 2;
         }
-
-//        LOG_DBG("flatten_cfg.axis is %d\n", flatten_cfg.axis);
 
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&flatten_cfg);
         params_vec[0] = params;
-
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&flatten_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };

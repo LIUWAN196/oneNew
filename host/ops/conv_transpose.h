@@ -40,25 +40,21 @@ public:
         // the out shape equal in shape
         memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
 
-//        if (out->dim_num_of_shapes != 4 || in->dim_num_of_shapes != 4) {
-//            printf("the conv_transpose imap an omap shape must be dim 4\n");
-//        }
-
         out->shapes[0] = 1;
         out->shapes[1] = initial_operands[0].shapes[1];
 
-        out->shapes[2] = in->shapes[2] * 2; // todo: using pad and kernel size and stride to calc
-        out->shapes[3] = in->shapes[3] * 2; // todo: using pad and kernel size and stride to calc
-//        out->shapes[2] =
-//                (in->shapes[2] + conv_transpose_cfg.pads[0] + conv_transpose_cfg.pads[2] - conv_transpose_cfg.kernel_shape[0]) / conv_transpose_cfg.strides[0] +
-//                1;
-//        out->shapes[3] =
-//                (in->shapes[3] + conv_transpose_cfg.pads[1] + conv_transpose_cfg.pads[3] - conv_transpose_cfg.kernel_shape[1]) / conv_transpose_cfg.strides[1] +
-//                1;
+        if (conv_transpose_cfg.pads[0] != 0
+            || conv_transpose_cfg.kernel_shape[0] != 2
+           || conv_transpose_cfg.strides[0] != 2) {
+            LOG_ERR("抱歉，目前 conv transpose 算子只支持 pad == 0 && kernel == 2 &&  stride == 2");
+        }
+        const int32_t stride = 2, kernel = 2;
+        out->shapes[2] = in->shapes[2] * stride;
+        out->shapes[3] = in->shapes[3] * stride;
+
         out->dim_num_of_shapes = in->dim_num_of_shapes;
 
-
-inputs_vec.resize(in_operands.size());
+        inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&conv_transpose_cfg);
         params_vec[0] = params;
@@ -131,7 +127,7 @@ inputs_vec.resize(in_operands.size());
 
     int prepare_init_operand_data() override {
         // set desc struct
-        // todo What is passed in here is not a real structure, and conv_transpose does not need to pass in a structure
+
 //        params_vec: cfg / ifmap desc / weight desc / bias desc / ofmap desc
         BUFFER_INFO_S weight_desc;
         weight_desc.addr = (int64_t) (&initial_operands[0]);

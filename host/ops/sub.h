@@ -137,7 +137,6 @@ public:
 
     int prepare_init_operand_data() override {
         // set desc struct
-        // todo What is passed in here is not a real structure, and conv does not need to pass in a structure
 
         if (initial_operands.size() != 0) {
             if (init_ifmap_idx == 0) {

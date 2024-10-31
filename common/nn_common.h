@@ -611,7 +611,9 @@ typedef struct
     int size;
 } ELEM_INFO;
 
-static const ELEM_INFO elem_info_map[] = {
+extern const ELEM_INFO elem_info_map[];
+
+const ELEM_INFO elem_info_map[]= {
         {TYPE_UNKNOWN, "unknown", 0},
         {TYPE_FP32, "fp32", 4},
         {TYPE_UINT8, "uint8", 1},

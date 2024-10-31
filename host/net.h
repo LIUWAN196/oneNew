@@ -76,7 +76,7 @@ public:
             LOG_ERR("can't open the one file");
             return -1;
         }
-        fread(one_buf_ptr, sizeof(char), one_file_size, file_p);
+        size_t ret = fread(one_buf_ptr, sizeof(char), one_file_size, file_p);
         fclose(file_p);
 
         return 0;
