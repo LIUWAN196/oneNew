@@ -67,6 +67,14 @@ int main(int argc, char **argv) {
            0.0f, buffer, arr[1], 0, metrics_img_num, 0.0f, 0.0f, 0.0f);
     fflush(stdout);
 
+
+    int32_t elem_size = in_buf.size();
+    int32_t buf_size = elem_size * sizeof(float);
+    int64_t cur_operand_ptr = (int64_t)&in_buf[0];
+    io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+
+    exe_net->prepare_for_op(io_buf_map);
+
     double omp_st = omp_get_wtime();
 
     int32_t img_cnt = 0, top1_cnt = 0, top5_cnt = 0;
@@ -78,10 +86,12 @@ int main(int argc, char **argv) {
         std::string img_path = path + img;
 
         transforms(in_buf, img_path, trans_cfg);
-        int32_t elem_size = in_buf.size();
-        int32_t buf_size = elem_size * sizeof(float);
-        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
-        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+//        int32_t elem_size = in_buf.size();
+//        int32_t buf_size = elem_size * sizeof(float);
+//        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
+//        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+//
+//        exe_net->prepare_for_op(io_buf_map);
 
         exe_net->impl(io_buf_map, cfg_info_map);
 

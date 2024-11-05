@@ -1325,6 +1325,7 @@ int main(int argc, char **argv)
 
 	// step 5: fill the head information
     ONE_MODEL_DESC_S *one_model_info_ptr = (ONE_MODEL_DESC_S *)one_file_buf;
+    one_model_info_ptr->one_model_magic_num = ONE_MAGIC_NUM;
     one_model_info_ptr->node_cnt = node_cnt;
     one_model_info_ptr->node_cfg_offset = align_head_size; // the offset of first node cfg from one_file_buf
     one_model_info_ptr->init_cnt= init_cnt;

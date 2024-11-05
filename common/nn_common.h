@@ -13,6 +13,13 @@
 #define ONE_NODEL_MAGIC_NUM (123456)
 #define USEFUL_INFO_MAGIC_NUM (45678)
 
+/*
+ * one magic number
+ * 0x6F  0x6E  0x65
+ *  o     n     e
+ */
+#define ONE_MAGIC_NUM (0x6F6E65)
+
 #define EPSILON (1e-20)
 #define BUF_MAXNUM 12
 #define OPERAND_MAXNUM 8

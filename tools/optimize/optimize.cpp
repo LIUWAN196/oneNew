@@ -52,8 +52,9 @@ int32_t opt_cfg_check(std::unordered_map<std::string, std::string>& cfg_info_map
         set_default_args(cfg_info_map, "quant_type", "kl");
     }
     if (str2lower_str(cfg_info_map["quant_type"]) != "kl" &&
-        str2lower_str(cfg_info_map["quant_type"]) != "mse") {
-        LOG_ERR("the args: quant_type must be set: kl or mse");
+        str2lower_str(cfg_info_map["quant_type"]) != "mse" &&
+        str2lower_str(cfg_info_map["quant_type"]) != "percent") {
+        LOG_ERR("the args: quant_type must be set: kl、mse、percent");
         return -1;
     }
 

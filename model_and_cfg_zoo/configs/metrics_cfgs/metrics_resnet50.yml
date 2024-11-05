@@ -4,7 +4,7 @@ do_preprocess: true
 
 do_postprocess: true
 
-one_file_path: /media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/onnx_model/resnet50.one
+one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/resnet50/resnet50.one
 
 metrics_img_label_txt_path: /home/wanzai/桌面/img_name.txt
 

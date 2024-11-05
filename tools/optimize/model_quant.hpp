@@ -204,6 +204,13 @@ int quant_percent(std::unordered_map<std::string, float> &threshold_map, net *ne
     char arr[5] = {"-/|\\"};//存储基本的变化字幕
     printf("quant [%.2f%%] [%-100s][%c]\r", 0.0f, buffer, arr[1]);
     fflush(stdout);
+
+    int32_t elem_size = in_buf.size();
+    int32_t buf_size = elem_size * sizeof(float);
+    int64_t cur_operand_ptr = (int64_t)&in_buf[0];
+    io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+    exe_net->prepare_for_op(io_buf_map);
+
     // 步骤 2：遍历矫正集，获取每个 conv 的输入数据，并将每个 batch 的较大值保存到 large_elem_map 中
     int32_t img_i = 0;
     while (std::getline(file, line) && img_i < calibrate_img_num) {
@@ -213,12 +220,15 @@ int quant_percent(std::unordered_map<std::string, float> &threshold_map, net *ne
         std::string img_path = path + img;
 
         transforms(in_buf, img_path, trans_cfg);
-        int32_t elem_size = in_buf.size();
-        int32_t buf_size = elem_size * sizeof(float);
-        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
-        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+//        int32_t elem_size = in_buf.size();
+//        int32_t buf_size = elem_size * sizeof(float);
+//        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
+//        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+//        exe_net->prepare_for_op(io_buf_map);
+
 
         std::unordered_map<std::string, std::string> cfg_info_map;
+
         exe_net->impl(io_buf_map, cfg_info_map);
 
         float schedule = (img_i + 1.0f) / calibrate_img_num / 2.0f * 100;
@@ -342,6 +352,13 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
     char arr[5] = {"-/|\\"};//存储基本的变化字幕
     printf("quant [%.2f%%] [%-100s][%c]\r", 0.0f, buffer, arr[1]);
     fflush(stdout);
+
+    int32_t elem_size = in_buf.size();
+    int32_t buf_size = elem_size * sizeof(float);
+    int64_t cur_operand_ptr = (int64_t)&in_buf[0];
+    io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+    exe_net->prepare_for_op(io_buf_map);
+
     // 步骤 2：遍历矫正集，获取每个 conv 的输入数据，并将每个 batch 的最大值保存到 max_elem_map 中
     int32_t img_i = 0;
     while (std::getline(file, line) && img_i < calibrate_img_num) {
@@ -351,12 +368,9 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
         std::string img_path = path + img;
 
         transforms(in_buf, img_path, trans_cfg);
-        int32_t elem_size = in_buf.size();
-        int32_t buf_size = elem_size * sizeof(float);
-        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
-        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
 
         std::unordered_map<std::string, std::string> cfg_info_map;
+
         exe_net->impl(io_buf_map, cfg_info_map);
 
         float schedule = (img_i + 1.0f) / calibrate_img_num / 2.0f * 100;
@@ -395,12 +409,13 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
         std::string img_path = path + img;
 
         transforms(in_buf, img_path, trans_cfg);
-        int32_t elem_size = in_buf.size();
-        int32_t buf_size = elem_size * sizeof(float);
-        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
-        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+//        int32_t elem_size = in_buf.size();
+//        int32_t buf_size = elem_size * sizeof(float);
+//        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
+//        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
 
         std::unordered_map<std::string, std::string> cfg_info_map;
+//        exe_net->prepare_for_op(io_buf_map);
         exe_net->impl(io_buf_map, cfg_info_map);
 
         float schedule = 50.0f + (img_i + 1.0f) / calibrate_img_num / 2.0f * 100;
@@ -607,6 +622,13 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
     printf("quant [%.2f%%] [%-100s][%c]\r", 0.0f, buffer, arr[1]);
     fflush(stdout);
 
+    int32_t elem_size = in_buf.size();
+    int32_t buf_size = elem_size * sizeof(float);
+    int64_t cur_operand_ptr = (int64_t)&in_buf[0];
+    io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+
+    exe_net->prepare_for_op(io_buf_map);
+
     // 步骤 2：遍历矫正集，获取每个 conv 的输入数据，并将每个 batch 的最大值保存到 max_elem_map 中
     int32_t img_i = 0;
     while (std::getline(file, line) && img_i < calibrate_img_num) {
@@ -616,12 +638,15 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
         std::string img_path = path + img;
 
         transforms(in_buf, img_path, trans_cfg);
-        int32_t elem_size = in_buf.size();
-        int32_t buf_size = elem_size * sizeof(float);
-        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
-        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+//        int32_t elem_size = in_buf.size();
+//        int32_t buf_size = elem_size * sizeof(float);
+//        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
+//        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
+//
+//        exe_net->prepare_for_op(io_buf_map);
 
         std::unordered_map<std::string, std::string> cfg_info_map;
+
         exe_net->impl(io_buf_map, cfg_info_map);
 
         float schedule = (img_i + 1.0f) / calibrate_img_num / 2.0f * 100;
@@ -666,6 +691,7 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
         io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
 
         std::unordered_map<std::string, std::string> cfg_info_map;
+        exe_net->prepare_for_op(io_buf_map);
         exe_net->impl(io_buf_map, cfg_info_map);
 
         float schedule = 50.0f + (img_i + 1.0f) / calibrate_img_num / 2.0f * 100;

@@ -332,6 +332,8 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
         std::string ifmap_name("model_ifmap.bin");
         std::string ifmap_path = ifmap_folder + ifmap_name;
 
+        exe_net->prepare_for_op(io_buf_map);
+
         exe_net->impl(io_buf_map, cfg_info_map);
 
         std::string ofmap = "image_features";
@@ -417,6 +419,8 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
         std::string txt_ifmap_folder = cfg_info_map["ofmap_folder"];
         std::string txt_ifmap_name("model_ifmap.bin");
         std::string txt_ifmap_path = txt_ifmap_folder + txt_ifmap_name;
+
+        txt_exe_net->prepare_for_op(txt_io_buf_map);
 
         if (cfg_info_map["model_exc_type"] == "ofmap_dumping") {
             write_bin(txt_ifmap_path.c_str(), texts.size() * sizeof(float), (char *)&texts[0]);
@@ -545,6 +549,8 @@ void mouseCallback(int event, int x, int y, int, void* userdata) {
         int32_t point_coords_buf_size = (int64_t)(point_coords_elem_size * sizeof(float));
         decoder_io_buf_map[point_coords] = {point_coords_st_ptr, point_coords_elem_size, point_coords_buf_size};
 
+        decoder_exe_net->prepare_for_op(decoder_io_buf_map);
+
         decoder_exe_net->impl(decoder_io_buf_map, cfg_info_map);
         std::string sam_model_ofmap = "masks";
 
@@ -619,6 +625,8 @@ int do_mobile_sam(std::unordered_map<std::string, std::string> cfg_info_map) {
     std::string ifmap_folder = cfg_info_map["ofmap_folder"];
     std::string ifmap_name("model_ifmap.bin");
     std::string ifmap_path = ifmap_folder + ifmap_name;
+
+    exe_net->prepare_for_op(io_buf_map);
 
     exe_net->impl(io_buf_map, cfg_info_map);
 
@@ -755,6 +763,8 @@ int main(int argc, char **argv)
     std::string ifmap_folder = cfg_info_map["ofmap_folder"];
     std::string ifmap_name("model_ifmap.bin");
     std::string ifmap_path = ifmap_folder + ifmap_name;
+
+    exe_net->prepare_for_op(io_buf_map);
 
     if (cfg_info_map["model_exc_type"] == "ofmap_dumping") {
         write_bin(ifmap_path.c_str(), in_elem_size * sizeof(float), (char *)&in_buf[0]);

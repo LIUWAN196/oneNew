@@ -34,7 +34,7 @@ public:
         return 0;
     }
 
-    virtual int calc_out_operand_shape(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
+    virtual int shape_infer(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         return  0;
 
     };

@@ -45,6 +45,8 @@ public:
 
     int impl(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
 
+    int prepare_for_op(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map);
+
 };
 
 
@@ -79,6 +81,13 @@ public:
         size_t ret = fread(one_buf_ptr, sizeof(char), one_file_size, file_p);
         fclose(file_p);
 
+        // 当模型读取进内存后，先通过 one_model_magic_num 魔法数判断是否为 one 模型
+        ONE_MODEL_DESC_S *one_model_info_ptr = (ONE_MODEL_DESC_S *)one_buf_ptr;
+        if (one_model_info_ptr->one_model_magic_num != ONE_MAGIC_NUM) {
+            LOG_ERR("one_model_magic_num error, should be %d, currently is %d, please check .one model.",
+                    ONE_MAGIC_NUM, one_model_info_ptr->one_model_magic_num);
+            return -1;
+        }
         return 0;
     }
 
@@ -337,7 +346,7 @@ public:
             std::string op_type_str(op.get()->op_type);
             // if is io op
             if (op_type_str != "io") {
-                op.get()->calc_out_operand_shape(operand_stu_map);
+                op.get()->shape_infer(operand_stu_map);
                 int a = 101;
             }
         }
@@ -432,9 +441,9 @@ int extractor::impl_dump_ofmap(std::unordered_map<std::string, BUF_INFO_S> &io_b
     double elapsed;
 
     gettimeofday(&begin, 0);
-    for (auto input:io_buf_map) {
-        operand_buf_map[input.first] = input.second;
-    }
+//    for (auto input:io_buf_map) {
+//        operand_buf_map[input.first] = input.second;
+//    }
     gettimeofday(&end, 0);
 
     elapsed = (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec) * 1e-6;
@@ -542,9 +551,9 @@ int extractor::impl_tracing(std::unordered_map<std::string, BUF_INFO_S> &io_buf_
     op_with_tracing[1][10] = cfg_info_map["hw_computing_power (GOPS)"];
     op_with_tracing[1][11] = cfg_info_map["model name"];
 
-    for (auto input:io_buf_map) {
-        operand_buf_map[input.first] = input.second;
-    }
+//    for (auto input:io_buf_map) {
+//        operand_buf_map[input.first] = input.second;
+//    }
 
     std::string ofmap_folder = cfg_info_map["ofmap_folder"];
     // 依次执行 net 中排好序的 op
@@ -590,9 +599,9 @@ int extractor::impl_tracing(std::unordered_map<std::string, BUF_INFO_S> &io_buf_
 
 
 int extractor::impl(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
-    for (auto input:io_buf_map) {
-        operand_buf_map[input.first] = input.second;
-    }
+//    for (auto input:io_buf_map) {
+//        operand_buf_map[input.first] = input.second;
+//    }
 
     // 依次执行 net 中排好序的 op
     for (auto op : net_ptr->op_exec_order) {
@@ -602,7 +611,10 @@ int extractor::impl(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std
 //            continue;
 //        }
 //        std::cout << "this op_type is: " << op.get()->op_type << std::endl;
+
+//        std::cout << "impl layer is: " << op.get()->op_name << std::endl;
         op.get()->forward(operand_buf_map, net_ptr->operand_stu_map, net_ptr->init_operands_list);
+//        std::cout << "impl end : " << op.get()->op_name << std::endl;
     }
 
     // 将 out 数据放到 io_buf_map 中
@@ -610,6 +622,23 @@ int extractor::impl(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std
         if (std::string(op.get()->op_type) == "io" && op.get()->out_operands.empty()){
             io_buf_map[op.get()->in_operands[0]] = operand_buf_map[op.get()->in_operands[0]];
         }
+    }
+
+    return 0;
+}
+
+
+
+int extractor::prepare_for_op(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map) {
+    for (auto input:io_buf_map) {
+        operand_buf_map[input.first] = input.second;
+    }
+
+    // 每个 layer 依次准备 op 需要的数据，包括 params / ifmap / ofmap
+    for (auto op : net_ptr->op_exec_order) {
+//        std::cout << "layer is: " << op.get()->op_name << std::endl;
+        op.get()->rt_prepare(operand_buf_map, net_ptr->operand_stu_map, net_ptr->init_operands_list);
+//        std::cout << "end : " << op.get()->op_name << std::endl;
     }
 
     return 0;

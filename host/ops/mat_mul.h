@@ -36,7 +36,7 @@ public:
         return 0;
     }
 
-    virtual int calc_out_operand_shape(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
+    virtual int shape_infer(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         OPERAND_S* in = &operand_stu_map[in_operands[0]];
 
         // 第二个输入可能是 ifmap 也可能是一个 init 数组

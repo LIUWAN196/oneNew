@@ -30,7 +30,7 @@ public:
         return 0;
     }
 
-    virtual int calc_out_operand_shape(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
+    virtual int shape_infer(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         // step 1: 从 einsum_cfg.equation 提取字母
         std::string equation_str = std::string(einsum_cfg.equation);
         std::string letters;

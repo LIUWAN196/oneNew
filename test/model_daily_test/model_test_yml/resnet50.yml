@@ -24,6 +24,7 @@ normal_std: [0.229f, 0.224f, 0.225f]
 
 
 # opt params
+#optimize_type: op_fusion
 optimize_type: op_fusion&model_quant
 #optimize_type: op_fusion&auto_tuning
 
@@ -31,7 +32,7 @@ calibrate_img_name_txt_path: /home/wanzai/桌面/img_name.txt
 
 calibrate_img_folder: /media/wanzai/File/imageNet/
 
-calibrate_img_num: 2
+calibrate_img_num: 4
 
-quant_type: mse
+quant_type: kl
 

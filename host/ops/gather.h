@@ -29,7 +29,7 @@ public:
         return 0;
     }
 
-    virtual int calc_out_operand_shape(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
+    virtual int shape_infer(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         OPERAND_S *data, *idx;
         OPERAND_S* out = &operand_stu_map[out_operands[0]];
         for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {

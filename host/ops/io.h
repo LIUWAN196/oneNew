@@ -34,13 +34,19 @@ public:
         return 0;
     }
 
+    virtual int rt_prepare(std::unordered_map<std::string, BUF_INFO_S> &operand_buf_map, std::unordered_map<std::string, OPERAND_S> &operand_stu_map, std::set<std::string> &init_operands_list) override
+    {
+//        std::cout << "this op type is io, dont need rt_prepare. " << std::endl;
+        return 0;
+    };
+
     virtual int forward(std::unordered_map<std::string, BUF_INFO_S> &operand_buf_map, std::unordered_map<std::string, OPERAND_S> &operand_stu_map, std::set<std::string> &init_operands_list) override
     {
 //        std::cout << "this op type is io, dont need forward. " << std::endl;
         return 0;
     };
 
-    virtual int calc_out_operand_shape(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
+    virtual int shape_infer(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         OPERAND_S in = operand_stu_map[in_operands[0]];
 
         OPERAND_S out = operand_stu_map[out_operands[0]];
