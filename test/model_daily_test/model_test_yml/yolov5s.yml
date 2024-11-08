@@ -23,7 +23,8 @@ normal_mean: [0.0f, 0.0f, 0.0f]
 normal_std: [1.0f, 1.0f, 1.0f]
 
 # opt params
-optimize_type: op_fusion&model_quant
+optimize_type: op_fusion
+#optimize_type: op_fusion&model_quant
 
 calibrate_img_name_txt_path: /home/wanzai/桌面/img_name.txt
 

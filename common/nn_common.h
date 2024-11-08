@@ -125,14 +125,17 @@ typedef enum
 } BOOL;
 
 typedef struct {
-    float batch_id;
-    float cls_id;
-    float score;
     float x_min;
     float y_min;
     float x_max;
     float y_max;
 } BOX_INFO_S;
+
+typedef struct {
+    int32_t cls_id;
+    float score;
+    BOX_INFO_S box_info;
+} OBJ_DETECT_OUT_INFO_S;
 
 typedef enum
 {
@@ -398,6 +401,32 @@ typedef struct
     BASE_CONFIG_S op_base_cfg;
 } MUL_CONFIG_S;
 
+#define MAX_IN_TENSOR_NUM 9
+typedef enum
+{
+    NET_UNKNOWN = 0,
+    YOLO_V3 = 1,
+    YOLO_V5 = 2,
+    YOLO_V8 = 3,
+    YOLO_V10 = 4,
+    YOLO_WORLD = 5,
+} DETECT_NET_TYPE_E;
+
+typedef struct
+{
+    BASE_CONFIG_S op_base_cfg;
+
+    DETECT_NET_TYPE_E net_type;
+
+    int32_t cls_num;              // total num of object categories in this network
+    int32_t img_w;
+    int32_t img_h;
+    int32_t max_boxes_per_class;  // the max num of keep boxes after nms per class
+    int32_t max_boxes_per_batch;  // the max num of keep boxes after nms in single image
+    float score_threshold;
+    float iou_threshold;
+} OBJECT_DETECT_CONFIG_S;
+
 typedef struct
 {
     BASE_CONFIG_S op_base_cfg;
@@ -405,8 +434,6 @@ typedef struct
     int64_t pads[8];
 } PAD_CONFIG_S;
 
-
-#define MAX_IN_TENSOR_NUM 9
 
 typedef struct {
     BOX_INFO_S box_info;
@@ -422,7 +449,7 @@ typedef struct
     int32_t img_h;                                         // the input image_h size of the detect network
     int32_t img_w;                                         // the input image_w size of the detect network
 
-    OPERAND_SHAPE_S ifmap_tensor[MAX_IN_TENSOR_NUM];
+    OPERAND_SHAPE_S ifmap_tensor[1];
 
     int32_t cls_num;              // total num of object categories in this network
     int32_t max_boxes_per_class;  // the max num of keep boxes after nms per class

@@ -78,9 +78,9 @@ int32_t rt_cfg_check(std::unordered_map<std::string, std::string>& cfg_info_map)
             return -1;
         }
         if (postprocess_type != "classification" && postprocess_type != "segmentation" &&
-            postprocess_type != "pose_detection") {
+            postprocess_type != "object_detect" && postprocess_type != "segmentation") {
             LOG_ERR("the args: postprocess_type must be set: classification or segmentation "
-                    "or pose_detection, when do_postprocess is true");
+                    "or object_detect or pose_detection, when do_postprocess is true");
             return -1;
         }
     }
@@ -795,6 +795,120 @@ int main(int argc, char **argv)
 
     if (cfg_info_map["do_postprocess"] == "false") {
         return 0;
+    }
+
+    if (cfg_info_map["postprocess_type"] == "object_detect") {
+        // do object detect op
+        const int32_t max_keep_box_num = 256;
+        std::vector<OBJ_DETECT_OUT_INFO_S> detect_out_info(max_keep_box_num);
+        OBJECT_DETECT_CONFIG_S object_detect_cfg;
+        std::string op_type = "ObjectDetect";
+        strcpy(object_detect_cfg.op_base_cfg.op_type, op_type.c_str());
+        object_detect_cfg.net_type = NET_MAP[str2lower_str(cfg_info_map["net_type"])];
+        object_detect_cfg.cls_num = std::stoi(cfg_info_map["cls_num"]);;
+        object_detect_cfg.img_w = trans_cfg.crop_size[0];
+        object_detect_cfg.img_h = trans_cfg.crop_size[1];
+        object_detect_cfg.score_threshold = std::stof(cfg_info_map["score_threshold"]);
+        object_detect_cfg.iou_threshold = std::stof(cfg_info_map["iou_threshold"]);;
+
+        std::vector<BUFFER_INFO_S> params(BUF_MAXNUM);
+        std::vector<BUFFER_INFO_S> inputs;
+        std::vector<BUFFER_INFO_S> outputs;
+
+        // fill params
+        BUFFER_INFO_S cfg;
+        cfg.addr = (int64_t) (&object_detect_cfg);
+        params[0] = cfg;
+
+        OPERAND_S in_tensor;
+        in_tensor.shapes[0] = 25200;
+        in_tensor.shapes[1] = 85;
+        BUFFER_INFO_S in_tensor_desc;
+        in_tensor_desc.addr = (int64_t) (&in_tensor);
+        params[1] = in_tensor_desc;
+
+        ONE_MODEL_DESC_S *one_model_desc_ptr = (ONE_MODEL_DESC_S *) model->one_buf_ptr;
+        USEFUL_INFO_S* useful_ptr =  &one_model_desc_ptr->useful_info;
+        BUFFER_INFO_S useful_info;
+        useful_info.addr = (int64_t) useful_ptr;
+        params[BUF_MAXNUM - 1] = useful_info;
+
+        // fill inputs
+        // find the three ofmap of backbone, they are the ifmap of detect op
+        BUFFER_INFO_S in_info;
+        for (auto io_buf:io_buf_map) {
+            if (io_buf.first != in_operand_name) {
+                in_info.addr = (int64_t) (io_buf.second.st_ptr);
+                inputs.push_back(in_info);
+            }
+        }
+
+        // fill outputs
+        BUFFER_INFO_S out_info;
+        out_info.addr = (int64_t) (&detect_out_info[0]);
+        outputs.push_back(out_info);
+
+        // do object detect
+        launch_post_process(params, inputs, outputs);
+
+        // show img
+        cv::Mat image = cv::imread(img_path);
+        if (image.empty()) {
+            LOG_ERR("Could not open or find the image");
+            return -1;
+        }
+
+        int real_w = image.cols;
+        int real_h = image.rows;
+        float w_ratio = real_w * 1.0f / trans_cfg.crop_size[0];
+        float h_ratio = real_h * 1.0f / trans_cfg.crop_size[1];
+        int box_i = 0;
+        while (detect_out_info[box_i].cls_id != -1) {
+            BOX_INFO_S *cur_box = &detect_out_info[box_i].box_info;
+
+            int box_x_min = (int)(cur_box->x_min * w_ratio);
+            int box_y_min = (int)(cur_box->y_min * h_ratio);
+            int box_w = (int)((cur_box->x_max - cur_box->x_min) * w_ratio);
+            int box_h = (int)((cur_box->y_max - cur_box->y_min) * h_ratio);
+
+            // 定义矩形框的坐标（左上角和右下角）
+            cv::Rect boundingBox(box_x_min, box_y_min, box_w, box_h);
+
+            // 定义类别 ID 和得分
+            int classId = detect_out_info[box_i].cls_id;
+            float score = detect_out_info[box_i].score;
+
+            // 绘制矩形框
+            cv::rectangle(image, boundingBox, cv::Scalar(0, 255, 0), 2);
+
+            // 准备显示的文本
+            std::ostringstream label;
+            label << "Class: " << classId << ", Score: " << score;
+
+            // 获取文本大小，用于计算文本框的位置
+            int fontFace = cv::FONT_HERSHEY_SIMPLEX;
+            double fontScale = 0.6;
+            int thickness = 1;
+            cv::Size textSize = cv::getTextSize(label.str(), fontFace, fontScale, thickness, nullptr);
+
+            // 在矩形框的左上角绘制文本背景色
+            cv::rectangle(image, cv::Point(boundingBox.x, boundingBox.y),
+                          cv::Point(boundingBox.x + textSize.width, boundingBox.y - textSize.height - 10),
+                          cv::Scalar(0, 255, 0), -1); // 填充矩形
+
+            // 在矩形框的左上角添加文本
+            cv::putText(image, label.str(),
+                        cv::Point(boundingBox.x, boundingBox.y - 5), // 文本位置
+                        fontFace, fontScale, cv::Scalar(0, 0, 0), thickness);
+
+            box_i++;
+        }
+
+        // 显示图片
+        cv::imshow("Image with Bounding Box and Label", image);
+        cv::waitKey(0); // 按任意键关闭窗口
+
+
     }
 
     if (cfg_info_map["postprocess_type"] == "classification") {

@@ -49,6 +49,10 @@ std::vector<std::string> split(const std::string& s)
     return words;
 }
 
+static std::unordered_map<std::string, DETECT_NET_TYPE_E> NET_MAP = {
+        {"yolo_v5", YOLO_V5},
+};
+
 typedef enum {
     RGB = 0,
     BGR = 1,

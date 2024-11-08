@@ -784,6 +784,152 @@ int eval_depthwise_conv_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs
     return 0;
 }
 
+int eval_depthwise_conv_mxn_img2col_W8A32(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+
+    CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
+    USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
+    int64_t public_buf_size = useful_info->public_buf_info.public_buf_size;
+    int64_t public_buf_ptr = useful_info->public_buf_info.public_buf_ptr;
+    int64_t rem_buf_size = public_buf_size;
+    int64_t rem_buf_ptr = public_buf_ptr;
+
+    int32_t stride_x = cfg->strides[0];
+    int32_t stride_y = cfg->strides[1];
+
+    float *input_ptr = (float *) (inputs[0].addr);
+    float *weight_ptr = (float *) (inputs[1].addr);
+
+    float *bias_ptr;
+    if (cfg->has_bias) {
+        bias_ptr = (float *) (inputs[2].addr);
+    }
+
+    float *output_ptr = (float *) (outputs[0].addr);
+
+    OPERAND_S *in_tensor = (OPERAND_S *) (params[1].addr);
+    OPERAND_S *weight_tensor = (OPERAND_S *) (params[2].addr);
+    OPERAND_S *bias_tensor = (OPERAND_S *) (params[3].addr);
+    OPERAND_S *out_tensor = (OPERAND_S *) (params[4].addr);
+
+    int32_t kernel_c = weight_tensor->shapes[1];
+    int32_t kernel_h = weight_tensor->shapes[2];
+    int32_t kernel_w = weight_tensor->shapes[3];
+
+    int32_t in_n = in_tensor->shapes[0];
+    int32_t in_c = in_tensor->shapes[1];
+    int32_t in_h = in_tensor->shapes[2];
+    int32_t in_w = in_tensor->shapes[3];
+
+    int32_t out_n = out_tensor->shapes[0];
+    int32_t out_c = out_tensor->shapes[1];
+    int32_t out_h = out_tensor->shapes[2];
+    int32_t out_w = out_tensor->shapes[3];
+
+    // 将输入数据量化为 int8
+    float tmp;
+    float ifmap_scale = cfg->input_scale;
+    float opposite_ifmap_scale = 1.0f / ifmap_scale;
+
+    int32_t dequant_need_buf_size = in_c * in_h * in_w * sizeof(float) + in_c * in_h * in_w * sizeof(int8_t);
+
+    float *input_f32_ptr;
+    int8_t *input_s8_ptr;
+    if (dequant_need_buf_size < rem_buf_size) {
+        input_f32_ptr = (void *)rem_buf_ptr;
+        rem_buf_ptr += (dequant_need_buf_size + 31) & (~32);
+        rem_buf_size -= (dequant_need_buf_size + 31) & (~32);
+        input_s8_ptr = (void *)rem_buf_ptr;
+        rem_buf_ptr += (dequant_need_buf_size + 31) & (~32);
+        rem_buf_size -= (dequant_need_buf_size + 31) & (~32);
+    } else {
+        LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)dequant_need_buf_size);
+    }
+
+
+#pragma unroll 4
+    for (int i = 0; i < in_c * in_h * in_w; ++i) {
+        tmp = input_ptr[i] * opposite_ifmap_scale;
+        input_f32_ptr[i] = (tmp < -128) ? -128 : (tmp > 127) ? 127 : tmp;
+    }
+
+#pragma omp parallel for num_threads(8)
+    for (int i = 0; i < in_c * in_h * in_w; i += 4) {
+        input_s8_ptr[i] = (int8_t) (roundf(input_f32_ptr[i]));
+        input_s8_ptr[i + 1] = (int8_t) (roundf(input_f32_ptr[i + 1]));
+        input_s8_ptr[i + 2] = (int8_t) (roundf(input_f32_ptr[i + 2]));
+        input_s8_ptr[i + 3] = (int8_t) (roundf(input_f32_ptr[i + 3]));
+    }
+
+    int8_t *ifmap_ptr = input_s8_ptr;
+
+    int8_t *src_s8_pad_ptr;
+
+//    float ifmap_scale = cfg->input_scale;
+
+    void *src_pad_ptr;
+    // conv pads:  top  left  bottom  right
+    if (cfg->pads[0] != 0 || cfg->pads[1] != 0 || cfg->pads[2] != 0 || cfg->pads[3] != 0) {
+
+        int64_t pad_need_buf_size = in_n * in_c * (in_h + 2 * cfg->pads[0]) * (in_w + 2 * cfg->pads[0]) * sizeof(int8_t);
+
+        if (pad_need_buf_size < rem_buf_size) {
+            src_s8_pad_ptr = (int8_t *)rem_buf_ptr;
+            rem_buf_ptr += (pad_need_buf_size + 31) & (~32);
+            rem_buf_size -= (pad_need_buf_size + 31) & (~32);
+        } else {
+            LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)pad_need_buf_size);
+        }
+
+        PAD_INNER_CONFIG_S pad_cfg;
+        pad_cfg.h = cfg->pads[0];
+        pad_cfg.w = cfg->pads[0];
+
+        in_h = in_h + 2 * cfg->pads[0];
+        in_w = in_w + 2 * cfg->pads[0];
+
+        do_pad_conv_s8((char *) src_s8_pad_ptr, (char *) input_s8_ptr, in_tensor, &pad_cfg);
+        ifmap_ptr = (int8_t *) src_s8_pad_ptr;
+    }
+
+
+    int8_t *weight_s8_ptr = (int8_t *) weight_ptr;
+    int32_t *bias_s32_ptr = (int32_t *) bias_ptr;
+
+    float *output_f32_ptr = (float *) output_ptr;
+
+    for (int outc_i = 0; outc_i < out_c; ++outc_i) {
+        int8_t *cur_weight_ptr = weight_s8_ptr + outc_i * kernel_h * kernel_w;
+        for (int outh_i = 0; outh_i < out_h; ++outh_i) {
+            for (int outw_i = 0; outw_i < out_w; ++outw_i) {
+                int32_t psum = 0;
+                float *cur_ofmp_ptr = output_f32_ptr + outc_i * out_h * out_w + outh_i * out_w + outw_i;
+                int8_t *cur_ifmp_ptr = ifmap_ptr + outc_i * in_h * in_w + outh_i * stride_y * in_w + outw_i * stride_x;
+                for (int kh_i = 0; kh_i < kernel_h; ++kh_i) {
+                    for (int kw_i = 0; kw_i < kernel_w; ++kw_i) {
+                        psum += cur_weight_ptr[kh_i * kernel_w + kw_i] * cur_ifmp_ptr[kh_i * in_w + kw_i];
+                    }
+                }
+                cur_ofmp_ptr[0] = (float)psum * ifmap_scale  + (float)bias_s32_ptr[outc_i];
+            }
+        }
+    }
+
+
+    // ==============================================================================
+    // trans output to float
+    float *cur_output_ptr;
+    for (int outc_i = 0; outc_i < out_c; ++outc_i) {
+        cur_output_ptr = output_ptr + outc_i * out_h * out_w;
+        float dequant_coeff = cfg->weight_aux[outc_i] * 1 / 127.0f;
+        for (int i = 0; i < out_h * out_w; ++i) {
+            cur_output_ptr[i] = cur_output_ptr[i] * dequant_coeff;
+        }
+    }
+    // ==============================================================================
+
+    return 0;
+}
+
 int eval_depthwise_conv_3x3_pad1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
@@ -1266,12 +1412,19 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     if (cfg->group != 1) {
         // depth wise conv
-        if (cfg->kernel_shape[0] == 3 && cfg->kernel_shape[1] == 3
-        && cfg->pads[0] == 1 && cfg->pads[1] == 1 && cfg->pads[2] == 1 && cfg->pads[3] == 1) {
-            // 这段代码不太容易理解，理解不了，可以直接使用 eval_depthwise_conv_mxn_img2col 的代码
-            eval_depthwise_conv_3x3_pad1(params, inputs, outputs);
+        if (cfg->ifmap_quant2 == TYPE_INT8) {
+//            printf("goto the int8\n");
+            // ifmap with input scale, weight is s8, bias is s32
+//            LOG_DBG("goto depth wise int8 branch\n");
+            eval_depthwise_conv_mxn_img2col_W8A32(params, inputs, outputs);
         } else {
-            eval_depthwise_conv_mxn_img2col(params, inputs, outputs);
+            if (cfg->kernel_shape[0] == 3 && cfg->kernel_shape[1] == 3
+                && cfg->pads[0] == 1 && cfg->pads[1] == 1 && cfg->pads[2] == 1 && cfg->pads[3] == 1) {
+                // 这段代码不太容易理解，理解不了，可以直接使用 eval_depthwise_conv_mxn_img2col 的代码
+                eval_depthwise_conv_3x3_pad1(params, inputs, outputs);
+            } else {
+                eval_depthwise_conv_mxn_img2col(params, inputs, outputs);
+            }
         }
     } else {
         // normal conv

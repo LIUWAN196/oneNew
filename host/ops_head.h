@@ -30,6 +30,7 @@
 #include "mat_mul.h"
 #include "maxpool.h"
 #include "mul.h"
+#include "object_detect.h"
 #include "pad.h"
 #include "pose_detection.h"
 #include "pow.h"

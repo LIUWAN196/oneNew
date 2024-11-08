@@ -32,7 +32,7 @@ calibrate_img_name_txt_path: /home/wanzai/桌面/img_name.txt
 
 calibrate_img_folder: /media/wanzai/File/imageNet/
 
-calibrate_img_num: 4
+calibrate_img_num: 1
 
 quant_type: kl
 
