@@ -45,7 +45,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 //        LOG_MSG("max_idx is %d\n", max_idx);
         output_ptr[0] = max_idx;
     } else {
-        // using in the last of classification net work
+        // using in the last of classify net work
         // step 1: find max and the idx
         float max_elem = -32768;
         int32_t max_idx = 0;

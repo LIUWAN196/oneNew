@@ -13,7 +13,7 @@ model_exc_type: perf_profiling
 ofmap_folder: /media/wanzai/File/model_and_cfg_and_ofmap_folder/ofmap4debug/yolov5s/
 
 
-# 2  you need fill follow args, if you want to do postprocess and the net is classification
+# 2  you need fill follow args, if you want to do postprocess and the net is classify
 crop_shapes: [640, 640]
 resize_shapes: [640, 640]
 normal_mean: [0.0f, 0.0f, 0.0f]

@@ -33,28 +33,32 @@ int main(int argc, char **argv) {
 
     std::unordered_map<std::string, BUF_INFO_S> io_buf_map;
 
-    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
-    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
-    std::vector<float> normal_mean = str2number<float>(cfg_info_map["normal_mean"]);
-    std::vector<float> normal_std = str2number<float>(cfg_info_map["normal_std"]);
+//    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
+//    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
+//    std::vector<float> normal_mean = str2number<float>(cfg_info_map["normal_mean"]);
+//    std::vector<float> normal_std = str2number<float>(cfg_info_map["normal_std"]);
+//
+//    int in_elem_size = 3 * crop_shapes[0] * crop_shapes[1];
+//
+//    std::vector<float> in_buf(in_elem_size);
+//
+//    TRANSFORMS_CONFIG_S trans_cfg;
+//    trans_cfg.resize_size[0] = resize_shapes[0];
+//    trans_cfg.resize_size[1] = resize_shapes[1];
+//    trans_cfg.crop_size[0] = crop_shapes[0];
+//    trans_cfg.crop_size[1] = crop_shapes[1];
+//
+//    trans_cfg.mean[0] = normal_mean[0];
+//    trans_cfg.mean[1] = normal_mean[1];
+//    trans_cfg.mean[2] = normal_mean[2];
+//
+//    trans_cfg.std[0] = normal_std[0];
+//    trans_cfg.std[1] = normal_std[1];
+//    trans_cfg.std[2] = normal_std[2];
 
-    int in_elem_size = 3 * crop_shapes[0] * crop_shapes[1];
-
+    TRANSFORMS_CONFIG_S trans_cfg = cfg_info_map2preprocess_params(cfg_info_map);
+    int in_elem_size = 3 * trans_cfg.crop_size[0] * trans_cfg.crop_size[1];
     std::vector<float> in_buf(in_elem_size);
-
-    TRANSFORMS_CONFIG_S trans_cfg;
-    trans_cfg.resize_size[0] = resize_shapes[0];
-    trans_cfg.resize_size[1] = resize_shapes[1];
-    trans_cfg.crop_size[0] = crop_shapes[0];
-    trans_cfg.crop_size[1] = crop_shapes[1];
-
-    trans_cfg.mean[0] = normal_mean[0];
-    trans_cfg.mean[1] = normal_mean[1];
-    trans_cfg.mean[2] = normal_mean[2];
-
-    trans_cfg.std[0] = normal_std[0];
-    trans_cfg.std[1] = normal_std[1];
-    trans_cfg.std[2] = normal_std[2];
 
     int32_t metrics_img_num = std::stoi(cfg_info_map["metrics_img_num"]);
 

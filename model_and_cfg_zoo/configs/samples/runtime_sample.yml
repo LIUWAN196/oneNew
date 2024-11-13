@@ -7,6 +7,8 @@ do_preprocess: true
 # 2、（可选项）是否做网络的后处理        默认为：false，可选项为：false、true
 do_postprocess: true
 
+# 3、（可选项）待推理的模型类型        默认为：normal，可选项为：normal、mobile_sam、clip 这 3 种选项，常规的 resnet、yolo、vit 等均属于 normal，无需配置
+model_type: normal
 
 # 3、（必选项）one 模型的绝对路径
 # 注意：这里的路径应该选择你自己的 one 的路径
@@ -24,7 +26,7 @@ input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/dog.png
 
 # 5、（可选项）选择网络执行模式        默认为：efficient_exc，可选项为：efficient_exc、ofmap_dumping、perf_profiling
 # efficient_exc: 网络直接执行，不打印任何内容，也不 dump 任何东西
-# ofmap_dumping： 执行过程中，会将每层的输出 feature map dump 下来，便于和 onnxruntime 结果比对，进行 ofmap_dumping。并且在网络结束后，会打印网络整体执行耗时，以及每类 op 的耗时时长和占比
+# ofmap_dumping： 执行过程中，会将每层的输出 feature map dump 下来，便于和 onnxruntime 结果比对。并且在网络结束后，会打印网络整体执行耗时，以及每类 op 的耗时时长和占比
 # perf_profiling: 执行网络，并统计每个 op 的耗时和整体网络的耗时。在网络结束后 dump csv，后续使用 tools/timeline/csv2json，获得网络执行的 timeline.json，在 chrome://tracing/ 中直观分析每个 op 的耗时和硬件利用率
 model_exc_type: efficient_exc
 
@@ -34,8 +36,8 @@ model_exc_type: efficient_exc
 ofmap_folder: /media/wanzai/File/model_and_cfg_and_ofmap_folder/ofmap4debug/resnet50/
 
 
-# 7、（必选/可选项）如果 2 中 do_postprocess: yes，则需要指定该网络的后处理方法，可选项为：classification、segmentation、pose_detection，三种依次为：分类后处理、语义分割后处理、姿态识别后处理
-postprocess_type: classification
+# 7、（必选/可选项）如果 2 中 do_postprocess: yes，则需要指定该网络的后处理方法，可选项为：classify、object_detect、pose_detect、segment 四种依次为：分类、目标检测、姿态识别、图像分割的后处理
+postprocess_type: classify
 # （必选/可选项）如果是分类模型，则不需要填写该参数，如果是分割或者姿态识别等多输出的模型，则必须填写该参数，多输出间以 ; 做分割
 ofmap_name: /model.24/m.2/Conv_output_0;/model.24/m.1/Conv_output_0;/model.24/m.0/Conv_output_0
 
@@ -66,11 +68,11 @@ model name: resnet50
 tracing_csv_path: /home/wanzai/桌面/oneNew/tools/timeline_tracing/timeline_csv_json/resnet50.csv
 
 
-# 10、（可选项）如果 7 中 postprocess_type: classification。则可以指定打印 topk 类别。        默认为：5
+# 10、（可选项）如果 7 中 postprocess_type: classify。则可以指定打印 topk 类别。        默认为：5
 topk: 5
 
 
-# 11、（可选项）如果 7 中 postprocess_type: segmentation
+# 11、（可选项）如果 7 中 postprocess_type: segment
 iou_threshold: 0.5
 
 

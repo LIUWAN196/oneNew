@@ -407,9 +407,11 @@ typedef enum
     NET_UNKNOWN = 0,
     YOLO_V3 = 1,
     YOLO_V5 = 2,
-    YOLO_V8 = 3,
-    YOLO_V10 = 4,
-    YOLO_WORLD = 5,
+    YOLO_V7 = 3,
+    YOLO_V8 = 4,
+    YOLO_V10 = 5,
+    YOLO_WORLD = 6,
+    RT_DETR = 7,    // runtime detr model
 } DETECT_NET_TYPE_E;
 
 typedef struct
@@ -434,29 +436,24 @@ typedef struct
     int64_t pads[8];
 } PAD_CONFIG_S;
 
-
 typedef struct {
+    int32_t cls_id;
+    float score;
     BOX_INFO_S box_info;
     float keypoints[51]; // 51 = 17 * （2 + 1） 2 是关键点的 x、y 坐标，1 是该关键点是否被遮挡 (如果被遮挡就不要在图上画出来)
-} POSE_DETECTION_OFMAP_S;
+} POSE_DETECT_OUT_INFO_S;
 
 typedef struct
 {
     BASE_CONFIG_S op_base_cfg;
 
-    // box_decode param of yolo series
-    int32_t ifmap_num;                                     // the num of feature map in yolo
     int32_t img_h;                                         // the input image_h size of the detect network
     int32_t img_w;                                         // the input image_w size of the detect network
-
-    OPERAND_SHAPE_S ifmap_tensor[1];
-
-    int32_t cls_num;              // total num of object categories in this network
     int32_t max_boxes_per_class;  // the max num of keep boxes after nms per class
     int32_t max_boxes_per_batch;  // the max num of keep boxes after nms in single image
     float score_threshold;
     float iou_threshold;
-} POSE_DETECTION_CONFIG_S;
+} POSE_DETECT_CONFIG_S;
 
 typedef struct
 {
@@ -529,28 +526,21 @@ typedef struct
 typedef struct
 {
     BASE_CONFIG_S op_base_cfg;
-//    DETECT_NET_E detection_net;
 
-    // box_decode param of yolo series
-    int32_t ifmap_num;                                     // the num of feature map in yolo
-//    int32_t anchors_num;                                   // the number of anchors owned by each feature point
-//    int32_t anchor_scale_table[MAX_TOTAL_ANCHORS_NUM][2];  // the anchors' W/H of total feature map
     int32_t img_h;                                         // the input image_h size of the detect network
     int32_t img_w;                                         // the input image_w size of the detect network
 
-    OPERAND_SHAPE_S ifmap_tensor[MAX_IN_TENSOR_NUM];
-
     int32_t cls_num;              // total num of object categories in this network
-    int32_t max_boxes_per_class;  // the max num of keep boxes after nms per class
-    int32_t max_boxes_per_batch;  // the max num of keep boxes after nms in single image
     float score_threshold;
     float iou_threshold;
 } SEGMENT_CONFIG_S;
 
 typedef struct {
+    int32_t cls_id;
+    float score;
     BOX_INFO_S box_info;
-    float mask[32];
-} SEGMENT_OFMAP0_S;
+    float mask[160 * 160];
+} SEGMENT_OUT_INFO_S;
 
 typedef struct
 {

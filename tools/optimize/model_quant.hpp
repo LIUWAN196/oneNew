@@ -152,30 +152,37 @@ int quant_percent(std::unordered_map<std::string, float> &threshold_map, net *ne
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
-    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
-    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
-    std::vector<float> normal_mean = str2number<float>(cfg_info_map["normal_mean"]);
-    std::vector<float> normal_std = str2number<float>(cfg_info_map["normal_std"]);
-    std::vector<int> img_num_vec = str2number<int>(cfg_info_map["calibrate_img_num"]);
-    int32_t calibrate_img_num = img_num_vec[0];
+//    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
+//    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
+//    std::vector<float> normal_mean = str2number<float>(cfg_info_map["normal_mean"]);
+//    std::vector<float> normal_std = str2number<float>(cfg_info_map["normal_std"]);
+//    std::vector<int> img_num_vec = str2number<int>(cfg_info_map["calibrate_img_num"]);
+//    int32_t calibrate_img_num = img_num_vec[0];
+//
+//    int in_elem_size = 3 * crop_shapes[0] * crop_shapes[1];
+//
+//    std::vector<float> in_buf(in_elem_size);
+//
+//    TRANSFORMS_CONFIG_S trans_cfg;
+//    trans_cfg.resize_size[0] = resize_shapes[0];
+//    trans_cfg.resize_size[1] = resize_shapes[1];
+//    trans_cfg.crop_size[0] = crop_shapes[0];
+//    trans_cfg.crop_size[1] = crop_shapes[1];
+//
+//    trans_cfg.mean[0] = normal_mean[0];
+//    trans_cfg.mean[1] = normal_mean[1];
+//    trans_cfg.mean[2] = normal_mean[2];
+//
+//    trans_cfg.std[0] = normal_std[0];
+//    trans_cfg.std[1] = normal_std[1];
+//    trans_cfg.std[2] = normal_std[2];
 
-    int in_elem_size = 3 * crop_shapes[0] * crop_shapes[1];
-
+    TRANSFORMS_CONFIG_S trans_cfg = cfg_info_map2preprocess_params(cfg_info_map);
+    int in_elem_size = 3 * trans_cfg.crop_size[0] * trans_cfg.crop_size[1];
     std::vector<float> in_buf(in_elem_size);
 
-    TRANSFORMS_CONFIG_S trans_cfg;
-    trans_cfg.resize_size[0] = resize_shapes[0];
-    trans_cfg.resize_size[1] = resize_shapes[1];
-    trans_cfg.crop_size[0] = crop_shapes[0];
-    trans_cfg.crop_size[1] = crop_shapes[1];
-
-    trans_cfg.mean[0] = normal_mean[0];
-    trans_cfg.mean[1] = normal_mean[1];
-    trans_cfg.mean[2] = normal_mean[2];
-
-    trans_cfg.std[0] = normal_std[0];
-    trans_cfg.std[1] = normal_std[1];
-    trans_cfg.std[2] = normal_std[2];
+    std::vector<int> img_num_vec = str2number<int>(cfg_info_map["calibrate_img_num"]);
+    int32_t calibrate_img_num = img_num_vec[0];
 
     float percent = 99.998 / 100;
 
@@ -290,30 +297,36 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
-    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
-    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
-    std::vector<float> normal_mean = str2number<float>(cfg_info_map["normal_mean"]);
-    std::vector<float> normal_std = str2number<float>(cfg_info_map["normal_std"]);
+//    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
+//    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
+//    std::vector<float> normal_mean = str2number<float>(cfg_info_map["normal_mean"]);
+//    std::vector<float> normal_std = str2number<float>(cfg_info_map["normal_std"]);
+//    std::vector<int> img_num_vec = str2number<int>(cfg_info_map["calibrate_img_num"]);
+//    int32_t calibrate_img_num = img_num_vec[0];
+//
+//    int in_elem_size = 3 * crop_shapes[0] * crop_shapes[1];
+//
+//    std::vector<float> in_buf(in_elem_size);
+//
+//    TRANSFORMS_CONFIG_S trans_cfg;
+//    trans_cfg.resize_size[0] = resize_shapes[0];
+//    trans_cfg.resize_size[1] = resize_shapes[1];
+//    trans_cfg.crop_size[0] = crop_shapes[0];
+//    trans_cfg.crop_size[1] = crop_shapes[1];
+//
+//    trans_cfg.mean[0] = normal_mean[0];
+//    trans_cfg.mean[1] = normal_mean[1];
+//    trans_cfg.mean[2] = normal_mean[2];
+//
+//    trans_cfg.std[0] = normal_std[0];
+//    trans_cfg.std[1] = normal_std[1];
+//    trans_cfg.std[2] = normal_std[2];
+
+    TRANSFORMS_CONFIG_S trans_cfg = cfg_info_map2preprocess_params(cfg_info_map);
+    int in_elem_size = 3 * trans_cfg.crop_size[0] * trans_cfg.crop_size[1];
+    std::vector<float> in_buf(in_elem_size);
     std::vector<int> img_num_vec = str2number<int>(cfg_info_map["calibrate_img_num"]);
     int32_t calibrate_img_num = img_num_vec[0];
-
-    int in_elem_size = 3 * crop_shapes[0] * crop_shapes[1];
-
-    std::vector<float> in_buf(in_elem_size);
-
-    TRANSFORMS_CONFIG_S trans_cfg;
-    trans_cfg.resize_size[0] = resize_shapes[0];
-    trans_cfg.resize_size[1] = resize_shapes[1];
-    trans_cfg.crop_size[0] = crop_shapes[0];
-    trans_cfg.crop_size[1] = crop_shapes[1];
-
-    trans_cfg.mean[0] = normal_mean[0];
-    trans_cfg.mean[1] = normal_mean[1];
-    trans_cfg.mean[2] = normal_mean[2];
-
-    trans_cfg.std[0] = normal_std[0];
-    trans_cfg.std[1] = normal_std[1];
-    trans_cfg.std[2] = normal_std[2];
 
     std::ifstream file(cfg_info_map["calibrate_img_name_txt_path"]);
     std::string line;
@@ -558,31 +571,38 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
+//
+//    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
+//    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
+//    std::vector<float> normal_mean = str2number<float>(cfg_info_map["normal_mean"]);
+//    std::vector<float> normal_std = str2number<float>(cfg_info_map["normal_std"]);
+//
+//
+//    int in_elem_size = 3 * crop_shapes[0] * crop_shapes[1];
+//
+//    std::vector<float> in_buf(in_elem_size);
+//
+//    TRANSFORMS_CONFIG_S trans_cfg;
+//    trans_cfg.resize_size[0] = resize_shapes[0];
+//    trans_cfg.resize_size[1] = resize_shapes[1];
+//    trans_cfg.crop_size[0] = crop_shapes[0];
+//    trans_cfg.crop_size[1] = crop_shapes[1];
+//
+//    trans_cfg.mean[0] = normal_mean[0];
+//    trans_cfg.mean[1] = normal_mean[1];
+//    trans_cfg.mean[2] = normal_mean[2];
+//
+//    trans_cfg.std[0] = normal_std[0];
+//    trans_cfg.std[1] = normal_std[1];
+//    trans_cfg.std[2] = normal_std[2];
 
-    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
-    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
-    std::vector<float> normal_mean = str2number<float>(cfg_info_map["normal_mean"]);
-    std::vector<float> normal_std = str2number<float>(cfg_info_map["normal_std"]);
-    std::vector<int> img_num_vec = str2number<int>(cfg_info_map["calibrate_img_num"]);
-    int32_t calibrate_img_num = img_num_vec[0];
 
-    int in_elem_size = 3 * crop_shapes[0] * crop_shapes[1];
-
+    TRANSFORMS_CONFIG_S trans_cfg = cfg_info_map2preprocess_params(cfg_info_map);
+    int in_elem_size = 3 * trans_cfg.crop_size[0] * trans_cfg.crop_size[1];
     std::vector<float> in_buf(in_elem_size);
 
-    TRANSFORMS_CONFIG_S trans_cfg;
-    trans_cfg.resize_size[0] = resize_shapes[0];
-    trans_cfg.resize_size[1] = resize_shapes[1];
-    trans_cfg.crop_size[0] = crop_shapes[0];
-    trans_cfg.crop_size[1] = crop_shapes[1];
-
-    trans_cfg.mean[0] = normal_mean[0];
-    trans_cfg.mean[1] = normal_mean[1];
-    trans_cfg.mean[2] = normal_mean[2];
-
-    trans_cfg.std[0] = normal_std[0];
-    trans_cfg.std[1] = normal_std[1];
-    trans_cfg.std[2] = normal_std[2];
+    std::vector<int> img_num_vec = str2number<int>(cfg_info_map["calibrate_img_num"]);
+    int32_t calibrate_img_num = img_num_vec[0];
 
     std::ifstream file(cfg_info_map["calibrate_img_name_txt_path"]);
     std::string line;

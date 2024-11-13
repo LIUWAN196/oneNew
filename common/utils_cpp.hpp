@@ -50,7 +50,8 @@ std::vector<std::string> split(const std::string& s)
 }
 
 static std::unordered_map<std::string, DETECT_NET_TYPE_E> NET_MAP = {
-        {"yolo_v5", YOLO_V5},
+        {"yolo_v3", YOLO_V3}, {"yolo_v5", YOLO_V5}, {"yolo_v7", YOLO_V7}, {"yolo_v8", YOLO_V8},
+        {"yolo_v10", YOLO_V10}, {"yolo_world", YOLO_WORLD}, {"rt_detr", RT_DETR},
 };
 
 typedef enum {
@@ -224,21 +225,44 @@ int yml2map(std::unordered_map<std::string, std::string>& cfg_info_map, const st
     }
 
     // step 4: is the value of the corresponding key is empty, set default cfg
-    set_default_args(cfg_info_map, "topk", "5");
-    set_default_args(cfg_info_map, "ifmap_num", "3");
-    set_default_args(cfg_info_map, "anchor_num", "3");
-    set_default_args(cfg_info_map, "anchor_scale_table",
-                     "[116, 90, 156, 198, 373, 326], [30, 61, 62, 5, 59, 119], [10, 13, 16, 30, 33, 23]");
-    set_default_args(cfg_info_map, "cls_num", "80");
-    set_default_args(cfg_info_map, "max_boxes_per_class", "60");
-    set_default_args(cfg_info_map, "max_boxes_per_batch", "200");
-    set_default_args(cfg_info_map, "score_threshold", "0.5f");
-    set_default_args(cfg_info_map, "iou_threshold", "0.4f");
+//    set_default_args(cfg_info_map, "topk", "5");
+//    set_default_args(cfg_info_map, "ifmap_num", "3");
+//    set_default_args(cfg_info_map, "anchor_num", "3");
+//    set_default_args(cfg_info_map, "anchor_scale_table",
+//                     "[116, 90, 156, 198, 373, 326], [30, 61, 62, 5, 59, 119], [10, 13, 16, 30, 33, 23]");
+//    set_default_args(cfg_info_map, "cls_num", "80");
+//    set_default_args(cfg_info_map, "max_boxes_per_class", "60");
+//    set_default_args(cfg_info_map, "max_boxes_per_batch", "200");
+//    set_default_args(cfg_info_map, "score_threshold", "0.5f");
+//    set_default_args(cfg_info_map, "iou_threshold", "0.4f");
 
     file.close();
     return 0;
 }
 
+TRANSFORMS_CONFIG_S cfg_info_map2preprocess_params(std::unordered_map<std::string, std::string> cfg_info_map){
+
+    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
+    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
+    std::vector<float> normal_mean = str2number<float>(cfg_info_map["normal_mean"]);
+    std::vector<float> normal_std = str2number<float>(cfg_info_map["normal_std"]);
+
+    TRANSFORMS_CONFIG_S trans_cfg;
+    trans_cfg.resize_size[0] = resize_shapes[0];
+    trans_cfg.resize_size[1] = resize_shapes[1];
+    trans_cfg.crop_size[0] = crop_shapes[0];
+    trans_cfg.crop_size[1] = crop_shapes[1];
+
+    trans_cfg.mean[0] = normal_mean[0];
+    trans_cfg.mean[1] = normal_mean[1];
+    trans_cfg.mean[2] = normal_mean[2];
+
+    trans_cfg.std[0] = normal_std[0];
+    trans_cfg.std[1] = normal_std[1];
+    trans_cfg.std[2] = normal_std[2];
+
+    return trans_cfg;
+}
 
 // 自定义比较函数，使用 op type 用于比较两个 NODE_INFO_S
 bool compareNodeWithType(NODE_INFO_S node_a, NODE_INFO_S node_b) {

@@ -32,7 +32,7 @@
 #include "mul.h"
 #include "object_detect.h"
 #include "pad.h"
-#include "pose_detection.h"
+#include "pose_detect.h"
 #include "pow.h"
 #include "reduce_max.h"
 #include "reduce_sum.h"

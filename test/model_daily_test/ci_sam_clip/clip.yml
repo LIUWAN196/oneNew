@@ -4,12 +4,12 @@ do_preprocess: true
 
 do_postprocess: false
 
+clip_img_one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/clip_img/clip_img.one
+clip_txt_one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/clip_txt/clip_txt.one
 
-one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/clip_img/clip_img.one
+model_type: clip
 
 img_folder_path: /home/wanzai/桌面/clip_model-img/
-
-clip_txt_one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/clip_txt/clip_txt.one
 
 model_exc_type: efficient_exc
 

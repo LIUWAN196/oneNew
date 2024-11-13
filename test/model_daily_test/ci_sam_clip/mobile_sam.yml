@@ -4,9 +4,11 @@ do_preprocess: true
 
 do_postprocess: false
 
-one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/mobile_sam_encoder/mobile_sam_encoder.one
-
+sam_encoder_one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/mobile_sam_encoder/mobile_sam_encoder.one
 sam_decoder_one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/mobile_sam_decoder/mobile_sam_decoder.one
+
+model_type: mobile_sam
+
 sam_mask_level: 0
 
 input_data_path: /home/wanzai/桌面/mobile_sam_test_img/t3.jpg
