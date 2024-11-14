@@ -29,7 +29,7 @@ class extractor {
 
 public:
 
-    std::unordered_map<std::string, BUF_INFO_S> operand_buf_map;
+    std::unordered_map<std::string, BUFFER_INFO_S> operand_buf_map;
 
     net *net_ptr;
 
@@ -40,12 +40,12 @@ public:
 
     int new_output_buf();
 
-    int impl_dump_ofmap(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
-    int impl_tracing(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
+    int impl_dump_ofmap(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
+    int impl_tracing(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
 
-    int impl(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
+    int impl(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
 
-    int prepare_for_op(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map);
+    int prepare_for_op(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map);
 
 };
 
@@ -432,7 +432,7 @@ int extractor::new_output_buf() {
 
 #include <sys/time.h>
 
-int extractor::impl_dump_ofmap(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
+int extractor::impl_dump_ofmap(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
 
     std::unordered_map<std::string, double> op_type_time;
     std::unordered_map<std::string, double> op_name_time;
@@ -473,7 +473,7 @@ int extractor::impl_dump_ofmap(std::unordered_map<std::string, BUF_INFO_S> &io_b
         if (!op.get()->out_operands.empty()) {
             std::string omap_name = op.get()->out_operands[0];
             char* omap_name_c = (char*)omap_name.c_str();
-            char* ofmap_ptr = (char *)operand_buf_map[omap_name].st_ptr;
+            char* ofmap_ptr = (char *)operand_buf_map[omap_name].addr;
             int64_t buf_size = operand_buf_map[omap_name].buf_size;
             std::string ofmap_name(replace_char(omap_name_c));
             std::string ofmap_path = ofmap_folder + ofmap_name;
@@ -520,7 +520,7 @@ int extractor::impl_dump_ofmap(std::unordered_map<std::string, BUF_INFO_S> &io_b
     return 0;
 }
 
-int extractor::impl_tracing(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
+int extractor::impl_tracing(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
 
     std::vector<std::vector<std::string>> op_with_tracing;
     op_with_tracing.resize(net_ptr->op_exec_order.size() + 1);
@@ -598,7 +598,7 @@ int extractor::impl_tracing(std::unordered_map<std::string, BUF_INFO_S> &io_buf_
 }
 
 
-int extractor::impl(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
+int extractor::impl(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
 //    for (auto input:io_buf_map) {
 //        operand_buf_map[input.first] = input.second;
 //    }
@@ -629,7 +629,7 @@ int extractor::impl(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map, std
 
 
 
-int extractor::prepare_for_op(std::unordered_map<std::string, BUF_INFO_S> &io_buf_map) {
+int extractor::prepare_for_op(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map) {
     for (auto input:io_buf_map) {
         operand_buf_map[input.first] = input.second;
     }

@@ -34,13 +34,13 @@ public:
         return 0;
     }
 
-    virtual int rt_prepare(std::unordered_map<std::string, BUF_INFO_S> &operand_buf_map, std::unordered_map<std::string, OPERAND_S> &operand_stu_map, std::set<std::string> &init_operands_list) override
+    virtual int rt_prepare(std::unordered_map<std::string, BUFFER_INFO_S> &operand_buf_map, std::unordered_map<std::string, OPERAND_S> &operand_stu_map, std::set<std::string> &init_operands_list) override
     {
 //        std::cout << "this op type is io, dont need rt_prepare. " << std::endl;
         return 0;
     };
 
-    virtual int forward(std::unordered_map<std::string, BUF_INFO_S> &operand_buf_map, std::unordered_map<std::string, OPERAND_S> &operand_stu_map, std::set<std::string> &init_operands_list) override
+    virtual int forward(std::unordered_map<std::string, BUFFER_INFO_S> &operand_buf_map, std::unordered_map<std::string, OPERAND_S> &operand_stu_map, std::set<std::string> &init_operands_list) override
     {
 //        std::cout << "this op type is io, dont need forward. " << std::endl;
         return 0;

@@ -693,7 +693,6 @@ int eval_mxn_img2col_no_bias(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFE
     return 0;
 }
 
-
 int eval_depthwise_conv_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);

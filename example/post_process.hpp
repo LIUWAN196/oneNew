@@ -26,7 +26,7 @@ class PostProcessPerform
 {
 public:
     std::unordered_map<std::string, std::string> cfg_info_map;
-    std::unordered_map<std::string, BUF_INFO_S> io_buf_map;
+    std::unordered_map<std::string, BUFFER_INFO_S> io_buf_map;
     std::string net_in_operand;
     std::vector<OPERAND_S> in_tensor;
     std::vector<OPERAND_S> out_tensor;
@@ -34,7 +34,7 @@ public:
     std::vector<BUFFER_INFO_S> inputs;
     std::vector<BUFFER_INFO_S> outputs;
     PostProcessPerform(std::unordered_map<std::string, std::string> _cfg_info_map,
-                       std::unordered_map<std::string, BUF_INFO_S> _io_buf_map, std::string _net_in_operand)
+                       std::unordered_map<std::string, BUFFER_INFO_S> _io_buf_map, std::string _net_in_operand)
                 : cfg_info_map(std::move(_cfg_info_map)), io_buf_map(std::move(_io_buf_map)),
                 net_in_operand(std::move(_net_in_operand))
     {
@@ -49,7 +49,7 @@ public:
         BUFFER_INFO_S in_info;
         for (const auto& io_buf:io_buf_map) {
             if (io_buf.first != net_in_operand) {
-                in_info.addr = (int64_t) (io_buf.second.st_ptr);
+                in_info.addr = (int64_t) (io_buf.second.addr);
                 inputs.push_back(in_info);
             }
         }
@@ -83,7 +83,7 @@ public:
     std::vector<int32_t> argmax_out_info;
 
     ClassifyPerform(std::unordered_map<std::string, std::string> _cfg_info_map,
-                        std::unordered_map<std::string, BUF_INFO_S> _io_buf_map, std::string _net_in_operand)
+                        std::unordered_map<std::string, BUFFER_INFO_S> _io_buf_map, std::string _net_in_operand)
             : PostProcessPerform(std::move(_cfg_info_map), std::move(_io_buf_map), std::move(_net_in_operand)) {
     };
 
@@ -151,7 +151,7 @@ public:
     std::vector<OBJ_DETECT_OUT_INFO_S> detect_out_info;
 
     ObjectDetectPerform(std::unordered_map<std::string, std::string> _cfg_info_map,
-                        std::unordered_map<std::string, BUF_INFO_S> _io_buf_map, std::string _net_in_operand)
+                        std::unordered_map<std::string, BUFFER_INFO_S> _io_buf_map, std::string _net_in_operand)
                     : PostProcessPerform(std::move(_cfg_info_map), std::move(_io_buf_map), std::move(_net_in_operand)) {
     };
 
@@ -285,7 +285,7 @@ public:
     std::vector<POSE_DETECT_OUT_INFO_S> pose_detect_out_info;
 
     PoseDetectPerform(std::unordered_map<std::string, std::string> _cfg_info_map,
-                        std::unordered_map<std::string, BUF_INFO_S> _io_buf_map, std::string _net_in_operand)
+                        std::unordered_map<std::string, BUFFER_INFO_S> _io_buf_map, std::string _net_in_operand)
             : PostProcessPerform(std::move(_cfg_info_map), std::move(_io_buf_map), std::move(_net_in_operand)) {
     };
 
@@ -421,7 +421,7 @@ public:
     std::vector<SEGMENT_OUT_INFO_S> segment_out_info;
 
     SegmentPerform(std::unordered_map<std::string, std::string> _cfg_info_map,
-                      std::unordered_map<std::string, BUF_INFO_S> _io_buf_map, std::string _net_in_operand)
+                      std::unordered_map<std::string, BUFFER_INFO_S> _io_buf_map, std::string _net_in_operand)
             : PostProcessPerform(std::move(_cfg_info_map), std::move(_io_buf_map), std::move(_net_in_operand)) {
     };
 
@@ -463,7 +463,7 @@ public:
         BUFFER_INFO_S in_info;
         for (const auto& io_buf:io_buf_map) {
             if (io_buf.first != net_in_operand) {
-                in_info.addr = (int64_t) (io_buf.second.st_ptr);
+                in_info.addr = (int64_t) (io_buf.second.addr);
                 if (io_buf.second.elem_size == in_tensor[0].shapes[0] * in_tensor[0].shapes[1]) {
                     inputs[0] = in_info;
                 } else {

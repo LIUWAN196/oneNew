@@ -81,21 +81,14 @@ typedef struct
 typedef struct
 {
     int64_t addr;
-    int64_t size;
+    int32_t elem_size;
+    int32_t buf_size;
 } BUFFER_INFO_S;
 
 typedef struct
 {
     BUFFER_INFO_S buf_info[BUF_MAXNUM];
 } BUFFER_GROUP_S;
-
-typedef struct
-{
-    int32_t N;
-    int32_t C;
-    int32_t H;
-    int32_t W;
-} OPERAND_SHAPE_S;
 
 // reference onnx      https://blog.csdn.net/weixin_43945848/article/details/122474749
 typedef enum
@@ -171,13 +164,6 @@ typedef struct
     char op_name[OP_NAME_LEN]; //  "input" or "output"
     OPERAND_S operand;
 } IO_CONFIG_S;
-
-typedef struct
-{
-    int64_t st_ptr;
-    int32_t elem_size;
-    int32_t buf_size;
-} BUF_INFO_S;
 
 typedef struct
 {

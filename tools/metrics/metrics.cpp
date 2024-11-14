@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
-    std::unordered_map<std::string, BUF_INFO_S> io_buf_map;
+    std::unordered_map<std::string, BUFFER_INFO_S> io_buf_map;
 
 //    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
 //    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
                     params.push_back(out_desc);
 
                     BUFFER_INFO_S in_info;
-                    in_info.addr = (int64_t) (io_buf.second.st_ptr);
+                    in_info.addr = (int64_t) (io_buf.second.addr);
                     inputs.push_back(in_info);
 
                     BUFFER_INFO_S out_info;

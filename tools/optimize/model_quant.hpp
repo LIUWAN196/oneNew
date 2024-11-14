@@ -148,7 +148,7 @@ int quant_percent(std::unordered_map<std::string, float> &threshold_map, net *ne
 
     extractor* exe_net = net_1->create_exe();
 
-    std::unordered_map<std::string, BUF_INFO_S> io_buf_map;
+    std::unordered_map<std::string, BUFFER_INFO_S> io_buf_map;
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
@@ -249,7 +249,7 @@ int quant_percent(std::unordered_map<std::string, float> &threshold_map, net *ne
             if (strcmp(op.get()->op_type, "Conv") == 0)
             {
                 std::string ifmap_name = op.get()->in_operands[0];
-                float *ifmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].st_ptr;
+                float *ifmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].addr;
                 int32_t ifmap_elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
                 std::vector<float> cur_ifmap(ifmap_elem_size, 0);
                 memcpy(&cur_ifmap[0], ifmap_ptr, ifmap_elem_size * sizeof(float));
@@ -293,7 +293,7 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
 
     extractor* exe_net = net_1->create_exe();
 
-    std::unordered_map<std::string, BUF_INFO_S> io_buf_map;
+    std::unordered_map<std::string, BUFFER_INFO_S> io_buf_map;
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
@@ -350,7 +350,7 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
             max_elem_map[ifmap_name] = 0.0f;
             float psum = 0.0f;
 
-            float * fmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].st_ptr;
+            float * fmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].addr;
             int64_t elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
             for (int i = 0; i < elem_size; ++i) {
                 psum += fmap_ptr[i];
@@ -398,7 +398,7 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
             {
                 std::string ifmap_name = op.get()->in_operands[0];
 
-                float * fmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].st_ptr;
+                float * fmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].addr;
                 int64_t elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
                 float max_abs = 0.0f;
                 for (int i = 0; i < elem_size; ++i) {
@@ -443,7 +443,7 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
                 std::string ifmap_name = op.get()->in_operands[0];
                 float cur_ifmap_max = max_elem_map[ifmap_name];
 
-                float * ofmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].st_ptr;
+                float * ofmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].addr;
                 int64_t elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
                 for (int i = 0; i < elem_size; ++i) {
                     if (ofmap_ptr[i] == 0.0f){
@@ -567,7 +567,7 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
 
     extractor* exe_net = net_1->create_exe();
 
-    std::unordered_map<std::string, BUF_INFO_S> io_buf_map;
+    std::unordered_map<std::string, BUFFER_INFO_S> io_buf_map;
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
@@ -626,7 +626,7 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
             max_elem_map[ifmap_name] = 0.0f;
 
             float psum = 0.0f;
-            float * fmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].st_ptr;
+            float * fmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].addr;
             int64_t elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
             for (int i = 0; i < elem_size; ++i) {
                 psum += fmap_ptr[i];
@@ -681,7 +681,7 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
             {
                 std::string ifmap_name = op.get()->in_operands[0];
 
-                float * fmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].st_ptr;
+                float * fmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].addr;
                 int64_t elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
                 float max_abs = 0.0f;
                 for (int i = 0; i < elem_size; ++i) {
@@ -726,7 +726,7 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
                 std::string ifmap_name = op.get()->in_operands[0];
                 float cur_ifmap_max = max_elem_map[ifmap_name];
 
-                float * ofmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].st_ptr;
+                float * ofmap_ptr = (float *)exe_net->operand_buf_map[ifmap_name].addr;
                 int64_t elem_size = exe_net->operand_buf_map[ifmap_name].elem_size;
                 for (int i = 0; i < elem_size; ++i) {
                     if (ofmap_ptr[i] == 0.0f){

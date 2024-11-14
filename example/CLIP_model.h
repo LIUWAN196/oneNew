@@ -181,7 +181,7 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
-    std::unordered_map<std::string, BUF_INFO_S> io_buf_map;
+    std::unordered_map<std::string, BUFFER_INFO_S> io_buf_map;
 
 
 
@@ -225,10 +225,10 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
         std::string img_path = img_folder_path + img_name_vec[img_i];
 
         transforms(in_buf, img_path, trans_cfg);
-        int64_t st_ptr = (int64_t)(&in_buf[0]);
+        int64_t addr = (int64_t)(&in_buf[0]);
         int32_t elem_size = (int64_t)(in_buf.size());
         int32_t buf_size = (int64_t)(elem_size * sizeof(float));
-        io_buf_map[in_operand_name] = {st_ptr, elem_size, buf_size};
+        io_buf_map[in_operand_name] = {addr, elem_size, buf_size};
 
         std::string ifmap_folder = cfg_info_map["ofmap_folder"];
         std::string ifmap_name("model_ifmap.bin");
@@ -240,9 +240,9 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
 
         std::string ofmap = "image_features";
 
-        BUF_INFO_S ofmap_info = io_buf_map[ofmap];
+        BUFFER_INFO_S ofmap_info = io_buf_map[ofmap];
         std::vector<float> clip_img_ofmap(ofmap_info.elem_size);
-        memcpy(&clip_img_ofmap[0], (void *)ofmap_info.st_ptr, ofmap_info.buf_size);
+        memcpy(&clip_img_ofmap[0], (void *)ofmap_info.addr, ofmap_info.buf_size);
 
         // 处理 img 的输出
         double psum = 0;
@@ -306,7 +306,7 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
         auto* txt_ifmap_of_model = (io*)txt_exe_net->net_ptr->op_exec_order[0].get();
         std::string txt_in_operand_name = txt_ifmap_of_model->io_cfg.operand.operand_name;
 
-        std::unordered_map<std::string, BUF_INFO_S> txt_io_buf_map;
+        std::unordered_map<std::string, BUFFER_INFO_S> txt_io_buf_map;
 
         std::vector<int> texts = str2number<int>(token_list);
 //        std::vector<int> texts = str2number<int>(cfg_info_map["token_list"]);
@@ -338,9 +338,9 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
 
         std::string txt_ofmap = "text_features";
 
-        BUF_INFO_S ofmap_info = txt_io_buf_map[txt_ofmap];
+        BUFFER_INFO_S ofmap_info = txt_io_buf_map[txt_ofmap];
         std::vector<float> clip_txt_ofmap(ofmap_info.elem_size);
-        memcpy(&clip_txt_ofmap[0], (void *)ofmap_info.st_ptr, ofmap_info.buf_size);
+        memcpy(&clip_txt_ofmap[0], (void *)ofmap_info.addr, ofmap_info.buf_size);
 
         // 计算图片和文字的匹配程度
         std::vector<std::pair<std::string, float>> img_sim;

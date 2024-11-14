@@ -10,7 +10,7 @@
 struct MouseCallbackContext {
     extractor* decoder_exe_net;
     cv::Mat image_resized;
-    std::unordered_map<std::string, BUF_INFO_S> decoder_io_buf_map;
+    std::unordered_map<std::string, BUFFER_INFO_S> decoder_io_buf_map;
     std::unordered_map<std::string, std::string> cfg_info_map;
 };
 
@@ -19,7 +19,7 @@ void mouseCallback(int event, int x, int y, int, void* userdata) {
     MouseCallbackContext* context = static_cast<MouseCallbackContext*>(userdata);
     extractor* decoder_exe_net = context->decoder_exe_net;
     cv::Mat image_resized = context->image_resized;
-    std::unordered_map<std::string, BUF_INFO_S> decoder_io_buf_map = context->decoder_io_buf_map;
+    std::unordered_map<std::string, BUFFER_INFO_S> decoder_io_buf_map = context->decoder_io_buf_map;
     std::unordered_map<std::string, std::string> cfg_info_map = context->cfg_info_map;
     if (event == cv::EVENT_LBUTTONDOWN) {
         int32_t w_coord = cv::Point(x, y).x;
@@ -39,9 +39,9 @@ void mouseCallback(int event, int x, int y, int, void* userdata) {
         decoder_exe_net->impl(decoder_io_buf_map, cfg_info_map);
         std::string sam_model_ofmap = "masks";
 
-        BUF_INFO_S decoder_ofmap_info = decoder_io_buf_map[sam_model_ofmap];
+        BUFFER_INFO_S decoder_ofmap_info = decoder_io_buf_map[sam_model_ofmap];
         std::vector<float> decoder_ofmap(decoder_ofmap_info.elem_size);
-        memcpy(&decoder_ofmap[0], (void *)decoder_ofmap_info.st_ptr, decoder_ofmap_info.buf_size);
+        memcpy(&decoder_ofmap[0], (void *)decoder_ofmap_info.addr, decoder_ofmap_info.buf_size);
 
 
         // 开始准备绘制带 mask 的图像
@@ -74,7 +74,7 @@ int do_mobile_sam(std::unordered_map<std::string, std::string> cfg_info_map) {
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
-    std::unordered_map<std::string, BUF_INFO_S> io_buf_map;
+    std::unordered_map<std::string, BUFFER_INFO_S> io_buf_map;
 
 //    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
 //    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
@@ -106,10 +106,10 @@ int do_mobile_sam(std::unordered_map<std::string, std::string> cfg_info_map) {
     std::string img_path = cfg_info_map["input_data_path"];
 
     transforms(in_buf, img_path, trans_cfg);
-    int64_t st_ptr = (int64_t)(&in_buf[0]);
+    int64_t addr = (int64_t)(&in_buf[0]);
     int32_t elem_size = (int64_t)(in_buf.size());
     int32_t buf_size = (int64_t)(elem_size * sizeof(float));
-    io_buf_map[in_operand_name] = {st_ptr, elem_size, buf_size};
+    io_buf_map[in_operand_name] = {addr, elem_size, buf_size};
 
     std::string ifmap_folder = cfg_info_map["ofmap_folder"];
     std::string ifmap_name("model_ifmap.bin");
@@ -120,13 +120,13 @@ int do_mobile_sam(std::unordered_map<std::string, std::string> cfg_info_map) {
     exe_net->impl(io_buf_map, cfg_info_map);
 
     std::string ofmap = "image_embeddings";
-    BUF_INFO_S encoder_ofmap_info = io_buf_map[ofmap];
+    BUFFER_INFO_S encoder_ofmap_info = io_buf_map[ofmap];
 
 
 //    char *image_embeddings_buf = (char*) aligned_alloc(32, 256*64*64*sizeof(float));
 //    std::string file_name = "/home/wanzai/桌面/mobile_sam_test_img/image_embeddings";
 //    load_bin(file_name.c_str(), 256*64*64*sizeof(float), image_embeddings_buf);
-//    BUF_INFO_S encoder_ofmap_info = {(int64_t)image_embeddings_buf, 256*64*64, 256*64*64*sizeof(float)};
+//    BUFFER_INFO_S encoder_ofmap_info = {(int64_t)image_embeddings_buf, 256*64*64, 256*64*64*sizeof(float)};
 
 
     // do sam decoder
@@ -138,7 +138,7 @@ int do_mobile_sam(std::unordered_map<std::string, std::string> cfg_info_map) {
     std::string image_embeddings = "image_embeddings";
     std::string point_coords = "point_coords";
 
-    std::unordered_map<std::string, BUF_INFO_S> decoder_io_buf_map;
+    std::unordered_map<std::string, BUFFER_INFO_S> decoder_io_buf_map;
 
     // 将第一部分的 encoder 的结果给到 decoder 模型作为输入
     decoder_io_buf_map[image_embeddings] = encoder_ofmap_info;

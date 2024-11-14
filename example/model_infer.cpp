@@ -13,7 +13,6 @@
 #include <utility>
 #include "math.h"
 
-
 #include "CLIP_model.h"
 #include "MobileSAM_model.h"
 #include "Normal_model.h"
@@ -140,7 +139,6 @@ int32_t rt_cfg_check(std::unordered_map<std::string, std::string>& cfg_info_map)
     }
 
     std::string normal_mean = cfg_info_map["normal_mean"];
-
     if (normal_mean.empty()) {
         LOG_ERR("the args: normal_mean must be set, for example: [0.485ff, 0.456ff, 0.406ff]");
         return -1;
@@ -152,9 +150,31 @@ int32_t rt_cfg_check(std::unordered_map<std::string, std::string>& cfg_info_map)
         return -1;
     }
 
-    std::string topk = str2lower_str(cfg_info_map["topk"]);
-    if (topk.empty()) {    // default args: 5
-        set_default_args(cfg_info_map, "topk", "5");
+    if (str2lower_str(cfg_info_map["do_postprocess"]) == "true") {
+        std::string postprocess_type = cfg_info_map["postprocess_type"];
+        if (postprocess_type == "classify") {
+            std::string topk = str2lower_str(cfg_info_map["topk"]);
+            if (topk.empty()) {    // default args: 5
+                set_default_args(cfg_info_map, "topk", "5");
+            }
+        } else {
+            std::string score_threshold = str2lower_str(cfg_info_map["score_threshold"]);
+            if (score_threshold.empty()) {    // default args: 0.5
+                set_default_args(cfg_info_map, "score_threshold", "0.5");
+            }
+            std::string iou_threshold = str2lower_str(cfg_info_map["iou_threshold"]);
+            if (iou_threshold.empty()) {    // default args: 0.7
+                set_default_args(cfg_info_map, "iou_threshold", "0.7");
+            }
+        }
+
+        if (postprocess_type == "object_detect" || postprocess_type == "segment") {
+            std::string cls_num = str2lower_str(cfg_info_map["cls_num"]);
+            if (cls_num.empty()) {    // default args: 5
+                LOG_ERR("the args: cls_num must be set, for example: 80");
+                return -1;
+            }
+        }
     }
 
     if (str2lower_str(cfg_info_map["model_exc_type"]) != "perf_profiling") {
