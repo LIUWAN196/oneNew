@@ -152,10 +152,10 @@ cd /home/oneNew/a_rls_build/tools/onnx2one
 
 ### 9.4 runtime 性能分析  
 支持统计每个 layer 的耗时、计算量、硬件利用率等信息。同时给出每类 op 的总计计算量占比和硬件利用率。以 resnet50 模型为例：
-time line 如下：
+time line 如下：  
 ![time line](./docs/imgs/time_line.png)
 
-pref info 如下：
+pref info 如下：  
 ![pref info](./docs/imgs/pref_info.png)
 
 后续不久也会在此处，详述上述功能的具体使用方法。
