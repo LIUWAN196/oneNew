@@ -24,7 +24,7 @@ int do_pad_maxpool(char *dst_ptr, char *src_ptr, OPERAND_S *src_data_desc, PAD_I
         dst_f32[i] = pad_value;
     }
 //    memset(dst_ptr, dst_c * dst_h * dst_w * sizeof(float), pad_value);
-//#pragma omp parallel for num_threads(8)
+//#pragma omp parallel for num_threads(THREADS_NUM)
     for (int c_i = 0; c_i < dst_c; ++c_i) {
         for (int h_i = cfg->h; h_i < dst_h - cfg->h; ++h_i) {
             for (int w_i = cfg->w; w_i < dst_w - cfg->w; ++w_i) {

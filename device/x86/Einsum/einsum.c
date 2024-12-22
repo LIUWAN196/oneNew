@@ -160,7 +160,7 @@ int eval_ofmap_bmhwn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
         float * ifmap0_ptr = in0_transed_ptr + out_loop_i * ifmap0_inner_loop;
         float * ifmap1_ptr = in1_transed_ptr + out_loop_i * ifmap1_inner_loop;
         float * ofmap_ptr = output_ptr + out_loop_i * M * N;
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
         for (int m_i = 0; m_i < M; ++m_i) {
             float *cur_input0_ptr, *cur_input1_ptr;
             for (int n_i = 0; n_i < N; ++n_i) {
@@ -281,7 +281,7 @@ int eval_ofmap_bkhw(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S 
         float * ifmap1_ptr = input1_ptr + out_loop_i * ifmap1_inner_loop;
         float * ifmap0_ptr = in0_transed_ptr + out_loop_i * ifmap0_inner_loop;
         float * ofmap_ptr = output_ptr + out_loop_i * M * N;
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
         for (int m_i = 0; m_i < M; ++m_i) {
             float *cur_input0_ptr, *cur_input1_ptr;
             for (int n_i = 0; n_i < N; ++n_i) {

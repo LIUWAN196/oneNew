@@ -17,6 +17,17 @@
 #include <set>
 #include "algorithm"
 #include <omp.h>
+#include <cuda_runtime.h>
+//#include "cuda_runtime.h"
+
+#define CUDA_CHECK(call) \
+    do { \
+        cudaError_t err = call; \
+        if (err != cudaSuccess) { \
+            std::cerr << "CUDA error in " << __FILE__ << ":" << __LINE__ << " - " << cudaGetErrorString(err) << std::endl; \
+            exit(EXIT_FAILURE); \
+        } \
+    } while (0)
 
 // namespace one_new
 // {
@@ -70,9 +81,13 @@ public:
         one_file.close();
 
         // step 2: load one file
+#ifdef USING_GPU
+        cudaMallocManaged(&one_buf_ptr, one_file_size, cudaMemAttachGlobal);
+#else
         one_buf_ptr = (char *) aligned_alloc(32, one_file_size);
-        FILE *file_p = NULL;
+#endif
 
+        FILE *file_p = NULL;
         file_p = fopen(one_path, "r");
         if (file_p == NULL) {
             LOG_ERR("can't open the one file");
@@ -387,18 +402,20 @@ public:
 
 // } // namespace one_new
 
-bool startsWithAbc(const std::string& str) {
-    std::string a = "/image_encoder/blocks.5";
-    return str.compare(0, a.length(), a) == 0;
-}
-
 int extractor::new_output_buf() {
 //    printf("start new_output_buf\n");
 
     // 开辟一块公共空间，不允许在设备侧 malloc
     ONE_MODEL_DESC_S* one_model = (ONE_MODEL_DESC_S*)net_ptr->one_buf_ptr;
     PUBLIC_BUF_INFO_S* publice_buf = &one_model->useful_info.public_buf_info;
+
+#ifdef USING_GPU
+    int* public_buf_ptr = nullptr;
+    CUDA_CHECK(cudaMallocManaged(&public_buf_ptr, publice_buf->public_buf_size, cudaMemAttachGlobal));
+    publice_buf->public_buf_ptr = (int64_t)public_buf_ptr;
+#else
     publice_buf->public_buf_ptr = (int64_t)aligned_alloc(32, publice_buf->public_buf_size);
+#endif
 
     int64_t total_buf_size = 0;
     int32_t op_idx = 0;
@@ -408,17 +425,23 @@ int extractor::new_output_buf() {
         }
         int32_t elem_size = operand_elem_size(&operand.second);
         int32_t buf_size = elem_size * sizeof(float);
+
+#ifdef USING_GPU
+        int* cur_ptr = nullptr;
+        CUDA_CHECK(cudaMallocManaged(&cur_ptr, buf_size, cudaMemAttachGlobal));
+        int64_t cur_operand_ptr = (int64_t)cur_ptr;
+#else
         int64_t cur_operand_ptr = (int64_t)aligned_alloc(32, buf_size);
+#endif
 
         operand_buf_map[operand.first] = {cur_operand_ptr, elem_size, buf_size};
-        if (elem_size != 0 && startsWithAbc(operand.first.c_str())) {
-            total_buf_size += buf_size;
-            op_idx ++;
-            LOG_DBG("this is %dth op, and total buf size is %ld MB, operand name is %s, buf size is %f MB, elem_size is %d, shape is [%d, %d, %d, %d]",
-                    op_idx, total_buf_size / 1024 / 1024, operand.first.c_str(), elem_size * sizeof(float) * 1.0f / 1024 / 1024, elem_size, operand.second.shapes[0], operand.second.shapes[1],
-                    operand.second.shapes[2], operand.second.shapes[3]);
-        }
-
+//        if (elem_size != 0) {
+//            total_buf_size += buf_size;
+//            op_idx ++;
+//            LOG_DBG("this is %dth op, and total buf size is %ld MB, operand name is %s, buf size is %f MB, elem_size is %d, shape is [%d, %d, %d, %d]",
+//                    op_idx, total_buf_size / 1024 / 1024, operand.first.c_str(), elem_size * sizeof(float) * 1.0f / 1024 / 1024, elem_size, operand.second.shapes[0], operand.second.shapes[1],
+//                    operand.second.shapes[2], operand.second.shapes[3]);
+//        }
 
 //        LOG_DBG("this is %dth op, and total buf size is %ld", op_idx, total_buf_size);
 //        std::cout << "end new_output_buf for:" << operand.first << std::endl;

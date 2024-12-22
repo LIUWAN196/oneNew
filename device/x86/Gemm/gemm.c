@@ -36,7 +36,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
     int32_t N = out_tensor->shapes[out_tensor->dim_num_of_shapes - 1];
 
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int m_i = 0; m_i < M; ++m_i) {
         float *cur_input0_ptr, *cur_input1_ptr;
         int n_i = 0;

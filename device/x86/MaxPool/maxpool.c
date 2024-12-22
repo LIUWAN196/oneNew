@@ -64,7 +64,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     }
 
     // loop params
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int n_i = 0; n_i < out_n; ++n_i) {
         float *tmp_input_ptr;
         float *tmp_output_ptr;

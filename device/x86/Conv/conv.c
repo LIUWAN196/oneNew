@@ -204,7 +204,7 @@ int eval_1x1j1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outp
     }
 
     // 加偏置
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int i = 0; i < gemm_tile_info.M; i++) {
         int idx = i * gemm_tile_info.N;
 #pragma unroll 8
@@ -242,7 +242,7 @@ im2col(float *input_col_ptr, float *input_ptr, OPERAND_S *in_tensor, OPERAND_S *
     int32_t kHxkWxoutHxoutw = kernel_h * kernel_w * out_h * out_w;
 
     if (kernel_h == 3 && kernel_w == 3) {
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
         for (int col_h1 = 0; col_h1 < in_c; ++col_h1) {
             int32_t cur_in_h, cur_in_w;
             int32_t ifmap_offset, ofmap_offset;
@@ -280,7 +280,7 @@ im2col(float *input_col_ptr, float *input_ptr, OPERAND_S *in_tensor, OPERAND_S *
             }
         }
     } else {
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
         for (int col_h1 = 0; col_h1 < in_c; ++col_h1) {
             int32_t cur_in_h, cur_in_w;
             int32_t ifmap_offset, ofmap_offset;
@@ -334,7 +334,7 @@ int im2col_depth_wise(float *input_col_ptr, float *input_ptr, OPERAND_S *in_tens
 
     if (kernel_h == 3 && kernel_w == 3) {
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
         for (int col_h = 0; col_h < out_h; ++col_h) {
             int32_t cur_in_h, cur_in_w;
             int32_t ifmap_offset, ofmap_offset;
@@ -371,7 +371,7 @@ int im2col_depth_wise(float *input_col_ptr, float *input_ptr, OPERAND_S *in_tens
         }
 
     } else {
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
         for (int col_h = 0; col_h < out_h; ++col_h) {
             int32_t cur_in_h, cur_in_w;
             int32_t ifmap_offset, ofmap_offset;
@@ -419,7 +419,7 @@ int im2col_s8(int8_t *input_col_ptr, int8_t *input_ptr, OPERAND_S *in_tensor, OP
     int32_t stride_x = cfg->strides[0];
     int32_t stride_y = cfg->strides[1];
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int col_h1 = 0; col_h1 < in_c; ++col_h1) {
         for (int col_h2 = 0; col_h2 < kernel_h; ++col_h2) {
             for (int col_h3 = 0; col_h3 < kernel_w; ++col_h3) {
@@ -562,7 +562,7 @@ int eval_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
 //    }
 
     // 加偏置
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int i = 0; i < gemm_tile_info.M; i++) {
         int idx = i * gemm_tile_info.N;
 #pragma unroll 8
@@ -664,7 +664,7 @@ int eval_mxn_img2col_no_bias(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFE
     const int N = out_h * out_w;
     const int K = in_c * kernel_h * kernel_w;
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int i = 0; i < M; i++) {
         memset(&output_ptr[i * N], 0, N * sizeof(float));
         int idx_a, idx_b, idx_c;
@@ -851,7 +851,7 @@ int eval_depthwise_conv_mxn_img2col_W8A32(BUFFER_INFO_S *params, BUFFER_INFO_S *
         input_f32_ptr[i] = (tmp < -128) ? -128 : (tmp > 127) ? 127 : tmp;
     }
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int i = 0; i < in_c * in_h * in_w; i += 4) {
         input_s8_ptr[i] = (int8_t) (roundf(input_f32_ptr[i]));
         input_s8_ptr[i + 1] = (int8_t) (roundf(input_f32_ptr[i + 1]));
@@ -992,7 +992,7 @@ int eval_depthwise_conv_3x3_pad1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, B
         LOG_ERR("remaining buf size is %d, but need buf size is %d", (int32_t)rem_buf_size, (int32_t)pad_need_buf_size);
     }
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int c_i = 0; c_i < in_c; ++c_i) {
         float *cur_src_f32 = input_ptr + c_i * in_h * in_w;
         float *cur_dst_using_f32 = input_pad_h_ptr + c_i * (top_pad + in_h + bottom_pad) * in_w + top_pad * in_w;
@@ -1017,7 +1017,7 @@ int eval_depthwise_conv_3x3_pad1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, B
         out_w_align = out_w;
     }
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int outc_i = 0; outc_i < out_c; ++outc_i) {
         for (int outh_i = 0; outh_i < out_h; ++outh_i) {
             float *cur_weight_ptr = weight_ptr + outc_i * kernel_h * kernel_w;
@@ -1139,7 +1139,7 @@ int eval_mxn_img2col_W8A32_with_input_scale(BUFFER_INFO_S *params, BUFFER_INFO_S
         input_f32_ptr[i] = (tmp < -128) ? -128 : (tmp > 127) ? 127 : tmp;
     }
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int i = 0; i < in_c * in_h * in_w; i += 4) {
         input_s8_ptr[i] = (int8_t) (roundf(input_f32_ptr[i]));
         input_s8_ptr[i + 1] = (int8_t) (roundf(input_f32_ptr[i + 1]));
@@ -1196,7 +1196,7 @@ int eval_mxn_img2col_W8A32_with_input_scale(BUFFER_INFO_S *params, BUFFER_INFO_S
 
     int32_t *output_s32_ptr = (int32_t *) output_ptr;
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int i = 0; i < M; i++) {
         memset(&output_ptr[i * N], 0, N * sizeof(float));
         int idx_a, idx_b, idx_c;
@@ -1299,7 +1299,7 @@ eval_mxn_img2col_W8A32_with_input_scale_no_bias(BUFFER_INFO_S *params, BUFFER_IN
         input_f32_ptr[i] = (tmp < -128) ? -128 : (tmp > 127) ? 127 : tmp;
     }
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int i = 0; i < in_c * in_h * in_w; i += 4) {
         input_s8_ptr[i] = (int8_t) (roundf(input_f32_ptr[i]));
         input_s8_ptr[i + 1] = (int8_t) (roundf(input_f32_ptr[i + 1]));
@@ -1355,7 +1355,7 @@ eval_mxn_img2col_W8A32_with_input_scale_no_bias(BUFFER_INFO_S *params, BUFFER_IN
 
     int32_t *output_s32_ptr = (int32_t *) output_ptr;
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int i = 0; i < M; i++) {
         memset(&output_ptr[i * N], 0, N * sizeof(float));
         int idx_a, idx_b, idx_c;
@@ -1459,7 +1459,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
         float min =  0.0f;
         __m256 min_vec = _mm256_set1_ps(min);  // 将min广播到所有元素
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
         for (int elem_i = 0; elem_i < aligned_size; elem_i += 8) {
             __m256 vec = _mm256_loadu_ps(&output_ptr[elem_i]);
             // 执行clip操作
@@ -1495,7 +1495,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
         __m256 min_vec = _mm256_set1_ps(min);  // 将min广播到所有元素
         __m256 max_vec = _mm256_set1_ps(max);  // 将max广播到所有元素
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
         for (int elem_i = 0; elem_i < aligned_size; elem_i += 8) {
             __m256 vec = _mm256_loadu_ps(&output_ptr[elem_i]);
             // 执行clip操作

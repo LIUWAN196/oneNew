@@ -1,5 +1,4 @@
-
-# runtime params
+# resnet50 optimize config
 
 onnx_file_path: /media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/onnx_model/resnet50.onnx
 
@@ -7,7 +6,7 @@ do_preprocess: true
 
 do_postprocess: false
 
-one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/resnet50/resnet50.one
+one_file_path: /media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/onnx_model/resnet50.one
 
 dump_ifmap&ofmap: true
 
@@ -22,17 +21,16 @@ crop_shapes: [224, 224]
 normal_mean: [0.485ff, 0.456ff, 0.406ff]
 normal_std: [0.229f, 0.224f, 0.225f]
 
-
 # opt params
-optimize_type: op_fusion
-#optimize_type: op_fusion&model_quant
-#optimize_type: op_fusion&auto_tuning
+#optimize_type: op_fusion
 
 calibrate_img_name_txt_path: /home/wanzai/桌面/img_name.txt
 
 calibrate_img_folder: /media/wanzai/File/imageNet/
 
-calibrate_img_num: 1
+calibrate_img_num: 32
 
-quant_type: kl
+quant_type: mse
+
+
 

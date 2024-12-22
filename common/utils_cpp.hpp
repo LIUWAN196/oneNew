@@ -207,34 +207,32 @@ int yml2map(std::unordered_map<std::string, std::string>& cfg_info_map, const st
     // step 2: read yml cfg to cfg_info_map
     std::string line;
     while (std::getline(file, line)) {
-        // 跳过以 # 或 - 开头的行
-        if (line.empty() || line[0] == '#' || line[0] == '-') {
+        if (line.empty()) {
+            continue;
+        }
+        // 去除行首的空格
+        line.erase(0, line.find_first_not_of(" \t"));
+
+        // 跳过以 # 或 - { } 开头的行
+        if (line[0] == '#' || line[0] == '-' || line == "{" || line == "}") {
             continue;
         }
 
         // 使用 : 作为分隔符
         size_t pos = line.find(':');
         if (pos != std::string::npos) {
+
             std::string key = line.substr(0, pos);
             std::string value = line.substr(pos + 1);  // 跳过 : 字符
             value.erase(remove_if(value.begin(), value.end(), ::isspace), value.end());
 
             // 存储到 unordered_map 中
+            if (value.empty()) {
+                continue;
+            }
             cfg_info_map[key] = value;
         }
     }
-
-    // step 4: is the value of the corresponding key is empty, set default cfg
-//    set_default_args(cfg_info_map, "topk", "5");
-//    set_default_args(cfg_info_map, "ifmap_num", "3");
-//    set_default_args(cfg_info_map, "anchor_num", "3");
-//    set_default_args(cfg_info_map, "anchor_scale_table",
-//                     "[116, 90, 156, 198, 373, 326], [30, 61, 62, 5, 59, 119], [10, 13, 16, 30, 33, 23]");
-//    set_default_args(cfg_info_map, "cls_num", "80");
-//    set_default_args(cfg_info_map, "max_boxes_per_class", "60");
-//    set_default_args(cfg_info_map, "max_boxes_per_batch", "200");
-//    set_default_args(cfg_info_map, "score_threshold", "0.5f");
-//    set_default_args(cfg_info_map, "iou_threshold", "0.4f");
 
     file.close();
     return 0;

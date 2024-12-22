@@ -92,7 +92,7 @@ int32_t fun_0(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_te
     float *output_ptr = (float *) (ofmap_tensor.p_data);
 
     int32_t ofmap_elem_size = operand_elem_size(&ofmap_tensor);
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int i = 0; i < ofmap_elem_size; ++i) {
         output_ptr[i] = input0_ptr[i] + input1_ptr[i];
     }
@@ -108,7 +108,7 @@ int32_t fun_1(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S large_te
     float *output_ptr = (float *) (ofmap_tensor.p_data);
 
     int32_t ofmap_elem_size = operand_elem_size(&ofmap_tensor);
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int i = 0; i < ofmap_elem_size; ++i) {
         output_ptr[i] = large_ptr[i] + small_ptr[0];
     }
@@ -169,7 +169,7 @@ int32_t fun_2_dim3(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S lar
     int32_t small_stride2 = (small_dim2 == 1) ? 0 : 1;
 
     // 开始做加法
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int dim0_i = 0; dim0_i < large_dim0; ++dim0_i) {
         float *cur_ofmap_ptr, *cur_large_ptr, *cur_small_ptr;
         for (int dim1_i = 0; dim1_i < large_dim1; ++dim1_i) {
@@ -217,7 +217,7 @@ int32_t fun_2_dim4(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S lar
     int32_t small_stride3 = (small_dim3 == 1) ? 0 : 1;
 
     // 开始做加法
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int dim0_i = 0; dim0_i < large_dim0; ++dim0_i) {
         float *cur_ofmap_ptr, *cur_large_ptr, *cur_small_ptr;
         for (int dim1_i = 0; dim1_i < large_dim1; ++dim1_i) {
@@ -271,7 +271,7 @@ int32_t fun_2_dim5(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S lar
     int32_t small_stride4 = (small_dim4 == 1) ? 0 : 1;
 
     // 开始做加法
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int dim0_i = 0; dim0_i < large_dim0; ++dim0_i) {
         float *cur_ofmap_ptr, *cur_large_ptr, *cur_small_ptr;
         for (int dim1_i = 0; dim1_i < large_dim1; ++dim1_i) {
@@ -334,7 +334,7 @@ int32_t fun_2_dim6(OPERAND_S ofmap_tensor, OPERAND_S small_tensor, OPERAND_S lar
     int32_t small_stride5 = (small_dim5 == 1) ? 0 : 1;
 
     // 开始做加法
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int dim0_i = 0; dim0_i < large_dim0; ++dim0_i) {
         float *cur_ofmap_ptr, *cur_large_ptr, *cur_small_ptr;
         for (int dim1_i = 0; dim1_i < large_dim1; ++dim1_i) {

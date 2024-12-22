@@ -2,6 +2,12 @@ find_package(protobuf CONFIG)
 
 #set(CMAKE_BUILD_TYPE DEBUG)
 
+if(DEFINED USING_GPU)
+    find_package(CUDA REQUIRED)
+    include_directories(/usr/local/cuda/include)
+    link_directories(/usr/local/cuda/lib64)
+endif()
+
 find_package(OpenMP REQUIRED)
 find_package(OpenCV REQUIRED)
 
@@ -46,5 +52,7 @@ endif()
 target_link_libraries(onnx2one PRIVATE ${OpenCV_LIBS})
 target_link_libraries(onnx2one PRIVATE dl)
 target_link_libraries(onnx2one PRIVATE OpenMP::OpenMP_CXX)
-target_link_libraries(onnx2one PRIVATE OpenMP::OpenMP_C)
 
+if(DEFINED USING_GPU)
+    target_link_libraries(onnx2one PRIVATE ${CUDA_LIBRARIES} ${CUDA_CUDART_LIBRARY})
+endif()

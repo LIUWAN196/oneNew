@@ -2,9 +2,11 @@ cmake_minimum_required(VERSION 3.10.1)
 set(PROJECTNAME example)
 project(${PROJECTNAME})
 
-#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O3 -g")
-#set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O3 -g")
-
+if(DEFINED USING_GPU)
+    find_package(CUDA REQUIRED)
+    include_directories(/usr/local/cuda/include)
+    link_directories(/usr/local/cuda/lib64)
+endif()
 
 find_package(OpenCV REQUIRED)
 find_package(Threads REQUIRED)
@@ -19,6 +21,10 @@ target_link_libraries(model_infer Threads::Threads)
 target_link_libraries(model_infer  ${OpenCV_LIBS})
 target_link_libraries(model_infer OpenMP::OpenMP_CXX)
 target_link_libraries(model_infer OpenMP::OpenMP_C)
+
+if(DEFINED USING_GPU)
+    target_link_libraries(model_infer ${CUDA_LIBRARIES} ${CUDA_CUDART_LIBRARY})
+endif()
 
 
 

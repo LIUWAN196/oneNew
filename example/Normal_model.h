@@ -19,6 +19,7 @@
 #include <string>
 #include <utility>
 #include "math.h"
+#include <memory>
 
 #include "post_process.hpp"
 
@@ -60,7 +61,7 @@ int do_normal_model(std::unordered_map<std::string, std::string> cfg_info_map) {
         write_bin(ifmap_path.c_str(), in_elem_size * sizeof(float), (char *)&in_buf[0]);
         exe_net->impl_dump_ofmap(io_buf_map, cfg_info_map);
     } else if (cfg_info_map["model_exc_type"] == "perf_profiling") {
-        const int32_t repeat_cnt = 5;  // 前 4 次预热，最后保留下来的是第五次的耗时
+        const int32_t repeat_cnt = 10;  // 前 9 次预热，最后保留下来的是第 10 次的耗时
         for (int cnt_i = 0; cnt_i < repeat_cnt; ++cnt_i) {
             exe_net->impl_tracing(io_buf_map, cfg_info_map);
         }
@@ -87,19 +88,22 @@ int do_normal_model(std::unordered_map<std::string, std::string> cfg_info_map) {
         return 0;
     }
 
+    std::unique_ptr<PostProcessPerform> post_process_cls;
     if (cfg_info_map["postprocess_type"] == "classify") {
-        ClassifyPerform classify_cls(cfg_info_map, io_buf_map, in_operand_name);
-        classify_cls.do_post_process();
+        post_process_cls = std::make_unique<ClassifyPerform>(cfg_info_map, io_buf_map, in_operand_name);
     } else if (cfg_info_map["postprocess_type"] == "object_detect") {
-        ObjectDetectPerform obj_detect_cls(cfg_info_map, io_buf_map, in_operand_name);
-        obj_detect_cls.do_post_process();
+        post_process_cls = std::make_unique<ObjectDetectPerform>(cfg_info_map, io_buf_map, in_operand_name);
     } else if (cfg_info_map["postprocess_type"] == "pose_detect") {
-        PoseDetectPerform pose_detect_cls(cfg_info_map, io_buf_map, in_operand_name);
-        pose_detect_cls.do_post_process();
+        post_process_cls = std::make_unique<PoseDetectPerform>(cfg_info_map, io_buf_map, in_operand_name);
     } else if (cfg_info_map["postprocess_type"] == "segment") {
-        SegmentPerform segment_cls(cfg_info_map, io_buf_map, in_operand_name);
-        segment_cls.do_post_process();
+        post_process_cls = std::make_unique<SegmentPerform>(cfg_info_map, io_buf_map, in_operand_name);
     }
+
+    if (!post_process_cls) {
+        LOG_ERR("post_process_cls == nullptr, please check post process setting");
+        return 0;
+    }
+    post_process_cls->do_post_process();
 
     return 0;
 

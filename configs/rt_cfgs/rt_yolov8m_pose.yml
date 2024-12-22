@@ -1,0 +1,40 @@
+# yolo runtime config
+
+{
+  contents:
+    preprocess:
+    backbone:
+    postprocess:
+}
+
+  {
+    preprocess:
+      do_preprocess: true
+      resize_shapes: [640, 640]
+      crop_shapes: [640, 640]
+      normal_mean: [0.0f, 0.0f, 0.0f]
+      normal_std: [1.0f, 1.0f, 1.0f]
+  }
+
+  {
+    backbone:
+      one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/yolov8m_pose/yolov8m_pose.one
+
+      input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/street.jpg
+
+      model_exc_type: efficient_exc
+  }
+
+  {
+    postprocess:
+      do_postprocess: true
+
+      postprocess_type: pose_detect
+
+#      net_type: rt_detr
+      cls_num: 80
+      score_threshold: 0.3
+      iou_threshold: 0.6
+
+  }
+

@@ -46,36 +46,47 @@ public:
         char *op_type = (char *) (cfg_ptr);
         std::string op_lib_name(op_type);
 
+//        if (op_lib_name == "Gemm") {
+//            std::cout << "the op lib name is " << op_lib_name << std::endl;
+//        }
+
         char op_cuda_lib_path[256] = {0};
         char op_x86_lib_path[256] = {0};
-        char op_naive_lib_path[256] = {0};
 
-//        snprintf(op_cuda_lib_path, sizeof(op_cuda_lib_path), "%s%s%s%s%s", OP_CU_LIB_DIR, op_lib_name.c_str(), "/lib",
-//                 op_lib_name.c_str(), "_cu.so");
-
+#ifdef USING_GPU
+        snprintf(op_cuda_lib_path, sizeof(op_cuda_lib_path), "%s%s%s%s%s%s", OP_CU_LIB_DIR, "/", op_lib_name.c_str(), "/lib",
+                 op_lib_name.c_str(), "_cu.so");
+#endif
         snprintf(op_x86_lib_path, sizeof(op_x86_lib_path), "%s%s%s%s%s%s", OP_X86_LIB_DIR, "/", op_lib_name.c_str(), "/lib",
                  op_lib_name.c_str(), "_x86.so");
-//        std::cout << op_x86_lib_path << std::endl;
 
-//        void *cuda_handle = NULL;
-//        cuda_handle = dlopen(op_cuda_lib_path, RTLD_LAZY);
+        std::string op_cuda_lib_path_str(op_cuda_lib_path);
+        std::string op_x86_lib_path_str(op_x86_lib_path);
+
+#ifdef USING_GPU
+        void *cuda_handle = NULL;
+        cuda_handle = dlopen(op_cuda_lib_path, RTLD_LAZY);
+#endif
 
         void *x86_handle = NULL;
         x86_handle = dlopen(op_x86_lib_path, RTLD_LAZY);
 
-//        if (cuda_handle != NULL) {
-//            std::cout << "the handle of " << op_type << " op (cuda platform)  is find. " << std::endl;
-//            evla_impl = (int (*)(BUFFER_INFO_S *, BUFFER_INFO_S *, BUFFER_INFO_S *)) dlsym(cuda_handle, "eval");
-//            return 0;
-//        }
-
         if (x86_handle != NULL) {
-//            std::cout << "the handle of " << op_type << " op (x86 platform)  is find. " << std::endl;
             evla_impl = (int (*)(BUFFER_INFO_S *, BUFFER_INFO_S *, BUFFER_INFO_S *)) dlsym(x86_handle, "eval");
             return 0;
         }
 
-        std::cout << "the handle of " << op_type << " op is not find. " << std::endl;
+#ifdef USING_GPU
+        if (cuda_handle != NULL) {
+            std::cout << "the handle of " << op_type << " op (cuda platform)  is find. " << std::endl;
+            evla_impl = (int (*)(BUFFER_INFO_S *, BUFFER_INFO_S *, BUFFER_INFO_S *)) dlsym(cuda_handle, "eval");
+            return 0;
+        }
+#endif
+
+        LOG_ERR("the handle of %s op is not find.", op_type);
+
+//        std::cout << "the handle of " << op_type << " op is not find. " << std::endl;
         return 0;
     };
 

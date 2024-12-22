@@ -43,7 +43,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     const int32_t num_threads = 8;
     // 如果 matmul 这个算子的最外层循环很大或者为 num_threads 整数倍， 则多线程在 opt_gemm 外部，避免线程的创建开销
     if (out_loop % num_threads == 0 || out_loop > 8 * num_threads) {
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
         for (int out_loop_i = 0; out_loop_i < out_loop; ++out_loop_i) {
             float *cur_input0_ptr, *cur_input1_ptr, *cur_output_ptr;
             cur_input0_ptr = input0_ptr + out_loop_i * M * K;

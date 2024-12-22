@@ -1,0 +1,19 @@
+# resnet50 runtime config
+
+do_preprocess: true
+
+do_postprocess: true
+
+one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/mobilenet_v2/mobilenet_v2.one
+
+input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/dog.png
+
+model_exc_type: efficient_exc
+
+postprocess_type: classify
+
+resize_shapes: [256, 256]
+crop_shapes: [224, 224]
+normal_mean: [0.485ff, 0.456ff, 0.406ff]
+normal_std: [0.229f, 0.224f, 0.225f]
+

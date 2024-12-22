@@ -46,7 +46,7 @@ int eval_conv_transpose_mxn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER
     int32_t out_h = out_tensor->shapes[2];
     int32_t out_w = out_tensor->shapes[3];
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int outc_i = 0; outc_i < out_c; ++outc_i) {
         float * cur_input_ptr = input_ptr;
         float * cur_output_ptr = output_ptr + outc_i * out_h * out_w;

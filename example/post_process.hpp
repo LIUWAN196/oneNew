@@ -73,12 +73,14 @@ public:
         show_result();
     }
 
+    virtual ~PostProcessPerform() = default;
+
 };
 
 class ClassifyPerform : public PostProcessPerform
 {
 public:
-    int32_t cls_num;
+    int32_t cls_num{};
     ARGMAX_CONFIG_S argmax_cfg{};
     std::vector<int32_t> argmax_out_info;
 
@@ -140,6 +142,10 @@ public:
         printf("\n");
 
         return 0;
+    }
+
+    ~ClassifyPerform () override {
+        ;
     }
 
 };
@@ -243,8 +249,10 @@ public:
             int classId = detect_out_info[box_i].cls_id;
             float score = detect_out_info[box_i].score;
 
+            cv::Scalar color((135 + classId * 67) % 225, (116 + classId * 23) % 225, (190 + classId * 44) % 225); // BGR
+
             // 绘制矩形框
-            cv::rectangle(image, boundingBox, cv::Scalar(0, 255, 0), 2);
+            cv::rectangle(image, boundingBox, color, 2);
 
             // 准备显示的文本
             std::ostringstream label;
@@ -259,21 +267,31 @@ public:
             // 在矩形框的左上角绘制文本背景色
             cv::rectangle(image, cv::Point(boundingBox.x, boundingBox.y),
                           cv::Point(boundingBox.x + textSize.width, boundingBox.y - textSize.height - 10),
-                          cv::Scalar(0, 255, 0), -1); // 填充矩形
+                          color, -1); // 填充矩形
 
             // 在矩形框的左上角添加文本
             cv::putText(image, label.str(),
-                        cv::Point(boundingBox.x, boundingBox.y - 5), // 文本位置
+                        cv::Point(boundingBox.x, boundingBox.y - 6), // 文本位置
                         fontFace, fontScale, cv::Scalar(0, 0, 0), thickness);
 
             box_i++;
         }
 
         // 显示图片
-        cv::imshow("Image with Bounding Box and Label", image);
+        cv::Mat img_show;
+
+        const int show_len = 960;
+        float ratio = show_len * 1.0f / (image.rows > image.cols ? image.rows : image.cols);
+        cv::resize(image, img_show, cv::Size((int)(ratio * image.cols), (int)(ratio * image.rows)), 0, 0, cv::INTER_LINEAR);
+
+        cv::imshow("Image with Bounding Box and Label", img_show);
         cv::waitKey(0); // 按任意键关闭窗口
 
         return 0;
+    }
+
+    ~ObjectDetectPerform() override {
+        ;
     }
 
 };
@@ -362,12 +380,13 @@ public:
             int classId = detect_out_info[box_i].cls_id;
             float score = detect_out_info[box_i].score;
 
+            cv::Scalar color((135 + box_i * 67) % 225, (116 + box_i * 23) % 225, (190 + box_i * 44) % 225); // BGR
+
             // 绘制矩形框
-            cv::rectangle(image, boundingBox, cv::Scalar(0, 255, 0), 2);
+            cv::rectangle(image, boundingBox, color, 2);
 
             // 绘制 17 个关键点
             {
-                cv::Scalar color(255, 255, 0); // BGR颜色，这里设置为蓝色
                 int radius = 3; // 小点的半径
                 int thickness = -1; // 如果厚度为-1，则填充圆圈
 
@@ -395,21 +414,31 @@ public:
             // 在矩形框的左上角绘制文本背景色
             cv::rectangle(image, cv::Point(boundingBox.x, boundingBox.y),
                           cv::Point(boundingBox.x + textSize.width, boundingBox.y - textSize.height - 10),
-                          cv::Scalar(0, 255, 0), -1); // 填充矩形
+                          color, -1); // 填充矩形
 
             // 在矩形框的左上角添加文本
             cv::putText(image, label.str(),
-                        cv::Point(boundingBox.x, boundingBox.y - 5), // 文本位置
-                        fontFace, fontScale, cv::Scalar(0, 0, 0), thickness);
+                        cv::Point(boundingBox.x, boundingBox.y - 6), // 文本位置
+                        fontFace, fontScale, cv::Scalar(0,255,0), thickness);
 
             box_i++;
         }
 
         // 显示图片
-        cv::imshow("Image with Bounding Box and Label", image);
+        cv::Mat img_show;
+
+        const int show_len = 960;
+        float ratio = show_len * 1.0f / (image.rows > image.cols ? image.rows : image.cols);
+        cv::resize(image, img_show, cv::Size((int)(ratio * image.cols), (int)(ratio * image.rows)), 0, 0, cv::INTER_LINEAR);
+
+        cv::imshow("Image with Bounding Box and Label", img_show);
         cv::waitKey(0); // 按任意键关闭窗口
 
         return 0;
+    }
+
+    ~PoseDetectPerform() override {
+        ;
     }
 
 };
@@ -518,8 +547,10 @@ public:
             int classId = segment_info[box_i].cls_id;
             float score = segment_info[box_i].score;
 
+            cv::Scalar mask_color_1((135 + classId * 56) % 225, (116 + classId * 87) % 225, (190 + classId * 123) % 225); // BGR
+
             // 绘制矩形框
-            cv::rectangle(image, boundingBox, cv::Scalar(0, 255, 0), 2);
+            cv::rectangle(image, boundingBox, mask_color_1, 2);
 
             // 准备显示的文本
             std::ostringstream label;
@@ -534,11 +565,11 @@ public:
             // 在矩形框的左上角绘制文本背景色
             cv::rectangle(image, cv::Point(boundingBox.x, boundingBox.y),
                           cv::Point(boundingBox.x + textSize.width, boundingBox.y - textSize.height - 10),
-                          cv::Scalar(0, 255, 0), -1); // 填充矩形
+                          mask_color_1, -1); // 填充矩形
 
             // 在矩形框的左上角添加文本
             cv::putText(image, label.str(),
-                        cv::Point(boundingBox.x, boundingBox.y - 5), // 文本位置
+                        cv::Point(boundingBox.x, boundingBox.y - 6), // 文本位置
                         fontFace, fontScale, cv::Scalar(0, 0, 0), thickness);
 
             // 为图像加 mask
@@ -555,17 +586,26 @@ public:
                 }
             }
 
-            cv::Scalar mask_color_1((135 + classId * 56) % 225, (116 + classId * 87) % 225, (190 + classId * 123) % 225); // BGR
+
             image = get_masked_img(image, mask, mask_color_1);
             box_i++;
         }
 
         // 显示图片
-        cv::imshow("Image with Bounding Box and Label", image);
+        cv::Mat img_show;
+
+        const int show_len = 960;
+        float ratio = show_len * 1.0f / (image.rows > image.cols ? image.rows : image.cols);
+        cv::resize(image, img_show, cv::Size((int)(ratio * image.cols), (int)(ratio * image.rows)), 0, 0, cv::INTER_LINEAR);
+
+        cv::imshow("Image with Bounding Box and Label", img_show);
         cv::waitKey(0); // 按任意键关闭窗口
 
         return 0;
     }
+
+    ~SegmentPerform() override {
+           }
 
 };
 #endif //ONENEW_POSTPROCESS_H

@@ -3,6 +3,9 @@
 #include <vector>
 #include <functional>
 #include <algorithm>
+
+#include "cuda_runtime.h"
+
 #include "ops_head.h"
 #include "net.h"
 #include <dirent.h>
@@ -17,7 +20,7 @@
 #include "MobileSAM_model.h"
 #include "Normal_model.h"
 
-int32_t rt_cfg_check(std::unordered_map<std::string, std::string>& cfg_info_map){
+int32_t rt_cfg_check(std::unordered_map<std::string, std::string> &cfg_info_map) {
 
     std::string do_preprocess = str2lower_str(cfg_info_map["do_preprocess"]);
     if (do_preprocess.empty()) {    // default args: true
@@ -170,8 +173,17 @@ int32_t rt_cfg_check(std::unordered_map<std::string, std::string>& cfg_info_map)
 
         if (postprocess_type == "object_detect" || postprocess_type == "segment") {
             std::string cls_num = str2lower_str(cfg_info_map["cls_num"]);
-            if (cls_num.empty()) {    // default args: 5
+            if (cls_num.empty()) {
                 LOG_ERR("the args: cls_num must be set, for example: 80");
+                return -1;
+            }
+        }
+
+        if (postprocess_type == "object_detect") {
+            std::string net_type = str2lower_str(cfg_info_map["net_type"]);
+            if (net_type.empty()) {
+                LOG_ERR("the args: net_type must be set: "
+                        "yolo_v3、yolo_v5、yolo_v7、yolo_v8、yolo_v10、yolo_world、rt_detr\");");
                 return -1;
             }
         }
@@ -197,10 +209,8 @@ int32_t rt_cfg_check(std::unordered_map<std::string, std::string>& cfg_info_map)
     return 0;
 }
 
-int main(int argc, char **argv)
-{
-    if (argc != 2)
-    {
+int main(int argc, char **argv) {
+    if (argc != 2) {
         LOG_ERR("Usage: %s [runtime.yml]，for example: model_and_cfg_zoo/configs/samples/runtime_sample.yml]", argv[0]);
     }
     const char *rt_cfg_txt = argv[1];

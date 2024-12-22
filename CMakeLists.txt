@@ -4,6 +4,10 @@ project(${PROJECTNAME})
 
 set(ROOT_DIR_PATH ${CMAKE_CURRENT_LIST_DIR})
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 # 默认为 Debug 版本
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the type of build, options are: Debug Release." FORCE)
@@ -50,16 +54,38 @@ else()
     endif()
 endif()
 
-message("fffff current LOG_LEV: ${LOG_LEV}")
+if(DEFINED THREADS_NUM)
+    # 检查 THREADS_NUM 是否是数字并且在 1 到 8 的范围内
+    if(THREADS_NUM MATCHES "^[1-8]$" )
+        add_definitions(-DTHREADS_NUM=${THREADS_NUM})
+    else()
+        message(FATAL_ERROR "THREADS_NUM 必须是一个介于 1 和 8 之间的整数")
+    endif()
+else()
+    # 如果没有定义 THREADS_NUM, 默认使用 8
+    set(THREADS_NUM 8)
+    add_definitions(-DTHREADS_NUM=${THREADS_NUM})
+endif()
+
+if(DEFINED USING_GPU)
+    add_definitions(-DUSING_GPU)
+endif()
+
+message("current LOG_LEV: ${LOG_LEV}")
 
 set(x86_lib_dir ${CMAKE_CURRENT_BINARY_DIR}/device/x86)
-message(STATUS "aaa OP_X86_LIB_DIR: ${x86_lib_dir}")
+message(STATUS "OP_X86_LIB_DIR: ${x86_lib_dir}")
 add_definitions(-DOP_X86_LIB_DIR="${x86_lib_dir}")
-
 add_subdirectory(device/x86)
 
-add_subdirectory(example)
+if(DEFINED USING_GPU)
+    set(cuda_lib_dir ${CMAKE_CURRENT_BINARY_DIR}/device/cuda)
+    message(STATUS "OP_CU_LIB_DIR: ${cuda_lib_dir}")
+    add_definitions(-DOP_CU_LIB_DIR="${cuda_lib_dir}")
+    add_subdirectory(device/cuda)
+endif()
 
+add_subdirectory(example)
 add_subdirectory(tools/metrics)
 add_subdirectory(tools/onnx2one)
 add_subdirectory(tools/optimize)

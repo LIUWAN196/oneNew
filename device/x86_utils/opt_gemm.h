@@ -60,7 +60,7 @@ int opt_gemm_multi_threads(float *ofmap_ptr, float *ifmap0_ptr, float *ifmap1_pt
 
 
     // step 1: 这个循环处理 M、N、K 的整块部分
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int m_tile_i = 0; m_tile_i < m_tile_cnt; m_tile_i++) {
         register int ofmap_offset = 0, ifmap0_offset = 0, ifmap1_offset = 0;
         register float *cur_ofmap_ptr, *cur_ifmap0_st, *cur_ifmap1_st, *cur_ifmap1_ptr[4];
@@ -104,7 +104,7 @@ int opt_gemm_multi_threads(float *ofmap_ptr, float *ifmap0_ptr, float *ifmap1_pt
     // step 2: 这个循环处理 N 的尾部部分，即 [N - n_tile_cnt * n_tile_size, N] 部分
     const int32_t n_tail = N - n_tile_cnt * n_tile_size;
     if (n_tail != 0) {
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
         for (int m_tile_i = 0; m_tile_i < m_tile_cnt; m_tile_i++) {
             register int ofmap_offset = 0, ifmap0_offset = 0, ifmap1_offset = 0;
             register float *cur_ofmap_ptr, *cur_ifmap0_st, *cur_ifmap1_st, *cur_ifmap1_ptr;
@@ -134,7 +134,7 @@ int opt_gemm_multi_threads(float *ofmap_ptr, float *ifmap0_ptr, float *ifmap1_pt
     // step 3: 这个循环处理 M 的尾部部分，即 [M - m_tile_cnt * m_tile_size, M] 部分
     const int32_t m_tail = M - m_tile_cnt * m_tile_size;
     if (m_tail != 0) {
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
         for (int m_i = 0; m_i < m_tail; m_i++) {
             register int ofmap_offset = (m_tile_cnt * m_tile_size) * N;
             register int ifmap0_offset = (m_tile_cnt * m_tile_size) * K;
@@ -164,7 +164,7 @@ int opt_gemm_multi_threads(float *ofmap_ptr, float *ifmap0_ptr, float *ifmap1_pt
     const int32_t k_tail = K - k_tile_cnt * k_tile_size;
     int32_t k_tail_st = k_tile_cnt * k_tile_size;
     if (k_tail != 0) {
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
         for (int m_i = 0; m_i < M; ++m_i) {
             for (int k_i = k_tail_st; k_i < K; ++k_i) {
                 register float ifmap0_val = ifmap0_ptr[m_i * K + k_i];
@@ -218,7 +218,7 @@ int opt_gemm_single_threads(float *ofmap_ptr, float *ifmap0_ptr, float *ifmap1_p
     int k_tile_cnt = (k_tile_size == 0) ? 0 : K / k_tile_size;
 
     // step 1: 这个循环处理 M、N、K 的整块部分
-//#pragma omp parallel for num_threads(8)
+//#pragma omp parallel for num_threads(THREADS_NUM)
     for (int m_tile_i = 0; m_tile_i < m_tile_cnt; m_tile_i++) {
         register int ofmap_offset = 0, ifmap0_offset = 0, ifmap1_offset = 0;
         register float *cur_ofmap_ptr, *cur_ifmap0_st, *cur_ifmap1_st, *cur_ifmap1_ptr[4];
@@ -262,7 +262,7 @@ int opt_gemm_single_threads(float *ofmap_ptr, float *ifmap0_ptr, float *ifmap1_p
     // step 2: 这个循环处理 N 的尾部部分，即 [N - n_tile_cnt * n_tile_size, N] 部分
     const int32_t n_tail = N - n_tile_cnt * n_tile_size;
     if (n_tail != 0) {
-//#pragma omp parallel for num_threads(8)
+//#pragma omp parallel for num_threads(THREADS_NUM)
         for (int m_tile_i = 0; m_tile_i < m_tile_cnt; m_tile_i++) {
             register int ofmap_offset = 0, ifmap0_offset = 0, ifmap1_offset = 0;
             register float *cur_ofmap_ptr, *cur_ifmap0_st, *cur_ifmap1_st, *cur_ifmap1_ptr;
@@ -292,7 +292,7 @@ int opt_gemm_single_threads(float *ofmap_ptr, float *ifmap0_ptr, float *ifmap1_p
     // step 3: 这个循环处理 M 的尾部部分，即 [M - m_tile_cnt * m_tile_size, M] 部分
     const int32_t m_tail = M - m_tile_cnt * m_tile_size;
     if (m_tail != 0) {
-//#pragma omp parallel for num_threads(8)
+//#pragma omp parallel for num_threads(THREADS_NUM)
         for (int m_i = 0; m_i < m_tail; m_i++) {
             register int ofmap_offset = (m_tile_cnt * m_tile_size) * N;
             register int ifmap0_offset = (m_tile_cnt * m_tile_size) * K;
@@ -322,7 +322,7 @@ int opt_gemm_single_threads(float *ofmap_ptr, float *ifmap0_ptr, float *ifmap1_p
     const int32_t k_tail = K - k_tile_cnt * k_tile_size;
     int32_t k_tail_st = k_tile_cnt * k_tile_size;
     if (k_tail != 0) {
-//#pragma omp parallel for num_threads(8)
+//#pragma omp parallel for num_threads(THREADS_NUM)
         for (int m_i = 0; m_i < M; ++m_i) {
             for (int k_i = k_tail_st; k_i < K; ++k_i) {
                 register float ifmap0_val = ifmap0_ptr[m_i * K + k_i];
@@ -377,7 +377,7 @@ int opt_gemm_aligned_multi_threads(float *ofmap_ptr, float *ifmap0_ptr, float *i
 
 
     // step 1: 这个循环处理 M、N、K 的整块部分
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for (int m_tile_i = 0; m_tile_i < m_tile_cnt; m_tile_i++) {
         register int ofmap_offset = 0, ifmap0_offset = 0, ifmap1_offset = 0;
         register float *cur_ofmap_ptr, *cur_ifmap0_st, *cur_ifmap1_st, *cur_ifmap1_ptr[4];
@@ -421,7 +421,7 @@ int opt_gemm_aligned_multi_threads(float *ofmap_ptr, float *ifmap0_ptr, float *i
     // step 2: 这个循环处理 N 的尾部部分，即 [N - n_tile_cnt * n_tile_size, N] 部分
     const int32_t n_tail = N - n_tile_cnt * n_tile_size;
     if (n_tail != 0) {
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
         for (int m_tile_i = 0; m_tile_i < m_tile_cnt; m_tile_i++) {
             register int ofmap_offset = 0, ifmap0_offset = 0, ifmap1_offset = 0;
             register float *cur_ofmap_ptr, *cur_ifmap0_st, *cur_ifmap1_st, *cur_ifmap1_ptr;
@@ -451,7 +451,7 @@ int opt_gemm_aligned_multi_threads(float *ofmap_ptr, float *ifmap0_ptr, float *i
     // step 3: 这个循环处理 M 的尾部部分，即 [M - m_tile_cnt * m_tile_size, M] 部分
     const int32_t m_tail = M - m_tile_cnt * m_tile_size;
     if (m_tail != 0) {
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
         for (int m_i = 0; m_i < m_tail; m_i++) {
             register int ofmap_offset = (m_tile_cnt * m_tile_size) * N;
             register int ifmap0_offset = (m_tile_cnt * m_tile_size) * K;
@@ -481,7 +481,7 @@ int opt_gemm_aligned_multi_threads(float *ofmap_ptr, float *ifmap0_ptr, float *i
     const int32_t k_tail = K - k_tile_cnt * k_tile_size;
     int32_t k_tail_st = k_tile_cnt * k_tile_size;
     if (k_tail != 0) {
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(THREADS_NUM)
         for (int m_i = 0; m_i < M; ++m_i) {
             for (int k_i = k_tail_st; k_i < K; ++k_i) {
                 register float ifmap0_val = ifmap0_ptr[m_i * K + k_i];
@@ -535,7 +535,7 @@ int opt_gemm_aligned_single_threads(float *ofmap_ptr, float *ifmap0_ptr, float *
     int k_tile_cnt = (k_tile_size == 0) ? 0 : K / k_tile_size;
 
     // step 1: 这个循环处理 M、N、K 的整块部分
-//#pragma omp parallel for num_threads(8)
+//#pragma omp parallel for num_threads(THREADS_NUM)
     for (int m_tile_i = 0; m_tile_i < m_tile_cnt; m_tile_i++) {
         register int ofmap_offset = 0, ifmap0_offset = 0, ifmap1_offset = 0;
         register float *cur_ofmap_ptr, *cur_ifmap0_st, *cur_ifmap1_st, *cur_ifmap1_ptr[4];
@@ -579,7 +579,7 @@ int opt_gemm_aligned_single_threads(float *ofmap_ptr, float *ifmap0_ptr, float *
     // step 2: 这个循环处理 N 的尾部部分，即 [N - n_tile_cnt * n_tile_size, N] 部分
     const int32_t n_tail = N - n_tile_cnt * n_tile_size;
     if (n_tail != 0) {
-//#pragma omp parallel for num_threads(8)
+//#pragma omp parallel for num_threads(THREADS_NUM)
         for (int m_tile_i = 0; m_tile_i < m_tile_cnt; m_tile_i++) {
             register int ofmap_offset = 0, ifmap0_offset = 0, ifmap1_offset = 0;
             register float *cur_ofmap_ptr, *cur_ifmap0_st, *cur_ifmap1_st, *cur_ifmap1_ptr;
@@ -609,7 +609,7 @@ int opt_gemm_aligned_single_threads(float *ofmap_ptr, float *ifmap0_ptr, float *
     // step 3: 这个循环处理 M 的尾部部分，即 [M - m_tile_cnt * m_tile_size, M] 部分
     const int32_t m_tail = M - m_tile_cnt * m_tile_size;
     if (m_tail != 0) {
-//#pragma omp parallel for num_threads(8)
+//#pragma omp parallel for num_threads(THREADS_NUM)
         for (int m_i = 0; m_i < m_tail; m_i++) {
             register int ofmap_offset = (m_tile_cnt * m_tile_size) * N;
             register int ifmap0_offset = (m_tile_cnt * m_tile_size) * K;
@@ -639,7 +639,7 @@ int opt_gemm_aligned_single_threads(float *ofmap_ptr, float *ifmap0_ptr, float *
     const int32_t k_tail = K - k_tile_cnt * k_tile_size;
     int32_t k_tail_st = k_tile_cnt * k_tile_size;
     if (k_tail != 0) {
-//#pragma omp parallel for num_threads(8)
+//#pragma omp parallel for num_threads(THREADS_NUM)
         for (int m_i = 0; m_i < M; ++m_i) {
             for (int k_i = k_tail_st; k_i < K; ++k_i) {
                 register float ifmap0_val = ifmap0_ptr[m_i * K + k_i];
