@@ -9,7 +9,7 @@ clip_txt_one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one
 
 model_type: clip
 
-img_folder_path: /home/wanzai/桌面/clip_model-img/
+img_folder_path: /home/wanzai/桌面/oneNew/imgs/src_img/
 
 model_exc_type: efficient_exc
 

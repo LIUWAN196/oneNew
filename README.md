@@ -23,13 +23,7 @@
 为方便用户直观感受 oneNew 推理框架的实用效果，给出常用模型的 cpu 实测性能数据：  
 |            |                    |               |              |              |                      |
 |:----------:|:------------------:|:-------------:|:------------:|:------------:|:--------------------:|
-| model name |   model type  | single thread (ms) | 8 thread (ms) | NCNN (ms)  | ONNX Runtime (ms) |  
-| mobileSAM |      open segment      |           |            |          |               |
-|        |        |        |        |        |        |
-| CLIP |      open classify      |           |            |          |               |
-|        |        |        |        |        |        |
-| yolo world |      open detect      |    1848.0       |   676.1         |          |               |
-|        |        |        |        |        |        |
+| model name |   model type  | single thread (ms) | 8 thread (ms) | NCNN (ms)  | ONNX Runtime (ms) |
 | mobilenet_v2 |      classify      |   23.3        |    10.4        |          |               |
 | resnet18 |      classify      |    96.8      |     32.8       |           |                 |
 | resnet50 |      classify      |   201.1       |    63.6        |           |                 |
@@ -46,11 +40,17 @@
 | yolov8m seg |      segment detect      |    3439.1      |     833.8       |           |                 |
 |        |        |        |        |        |        |
 | yolov8m pose |      pose detect      |    1903.3      |     623.5       |           |                 |
+|        |        |        |        |        |        |
+| mobileSAM |      open segment      |   4386        |     2145       |          |               |
+|        |        |        |        |        |        |
+| CLIP |      open classify      |    6347       |     5220       |          |               |
+|        |        |        |        |        |        |
+| yolo world |      open detect      |    1848.0       |   676.1         |          |               |
 
 注：  
 1、上述数据中，single thread 和 8 threads 指的是 oneNew 推理框架，在 12400F 这款 cpu 上的推理速度。另外的 ONNX Runtime 和 NCNN 分别指使用 ONNX Runtime (C++ API) 和腾讯的 NCNN 推理同一模型的耗时；  
 2、上述耗时均为 x86 上使用 float 推理耗时，只对例如 Conv + Act 等算子进行融合，并未对模型进行量化；  
-3、CLIP 模型的耗时，指的是 decoder 20 张图片的耗时 + decoder txt 的耗时。
+3、CLIP 模型的耗时，指的是 decoder 14 张图片的耗时 + decoder txt 的耗时。
 
 ## 三、下载方式及代码结构  
 ### 3.1 代码下载  
