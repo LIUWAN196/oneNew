@@ -1,7 +1,7 @@
 
 # runtime params
 
-onnx_file_path: /media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/onnx_model/yolov8n_seg.onnx
+onnx_file_path: /home/wanzai/桌面/oneNew/model_zoo/onnx_model/yolov8n_seg.onnx
 
 do_preprocess: true
 

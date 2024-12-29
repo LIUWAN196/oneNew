@@ -2,7 +2,7 @@
 # 默认情况下，如果一个命令失败了（返回非零退出状态），shell 脚本会继续执行下一个命令。但是，使用 set -e，一旦遇到错误，脚本就会停止执行。这里的 e 是 end 的意思
 set -e
 
-onnx_dir="/media/wanzai/File/model_and_cfg_and_ofmap_folder/model_and_cfg_zoo/model/onnx_model"
+onnx_dir="/home/wanzai/桌面/oneNew/model_zoo/onnx_model"
 sh_script_dir=$(dirname $(readlink -f "$0"))
 model_yml_dir=${sh_script_dir}/model_test_yml
 root_dir=$(dirname $(dirname "$sh_script_dir"))
@@ -51,11 +51,11 @@ function model_daily_test_main() {
         mkdir -p ${sh_script_dir}/tmp_ofmap_path/${model_name}
 
         # step 1.2: do onnx2one
-        cd ${root_dir}/cmake-build-debug/tools/onnx2one
+        cd ${root_dir}/build/tools/onnx2one
         ./onnx2one ${model_cfg}
 
         # step 1.3: do model_infer
-        cd ${root_dir}/cmake-build-debug/example
+        cd ${root_dir}/build/example
         ./model_infer ${model_cfg}
 
         # step 1.4: using onnx runtime to compare result
@@ -73,11 +73,11 @@ function model_daily_test_main() {
         model_name=$(basename ${model_cfg} .yml)
 
         # step 2.1: do model opt
-        cd ${root_dir}/cmake-build-debug/tools/optimize
+        cd ${root_dir}/build/tools/optimize
         ./optimize ${model_cfg}
 
         # step 2.2: do model_infer
-        cd ${root_dir}/cmake-build-debug/example
+        cd ${root_dir}/build/example
         ./model_infer ${model_cfg}
 
         # step 2.3: using onnx runtime to compare result

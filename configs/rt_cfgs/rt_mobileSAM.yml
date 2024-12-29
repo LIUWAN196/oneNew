@@ -4,8 +4,8 @@ do_preprocess: true
 
 do_postprocess: false
 
-sam_encoder_one_file_path: /home/wanzai/桌面/oneNew/model_zoo/mobile_sam_encoder.one
-sam_decoder_one_file_path: /home/wanzai/桌面/oneNew/model_zoo/mobile_sam_decoder.one
+sam_encoder_one_file_path: /home/wanzai/桌面/oneNew/model_zoo/one_model/mobile_sam_encoder.one
+sam_decoder_one_file_path: /home/wanzai/桌面/oneNew/model_zoo/one_model/mobile_sam_decoder.one
 
 model_type: mobile_sam
 

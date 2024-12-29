@@ -18,7 +18,7 @@
 
   {
     backbone:
-      one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/yolov8m_pose/yolov8m_pose.one
+      one_file_path: /home/wanzai/桌面/oneNew/model_zoo/one_model/yolov8m_pose.one
 
       input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/street.jpg
 

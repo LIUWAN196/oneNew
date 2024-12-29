@@ -12,12 +12,12 @@ optimize_type: model_quant
 
 # 2、（必选项）原始的 one 模型绝对路径
 # 注意：这里的路径应该选择你自己的 one 的路径
-one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/resnet50/resnet50.one
+one_file_path: /home/wanzai/桌面/oneNew/model_zoo/one_model/resnet50.one
 
 
 # 3、（可选项）优化后 one 模型绝对路径，如果该参数不传入，则会将优化后的 one 覆写到 one_file_path 路径的 one
 # 注意：这里的路径应该选择你自己想保存的优化后的 one 的路径
-opt_one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/resnet50/resnet50.one
+opt_one_file_path: /home/wanzai/桌面/oneNew/model_zoo/one_model/resnet50.one
 
 
 # 4、（必选/可选项）如果 optimize_type 包含了 model_quant，则下面的几个参数是必选项，否则不需要填写

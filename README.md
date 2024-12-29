@@ -66,6 +66,7 @@
 大部分常见模型的原始的 onnx 模型，以及转换之后的 one 模型 (**该 one 模型已经进行算子融合，无需再进行 optimize 操作，可以直接部署推理**) 已经上传到百度网盘：  
 链接:https://pan.baidu.com/s/1h_hK5HaUDY9E0thHVx5img 提取码:x01u  
 第一次使用，推荐先下载上述百度网盘中：oneNew model/one model 下的 one 模型直接使用。自然，你也可以从 oneNew model/onnx model 路径下，下载 onnx 模型，然后使用下面的模型转换工具 onnx2one 转为 one 模型，再进行推理部署。  
+注意：本框架目前配置路径及信息均采用绝对路径。所以在拉取代码后，请将 “/home/wanzai/桌面/oneNew” 替换为您下载的 oneNew 路径  
 
 ### 5.2 运行模型  
 #### 5.2.1 以运行 resnet50 模型为例:  

@@ -4,8 +4,8 @@ do_preprocess: true
 
 do_postprocess: false
 
-clip_img_one_file_path: /home/wanzai/桌面/oneNew/model_zoo/clip_img.one
-clip_txt_one_file_path: /home/wanzai/桌面/oneNew/model_zoo/clip_txt.one
+clip_img_one_file_path: /home/wanzai/桌面/oneNew/model_zoo/one_model/clip_img.one
+clip_txt_one_file_path: /home/wanzai/桌面/oneNew/model_zoo/one_model/clip_txt.one
 
 model_type: CLIP
 
