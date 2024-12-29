@@ -23,6 +23,11 @@ int main(int argc, char **argv) {
     std::unordered_map<std::string, std::string> cfg_info_map;
     yml2map(cfg_info_map, rt_cfg_txt_str);
 
+    // set default topk
+    if (cfg_info_map.count("topk") == 0) {
+        cfg_info_map["topk"] = "5";
+    }
+
     const char *one_file_path = cfg_info_map["one_file_path"].c_str();
     net *model = new net(one_file_path);
     model->build_graph();

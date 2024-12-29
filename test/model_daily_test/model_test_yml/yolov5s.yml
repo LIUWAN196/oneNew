@@ -26,7 +26,7 @@ normal_std: [1.0f, 1.0f, 1.0f]
 optimize_type: op_fusion
 #optimize_type: op_fusion&model_quant
 
-calibrate_img_name_txt_path: /home/wanzai/桌面/img_name.txt
+calibrate_img_name_txt_path: /home/wanzai/桌面/oneNew/imgs/imageNet_label.txt
 
 calibrate_img_folder: /media/wanzai/File/imageNet/
 

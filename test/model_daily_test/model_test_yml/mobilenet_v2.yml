@@ -27,7 +27,7 @@ optimize_type: op_fusion
 #optimize_type: op_fusion&model_quant
 #optimize_type: op_fusion&auto_tuning
 
-calibrate_img_name_txt_path: /home/wanzai/桌面/img_name.txt
+calibrate_img_name_txt_path: /home/wanzai/桌面/oneNew/imgs/imageNet_label.txt
 
 calibrate_img_folder: /media/wanzai/File/imageNet/
 

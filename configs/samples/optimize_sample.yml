@@ -22,7 +22,7 @@ opt_one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_mode
 
 # 4、（必选/可选项）如果 optimize_type 包含了 model_quant，则下面的几个参数是必选项，否则不需要填写
 # 4.1、填写量化的校正集的图片名称的 txt 路径，这里 txt 的每行填写的是一张图片名称，例如第一行内容为：ILSVRC2012_val_00000001.JPEG
-calibrate_img_name_txt_path: /home/wanzai/桌面/img_name.txt
+calibrate_img_name_txt_path: /home/wanzai/桌面/oneNew/imgs/imageNet_label.txt
 
 # 4.2、待用于量化的图片绝对路径
 calibrate_img_folder: /media/wanzai/File/imageNet/
