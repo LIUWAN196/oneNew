@@ -1,7 +1,3 @@
-//
-// Created by wanzai on 24-11-9.
-//
-
 #ifndef ONENEW_NORMAL_MODEL_H
 #define ONENEW_NORMAL_MODEL_H
 
@@ -106,6 +102,5 @@ int do_normal_model(std::unordered_map<std::string, std::string> cfg_info_map) {
     post_process_cls->do_post_process();
 
     return 0;
-
 }
 #endif //ONENEW_NORMAL_MODEL_H

@@ -8,7 +8,6 @@
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     AVG_POOL_CONFIG_S *cfg = (AVG_POOL_CONFIG_S *) (params[0].addr);
-//    printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 
     USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
     int64_t public_buf_size = useful_info->public_buf_info.public_buf_size;

@@ -9,16 +9,11 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     SPLIT_CONFIG_S *cfg = (SPLIT_CONFIG_S *) (params[0].addr);
 
-    if (strcmp(cfg->op_base_cfg.op_name, "/model.10/attn/Split") == 0) {
-        int a = 101;
-    }
-
     int axis = (int) cfg->axis;
     int out_tensor_num = (int) cfg->op_base_cfg.out_operand_num;
 
     float *input_ptr = (float *) (inputs[0].addr);
     OPERAND_S *in_tensor = (OPERAND_S *) (params[1].addr);
-
 
     int32_t axis_total_outer = 1;
     int32_t axis_total_inner = 1;

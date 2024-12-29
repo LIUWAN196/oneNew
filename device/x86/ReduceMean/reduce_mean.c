@@ -3,13 +3,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "stdint.h"
-
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     REDUCE_MEAN_CONFIG_S *cfg = (REDUCE_MEAN_CONFIG_S *) (params[0].addr);
-//    printf("yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
-
 
     if (cfg->axes_num == 1) {
         int32_t axes = cfg->axes[0];
@@ -111,10 +107,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
             }
             output_ptr[i] = psum * inv_ratio;
         }
-
-        int a = 101;
     }
-
 
     return 0;
 }

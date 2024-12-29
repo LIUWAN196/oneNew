@@ -3,17 +3,12 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "string.h"
-#include "stdint.h"
+
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-
 //    show_dev_input(params);
     GATHER_CONFIG_S *cfg = (GATHER_CONFIG_S *) (params[0].addr);
-//    printf("yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 
-//    if (strcmp(cfg->op_base_cfg.op_name, "/model.28/Gather_10") == 0) {
-//        show_dev_input(params);
-//    }
     if (cfg->indices_from_ifmap == FALSE) {
         int32_t axis = cfg->axis;
         int32_t indices = cfg->indices;
@@ -38,9 +33,6 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
             float * cur_ofmap = output_ptr + i * inner_elem_size;
             memcpy(cur_ofmap, ifmap_useful_st, inner_elem_size * sizeof(float));
         }
-
-//        float *ifmap_useful_st = input_ptr + indices * in_tensor->shapes[axis] * inner_elem_size;
-//        memcpy(output_ptr, ifmap_useful_st, inner_elem_size * sizeof(float));
     } else {
         float *input_ptr = (float *) (inputs[0].addr);
         int32_t *indices_ptr = (int32_t *) (inputs[1].addr);
@@ -53,7 +45,6 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
         for (int dim_i = SHAPE_LEN - 1; dim_i >= 0; --dim_i) {
             if (data_tensor->shapes[dim_i] != 1) {
                 inner_elem_size = data_tensor->shapes[dim_i];
-//                LOG_MSG("data_tensor->shapes[dim_i] is %d\n", data_tensor->shapes[dim_i]);
                 break;
             }
         }
@@ -66,13 +57,11 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
         float *cur_output_ptr, *cur_input_ptr;
         for (int out_i = 0; out_i < out_elem_size; ++out_i) {
-//            LOG_MSG("out_i is %d, out_elem_size is %d, inner_elem_size is %d", out_i, out_elem_size, inner_elem_size);
             cur_output_ptr = output_ptr + out_i * inner_elem_size;
             cur_input_ptr = input_ptr + indices_ptr[out_i] * inner_elem_size;
             memcpy(cur_output_ptr, cur_input_ptr, inner_elem_size * sizeof(float));
         }
     }
 
-//    LOG_ERR("end of first gather\n");
     return 0;
 }

@@ -1,7 +1,3 @@
-//
-// Created by wanzai on 24-11-14.
-//
-
 #ifndef ONENEW_NMS_IMPL_H
 #define ONENEW_NMS_IMPL_H
 
@@ -10,7 +6,6 @@
 typedef struct
 {
     BASE_CONFIG_S op_base_cfg;
-//    int32_t cls_num;              // total num of object categories in this network
     int32_t img_w;
     int32_t img_h;
     float score_threshold;

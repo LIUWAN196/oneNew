@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.10.1)
 
 project(device/cuda)
 
+find_package(CUDA REQUIRED)
+include_directories(/usr/local/cuda/include)
+link_directories(/usr/local/cuda/lib64)
+
 # 使用 GLOB_RECURSE 获取当前目录下的所有内容（深度为 1）
 file(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
 

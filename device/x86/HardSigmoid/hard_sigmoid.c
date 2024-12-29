@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "math.h"
-#include "stdint.h"
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 

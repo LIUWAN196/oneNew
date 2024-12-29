@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "stdint.h"
-
 
 // 定义核函数，执行最大池化操作
 __global__ void maxPoolKernel(float *output_feat, float *input_feat,
@@ -15,13 +13,6 @@ __global__ void maxPoolKernel(float *output_feat, float *input_feat,
 
     // 初始化最大值
     float max_val = -3276800;
-
-//    int stride_h = cfg->strides[0];
-//    int stride_w = cfg->strides[1];
-//    int k_h = cfg->kernel_shape[0];
-//    int k_w = cfg->kernel_shape[1];
-//    int pad_h = cfg->pads[0];
-//    int pad_w = cfg->pads[1];
 
     int stride_h = 2;
     int stride_w = 2;
@@ -49,8 +40,6 @@ __global__ void maxPoolKernel(float *output_feat, float *input_feat,
 }
 
 int eval_impl(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-
-//    LOG_DBG("this is max pool of cuda\n");
 
     MAX_POOL_CONFIG_S *cfg = (MAX_POOL_CONFIG_S *) (params[0].addr);
 

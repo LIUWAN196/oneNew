@@ -7,6 +7,24 @@
 #include "stdint.h"
 #include "string.h"
 
+int eval_ofmap_bmhwn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs);
+int eval_ofmap_bkhw(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs);
+
+
+int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+//    show_dev_input(params);
+
+    EINSUM_CONFIG_S *cfg = (EINSUM_CONFIG_S *) (params[0].addr);
+
+    if (strcmp(cfg->equation, "bmchw,bnmc->bmhwn") == 0) {
+        eval_ofmap_bmhwn(params, inputs, outputs);
+    } else if (strcmp(cfg->equation, "bchw,bkc->bkhw") == 0) {
+        eval_ofmap_bkhw(params, inputs, outputs);
+    }
+
+    return 0;
+}
+
 int eval_ofmap_bmhwn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
     int64_t public_buf_size = useful_info->public_buf_info.public_buf_size;
@@ -299,25 +317,4 @@ int eval_ofmap_bkhw(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S 
 
     return 0;
 }
-
-int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-//    show_dev_input(params);
-
-    EINSUM_CONFIG_S *cfg = (EINSUM_CONFIG_S *) (params[0].addr);
-
-    if (strcmp(cfg->equation, "bmchw,bnmc->bmhwn") == 0) {
-//        LOG_DBG("the cfg->equation is %s", cfg->equation);
-        eval_ofmap_bmhwn(params, inputs, outputs);
-    } else if (strcmp(cfg->equation, "bchw,bkc->bkhw") == 0) {
-//        LOG_DBG("the cfg->equation is %s", cfg->equation);
-        eval_ofmap_bkhw(params, inputs, outputs);
-    }
-
-
-//    LOG_ERR("sorry, the einsum have not be achieve， cur op equation is: %s", cfg->equation);
-
-    return 0;
-}
-
-
 

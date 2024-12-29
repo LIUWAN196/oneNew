@@ -3,8 +3,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "stdint.h"
-
 #define GAP_SHARE_ELEM (25 * 1024 / sizeof(float))
 
 // 定义核函数，执行全局平均池化操作
@@ -36,7 +34,6 @@ __global__ void globalAvgPoolKernel(float *output_feat, float *input_feat, int32
 
 int eval_impl(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
-//    LOG_DBG("this is global avg pool of cuda\n");
     float *input_ptr = (float *) (inputs[0].addr);
     float *output_ptr = (float *) (outputs[0].addr);
 

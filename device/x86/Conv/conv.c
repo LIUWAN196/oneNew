@@ -1,122 +1,73 @@
-#include "conv.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
-//#include "pad_conv.h"
-#include "stdint.h"
 #include "string.h"
 #include <immintrin.h>
 #include <omp.h>
+
+#include "conv.h"
+#include "conv_pad.h"
 #include "math.h"
 #include "../../x86_utils/opt_gemm.h"
 
-int do_pad_conv(char *dst_ptr, char *src_ptr, OPERAND_S *src_data_desc, PAD_INNER_CONFIG_S *cfg) {
-    float pad_value = 0;
-    float *dst_f32 = (float *) dst_ptr;
-    float *src_f32 = (float *) src_ptr;
-
-    int32_t src_c = src_data_desc->shapes[1];
-    int32_t src_h = src_data_desc->shapes[2];
-    int32_t src_w = src_data_desc->shapes[3];
-
-    int32_t dst_c = src_data_desc->shapes[1];
-    int32_t dst_h = src_h + 2 * cfg->h;
-    int32_t dst_w = src_w + 2 * cfg->w;
-
-    for (int i = 0; i < dst_c * dst_h * dst_w; ++i) {
-        dst_f32[i] = pad_value;
-    }
-//    memset(dst_ptr, dst_c * dst_h * dst_w * sizeof(float), pad_value);
-
-    for (int c_i = 0; c_i < dst_c; ++c_i) {
-        for (int h_i = cfg->h; h_i < dst_h - cfg->h; ++h_i) {
-            for (int w_i = cfg->w; w_i < dst_w - cfg->w; ++w_i) {
-                dst_f32[c_i * dst_h * dst_w + h_i * dst_w + w_i] = src_f32[c_i * src_h * src_w +
-                                                                           (h_i - cfg->h) * src_w + (w_i - cfg->w)];
-            }
-
-        }
-    }
-
-
-    return 0;
-}
-
-int do_pad_conv_s8(char *dst_ptr, char *src_ptr, OPERAND_S *src_data_desc, PAD_INNER_CONFIG_S *cfg) {
-    int8_t pad_value = 0;
-    int8_t *dst_f32 = (int8_t *) dst_ptr;
-    int8_t *src_f32 = (int8_t *) src_ptr;
-
-    int32_t src_c = src_data_desc->shapes[1];
-    int32_t src_h = src_data_desc->shapes[2];
-    int32_t src_w = src_data_desc->shapes[3];
-
-    int32_t dst_c = src_data_desc->shapes[1];
-    int32_t dst_h = src_h + 2 * cfg->h;
-    int32_t dst_w = src_w + 2 * cfg->w;
-
-    for (int i = 0; i < dst_c * dst_h * dst_w; ++i) {
-        dst_f32[i] = pad_value;
-    }
-//    memset(dst_ptr, dst_c * dst_h * dst_w * sizeof(float), pad_value);
-
-    for (int c_i = 0; c_i < dst_c; ++c_i) {
-        for (int h_i = cfg->h; h_i < dst_h - cfg->h; ++h_i) {
-            for (int w_i = cfg->w; w_i < dst_w - cfg->w; ++w_i) {
-                dst_f32[c_i * dst_h * dst_w + h_i * dst_w + w_i] = src_f32[c_i * src_h * src_w +
-                                                                           (h_i - cfg->h) * src_w + (w_i - cfg->w)];
-            }
-
-        }
-    }
-
-
-    return 0;
-}
-
-
-int do_pad_conv_new(char *dst_ptr, char *src_ptr, OPERAND_S *src_data_desc, PAD_INNER_CONFIG_S *pad_cfg) {
-
-    float *dst_f32 = (float *) dst_ptr;
-    float *src_f32 = (float *) src_ptr;
-
-    int32_t src_c = src_data_desc->shapes[1];
-    int32_t src_h = src_data_desc->shapes[2];
-    int32_t src_w = src_data_desc->shapes[3];
-
-    int32_t dst_c = src_data_desc->shapes[1];
-    int32_t dst_h = src_h + pad_cfg->top_pad + pad_cfg->bottom_pad;
-    int32_t dst_w = src_w + pad_cfg->left_pad + pad_cfg->right_pad;
-
-    memset(dst_ptr, 0, dst_c * dst_h * dst_w * sizeof(float));
-
-    const int32_t top_pad = pad_cfg->top_pad;
-    const int32_t bottom_pad = pad_cfg->bottom_pad;
-    const int32_t left_pad = pad_cfg->left_pad;
-
-    for (int c_i = 0; c_i < dst_c; ++c_i) {
-        float *cur_src_f32 = src_f32 + c_i * src_h * src_w - top_pad * src_w;
-        float *cur_dst_f32 = dst_f32 + c_i * dst_h * dst_w + left_pad;
-        int h_i = top_pad;
-        for (h_i = top_pad; h_i < dst_h - bottom_pad - 3; h_i += 4) {
-            memcpy(cur_dst_f32 + (h_i + 0) * dst_w, cur_src_f32 + (h_i + 0) * src_w, src_w * sizeof(float));
-            memcpy(cur_dst_f32 + (h_i + 1) * dst_w, cur_src_f32 + (h_i + 1) * src_w, src_w * sizeof(float));
-            memcpy(cur_dst_f32 + (h_i + 2) * dst_w, cur_src_f32 + (h_i + 2) * src_w, src_w * sizeof(float));
-            memcpy(cur_dst_f32 + (h_i + 3) * dst_w, cur_src_f32 + (h_i + 3) * src_w, src_w * sizeof(float));
-        }
-        for (; h_i < dst_h - bottom_pad; h_i++) {
-            memcpy(cur_dst_f32 + h_i * dst_w, cur_src_f32 + h_i * src_w, src_w * sizeof(float));
-        }
-    }
-
-    return 0;
-}
-
-
-int eval_1x1j1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
-//     printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
+
+    // 一、不带 bias 的 conv 实现
+    if (cfg->has_bias == FALSE) {
+        if (cfg->ifmap_quant2 == TYPE_INT8) {
+            // ifmap with input scale, weight is s8, bias is s32
+            eval_mxn_img2col_W8A32_with_input_scale_no_bias(params, inputs, outputs);
+        } else {
+            // ifmap and ofmap, weight, bias all is float32
+            eval_mxn_img2col_no_bias(params, inputs, outputs);
+        }
+        return 0;
+    }
+
+    if (cfg->group != 1) {  // 二、 depth wise conv 的实现
+        // depth wise conv
+        if (cfg->ifmap_quant2 == TYPE_INT8) {
+            eval_depthwise_conv_mxn_img2col_W8A32(params, inputs, outputs);
+        } else {
+            if (cfg->kernel_shape[0] == 3 && cfg->kernel_shape[1] == 3
+                && cfg->pads[0] == 1 && cfg->pads[1] == 1 && cfg->pads[2] == 1 && cfg->pads[3] == 1) {
+                // 这段代码不太容易理解，理解不了，可以直接使用 eval_depthwise_conv_mxn_img2col 的代码
+                eval_depthwise_conv_3x3_pad1(params, inputs, outputs);
+            } else {
+                eval_depthwise_conv_mxn_img2col(params, inputs, outputs);
+            }
+        }
+    } else {        // 三、普通 conv 的实现
+        // normal conv
+        if (cfg->ifmap_quant2 == TYPE_INT8) {
+            // ifmap with input scale, weight is s8, bias is s32
+            eval_mxn_img2col_W8A32_with_input_scale(params, inputs, outputs);
+        } else {
+            // ifmap and ofmap, weight, bias all is float32
+            if (cfg->kernel_shape[0] == 3 && cfg->kernel_shape[1] == 3) {
+                eval_mxn_img2col(params, inputs, outputs);
+            } else if (cfg->kernel_shape[0] == 1 && cfg->kernel_shape[1] == 1 && cfg->strides[0] == 1 &&
+                       cfg->strides[1] == 1) {
+                eval_1x1j1(params, inputs, outputs);
+            } else {
+                eval_mxn_img2col(params, inputs, outputs);
+            }
+        }
+    }
+
+    // do act if need
+    if (cfg->act_type != NOT_ACT) {
+        do_act(params, inputs, outputs);
+    }
+
+    return 0;
+}
+
+int eval_1x1j1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+    CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
+
     USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
     int64_t public_buf_size = useful_info->public_buf_info.public_buf_size;
     int64_t public_buf_ptr = useful_info->public_buf_info.public_buf_ptr;
@@ -183,10 +134,8 @@ int eval_1x1j1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outp
     gemm_tile_info.K = in_c;
 
     // 目前认为的 sgemm 的最佳配置为 m_tile_size = 32，n_tile_size = 1024，k_tile_size = 8；
-//    const int32_t best_m_tile = useful_info->block_info.x86_gemm_multi_threads_tile_m;
     const int32_t best_n_tile = useful_info->block_info.x86_gemm_multi_threads_tile_n;
     const int32_t best_k_tile = useful_info->block_info.x86_gemm_multi_threads_tile_k;
-//    const int32_t best_n_tile = 1024, best_k_tile = 8;
     const int32_t num_threads = 8;
     // 这里因为开了 num_threads 个线程，所以要保证 m_tile 为 num_threads 的倍数，不让有的线程创建了但是没有使用
     int32_t best_m_tile = (gemm_tile_info.M / num_threads > 32) ? 32 : gemm_tile_info.M / num_threads;
@@ -308,96 +257,6 @@ im2col(float *input_col_ptr, float *input_ptr, OPERAND_S *in_tensor, OPERAND_S *
     return 0;
 }
 
-int im2col_depth_wise(float *input_col_ptr, float *input_ptr, OPERAND_S *in_tensor, OPERAND_S *out_tensor,
-                      OPERAND_S *weight_tensor,
-                      CONV_CONFIG_S *cfg) {
-
-    int32_t kernel_c = weight_tensor->shapes[1];
-    int32_t kernel_h = weight_tensor->shapes[2];
-    int32_t kernel_w = weight_tensor->shapes[3];
-
-    int32_t in_n = in_tensor->shapes[0];
-    int32_t in_h = in_tensor->shapes[2] + cfg->pads[0] + cfg->pads[2];
-    int32_t in_w = in_tensor->shapes[3] + cfg->pads[1] + cfg->pads[3];
-
-    int32_t out_n = out_tensor->shapes[0];
-    int32_t out_c = out_tensor->shapes[1];
-    int32_t out_h = out_tensor->shapes[2];
-    int32_t out_w = out_tensor->shapes[3];
-
-    int32_t stride_x = cfg->strides[0];
-    int32_t stride_y = cfg->strides[1];
-
-    int32_t outHxoutH = out_h * out_h;
-    int32_t kWxoutHxoutH = kernel_w * out_h * out_h;
-    int32_t kHxkWxoutHxoutw = kernel_h * kernel_w * out_h * out_w;
-
-    if (kernel_h == 3 && kernel_w == 3) {
-
-#pragma omp parallel for num_threads(THREADS_NUM)
-        for (int col_h = 0; col_h < out_h; ++col_h) {
-            int32_t cur_in_h, cur_in_w;
-            int32_t ifmap_offset, ofmap_offset;
-            int32_t cur_ifmap_offset, cur_ofmap_offset;
-            cur_in_h = col_h * stride_y;
-            ifmap_offset = col_h * out_w;
-            ofmap_offset = cur_in_h * in_w;
-#pragma unroll 2
-            for (int col_w = 0; col_w < out_w; ++col_w) {
-                cur_in_w = col_w * stride_x;
-                cur_ifmap_offset = ifmap_offset + col_w;
-                cur_ofmap_offset = ofmap_offset + cur_in_w;
-                *(input_col_ptr + cur_ifmap_offset + 0 * kWxoutHxoutH + 0 * outHxoutH)
-                        = *(input_ptr + cur_ofmap_offset + 0 * in_w + 0);
-                *(input_col_ptr + cur_ifmap_offset + 0 * kWxoutHxoutH + 1 * outHxoutH)
-                        = *(input_ptr + cur_ofmap_offset + 0 * in_w + 1);
-                *(input_col_ptr + cur_ifmap_offset + 0 * kWxoutHxoutH + 2 * outHxoutH)
-                        = *(input_ptr + cur_ofmap_offset + 0 * in_w + 2);
-
-                *(input_col_ptr + cur_ifmap_offset + 1 * kWxoutHxoutH + 0 * outHxoutH)
-                        = *(input_ptr + cur_ofmap_offset + 1 * in_w + 0);
-                *(input_col_ptr + cur_ifmap_offset + 1 * kWxoutHxoutH + 1 * outHxoutH)
-                        = *(input_ptr + cur_ofmap_offset + 1 * in_w + 1);
-                *(input_col_ptr + cur_ifmap_offset + 1 * kWxoutHxoutH + 2 * outHxoutH)
-                        = *(input_ptr + cur_ofmap_offset + 1 * in_w + 2);
-
-                *(input_col_ptr + cur_ifmap_offset + 2 * kWxoutHxoutH + 0 * outHxoutH)
-                        = *(input_ptr + cur_ofmap_offset + 2 * in_w + 0);
-                *(input_col_ptr + cur_ifmap_offset + 2 * kWxoutHxoutH + 1 * outHxoutH)
-                        = *(input_ptr + cur_ofmap_offset + 2 * in_w + 1);
-                *(input_col_ptr + cur_ifmap_offset + 2 * kWxoutHxoutH + 2 * outHxoutH)
-                        = *(input_ptr + cur_ofmap_offset + 2 * in_w + 2);
-            }
-        }
-
-    } else {
-#pragma omp parallel for num_threads(THREADS_NUM)
-        for (int col_h = 0; col_h < out_h; ++col_h) {
-            int32_t cur_in_h, cur_in_w;
-            int32_t ifmap_offset, ofmap_offset;
-            int32_t cur_ifmap_offset, cur_ofmap_offset;
-            cur_in_h = col_h * stride_y;
-            ifmap_offset = col_h * out_w;
-            ofmap_offset = cur_in_h * in_w;
-#pragma unroll 4
-            for (int col_w = 0; col_w < out_w; ++col_w) {
-                cur_in_w = col_w * stride_x;
-                cur_ifmap_offset = ifmap_offset + col_w;
-                cur_ofmap_offset = ofmap_offset + cur_in_w;
-                for (int col_h2 = 0; col_h2 < kernel_h; ++col_h2) {
-                    for (int col_h3 = 0; col_h3 < kernel_w; ++col_h3) {
-                        input_col_ptr[cur_ifmap_offset + col_h2 * kWxoutHxoutH + col_h3 * outHxoutH]
-                                = input_ptr[cur_ofmap_offset + col_h2 * in_w + col_h3];
-                    }
-                }
-            }
-        }
-    }
-
-    return 0;
-}
-
-
 int im2col_s8(int8_t *input_col_ptr, int8_t *input_ptr, OPERAND_S *in_tensor, OPERAND_S *out_tensor,
               OPERAND_S *weight_tensor,
               CONV_CONFIG_S *cfg) {
@@ -448,20 +307,11 @@ int eval_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
     int64_t rem_buf_size = public_buf_size;
     int64_t rem_buf_ptr = public_buf_ptr;
 
-//    // printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
-
-//    if (strcmp(cfg->op_base_cfg.op_name, "Conv_80") == 0) {
-//
-//        int a = 101;
-//    }
     int32_t stride_x = cfg->strides[0];
     int32_t stride_y = cfg->strides[1];
 
     float *input_ptr = (float *) (inputs[0].addr);
     float *weight_ptr = (float *) (inputs[1].addr);
-
-    // printf("input is %f, %f\n", input_ptr[0], input_ptr[1]);
-    // printf("weight is %f, %f\n", weight_ptr[0], weight_ptr[1]);
 
     float *bias_ptr;
     if (cfg->has_bias) {
@@ -538,12 +388,10 @@ int eval_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
     gemm_tile_info.K = in_c * kernel_h * kernel_w;
 
     // 目前认为的 sgemm 的最佳配置为 m_tile_size = 32，n_tile_size = 1024，k_tile_size = 8；
-//    const int32_t best_m_tile = useful_info->block_info.x86_gemm_multi_threads_tile_m;
     const int32_t best_n_tile = useful_info->block_info.x86_gemm_multi_threads_tile_n;
     const int32_t best_k_tile = useful_info->block_info.x86_gemm_multi_threads_tile_k;
-
     const int32_t num_threads = 8;
-//    // 这里因为开了 num_threads 个线程，所以要保证 m_tile 为 num_threads 的倍数，不让有的线程创建了但是没有使用
+
     int32_t best_m_tile = (gemm_tile_info.M / num_threads > 32) ? 32 : gemm_tile_info.M / num_threads;
     best_m_tile = (best_m_tile == 0) ? gemm_tile_info.M : best_m_tile;
 
@@ -551,15 +399,7 @@ int eval_mxn_img2col(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S
     gemm_tile_info.n_tile_size = best_n_tile;
     gemm_tile_info.k_tile_size = best_k_tile;
 
-
     opt_gemm_multi_threads(output_ptr, weight_ptr, input_ptr, gemm_tile_info);
-
-//    const int32_t avx2_align_size = 32;
-//    if (gemm_tile_info.N % avx2_align_size == 0 && gemm_tile_info.K % avx2_align_size == 0) {
-//        opt_gemm_aligned_multi_threads(output_ptr, weight_ptr, input_ptr, gemm_tile_info);
-//    } else {
-//        opt_gemm_multi_threads(output_ptr, weight_ptr, input_ptr, gemm_tile_info);
-//    }
 
     // 加偏置
 #pragma omp parallel for num_threads(THREADS_NUM)
@@ -583,20 +423,11 @@ int eval_mxn_img2col_no_bias(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFE
     int64_t rem_buf_size = public_buf_size;
     int64_t rem_buf_ptr = public_buf_ptr;
 
-//    // printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
-
-//    if (strcmp(cfg->op_base_cfg.op_name, "Conv_80") == 0) {
-//
-//        int a = 101;
-//    }
     int32_t stride_x = cfg->strides[0];
     int32_t stride_y = cfg->strides[1];
 
     float *input_ptr = (float *) (inputs[0].addr);
     float *weight_ptr = (float *) (inputs[1].addr);
-
-    // printf("input is %f, %f\n", input_ptr[0], input_ptr[1]);
-    // printf("weight is %f, %f\n", weight_ptr[0], weight_ptr[1]);
 
     float *output_ptr = (float *) (outputs[0].addr);
 
@@ -860,10 +691,7 @@ int eval_depthwise_conv_mxn_img2col_W8A32(BUFFER_INFO_S *params, BUFFER_INFO_S *
     }
 
     int8_t *ifmap_ptr = input_s8_ptr;
-
     int8_t *src_s8_pad_ptr;
-
-//    float ifmap_scale = cfg->input_scale;
 
     void *src_pad_ptr;
     // conv pads:  top  left  bottom  right
@@ -913,8 +741,6 @@ int eval_depthwise_conv_mxn_img2col_W8A32(BUFFER_INFO_S *params, BUFFER_INFO_S *
         }
     }
 
-
-    // ==============================================================================
     // trans output to float
     float *cur_output_ptr;
     for (int outc_i = 0; outc_i < out_c; ++outc_i) {
@@ -924,7 +750,6 @@ int eval_depthwise_conv_mxn_img2col_W8A32(BUFFER_INFO_S *params, BUFFER_INFO_S *
             cur_output_ptr[i] = cur_output_ptr[i] * dequant_coeff;
         }
     }
-    // ==============================================================================
 
     return 0;
 }
@@ -1220,7 +1045,6 @@ int eval_mxn_img2col_W8A32_with_input_scale(BUFFER_INFO_S *params, BUFFER_INFO_S
         }
     }
 
-    // ==============================================================================
     // trans output to float
     float *cur_output_ptr;
     for (int outc_i = 0; outc_i < out_c; ++outc_i) {
@@ -1230,7 +1054,6 @@ int eval_mxn_img2col_W8A32_with_input_scale(BUFFER_INFO_S *params, BUFFER_INFO_S
             cur_output_ptr[i] = cur_output_ptr[i] * dequant_coeff;
         }
     }
-    // ==============================================================================
 
     return 0;
 }
@@ -1271,7 +1094,6 @@ eval_mxn_img2col_W8A32_with_input_scale_no_bias(BUFFER_INFO_S *params, BUFFER_IN
     int32_t out_c = out_tensor->shapes[1];
     int32_t out_h = out_tensor->shapes[2];
     int32_t out_w = out_tensor->shapes[3];
-
 
     // 将输入数据量化为 int8
     float tmp;
@@ -1378,8 +1200,6 @@ eval_mxn_img2col_W8A32_with_input_scale_no_bias(BUFFER_INFO_S *params, BUFFER_IN
         }
     }
 
-
-    // ==============================================================================
     // trans output to float
     float *cur_output_ptr;
     for (int outc_i = 0; outc_i < out_c; ++outc_i) {
@@ -1389,62 +1209,14 @@ eval_mxn_img2col_W8A32_with_input_scale_no_bias(BUFFER_INFO_S *params, BUFFER_IN
             cur_output_ptr[i] = cur_output_ptr[i] * dequant_coeff;
         }
     }
-    // ==============================================================================
 
     return 0;
 }
 
-int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+int do_act(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs){
 
     CONV_CONFIG_S *cfg = (CONV_CONFIG_S *) (params[0].addr);
 
-    if (cfg->has_bias == FALSE) {
-        if (cfg->ifmap_quant2 == TYPE_INT8) {
-            // ifmap with input scale, weight is s8, bias is s32
-            eval_mxn_img2col_W8A32_with_input_scale_no_bias(params, inputs, outputs);
-        } else {
-            // ifmap and ofmap, weight, bias all is float32
-            eval_mxn_img2col_no_bias(params, inputs, outputs);
-        }
-        return 0;
-    }
-
-    if (cfg->group != 1) {
-        // depth wise conv
-        if (cfg->ifmap_quant2 == TYPE_INT8) {
-//            printf("goto the int8\n");
-            // ifmap with input scale, weight is s8, bias is s32
-//            LOG_DBG("goto depth wise int8 branch\n");
-            eval_depthwise_conv_mxn_img2col_W8A32(params, inputs, outputs);
-        } else {
-            if (cfg->kernel_shape[0] == 3 && cfg->kernel_shape[1] == 3
-                && cfg->pads[0] == 1 && cfg->pads[1] == 1 && cfg->pads[2] == 1 && cfg->pads[3] == 1) {
-                // 这段代码不太容易理解，理解不了，可以直接使用 eval_depthwise_conv_mxn_img2col 的代码
-                eval_depthwise_conv_3x3_pad1(params, inputs, outputs);
-            } else {
-                eval_depthwise_conv_mxn_img2col(params, inputs, outputs);
-            }
-        }
-    } else {
-        // normal conv
-        if (cfg->ifmap_quant2 == TYPE_INT8) {
-//            printf("goto the int8\n");
-            // ifmap with input scale, weight is s8, bias is s32
-            eval_mxn_img2col_W8A32_with_input_scale(params, inputs, outputs);
-        } else {
-            // ifmap and ofmap, weight, bias all is float32
-            if (cfg->kernel_shape[0] == 3 && cfg->kernel_shape[1] == 3) {
-                eval_mxn_img2col(params, inputs, outputs);
-            } else if (cfg->kernel_shape[0] == 1 && cfg->kernel_shape[1] == 1 && cfg->strides[0] == 1 &&
-                       cfg->strides[1] == 1) {
-                eval_1x1j1(params, inputs, outputs);
-            } else {
-                eval_mxn_img2col(params, inputs, outputs);
-            }
-        }
-    }
-
-    // do act if need
     float *output_ptr = (float *) (outputs[0].addr);
     OPERAND_S *out_tensor = (OPERAND_S *) (params[4].addr);
     int32_t out_n = out_tensor->shapes[0];
@@ -1530,13 +1302,4 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     return 0;
 }
-
-//
-//#include <stdio.h>
-//
-//extern "C" __attribute__((visibility("default"))) int
-//eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-//    return eval_impl(params, inputs, outputs);
-//}
-
 

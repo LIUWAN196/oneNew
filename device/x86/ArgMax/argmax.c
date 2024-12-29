@@ -6,10 +6,9 @@
 #include "stdint.h"
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-
 //    show_dev_input(params);
+
     ARGMAX_CONFIG_S *cfg = (ARGMAX_CONFIG_S *) (params[0].addr);
-//    printf("yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 
     float *input_ptr = (float *) (inputs[0].addr);
     int32_t *output_ptr = (int32_t *) (outputs[0].addr);
@@ -33,16 +32,14 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
     if (cfg->axis == -1) {
         // using in clip txt net work
         int32_t *input_s32_ptr = (int32_t *) (inputs[0].addr);
-        for (int i = 0; i < 77; ++i) {
-//            LOG_MSG("in s32 is %d\n", input_s32_ptr[i]);
-        }
-        int32_t max_elem = -32768 * 1024;
+
+        int32_t max_elem = -32768000;
         int32_t max_idx;
         for (int32_t i = 0; i < in_elem_size; ++i) {
             max_idx = (input_s32_ptr[i] > max_elem) ? i : max_idx;
             max_elem = (input_s32_ptr[i] > max_elem) ? input_s32_ptr[i] : max_elem;
         }
-//        LOG_MSG("max_idx is %d\n", max_idx);
+
         output_ptr[0] = max_idx;
     } else {
         // using in the last of classify net work
@@ -58,12 +55,9 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
                 max_elem = (input_ptr[i] > max_elem) ? input_ptr[i] : max_elem;
             }
             output_ptr[k_i] = max_idx;
-//        printf("argmax num.%d is %f\n", k_i, max_elem);
             input_ptr[max_idx] = -32768;
         }
     }
 
-
-    int c = 101;
     return 0;
 }

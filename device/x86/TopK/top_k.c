@@ -3,13 +3,12 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "string.h"
-#include "stdint.h"
 #include "float.h"
 
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 //    show_dev_input(params);
-//    printf("this is x86 mul start\n");
+
     TOP_K_CONFIG_S *cfg = (TOP_K_CONFIG_S *) (params[0].addr);
 
     USEFUL_INFO_S* useful_info = (USEFUL_INFO_S *) (params[BUF_MAXNUM - 1].addr);
@@ -51,7 +50,6 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
         // 将本次找到的最大值的索引保存下来
         out_indices_ptr[i] = indices;
-//        LOG_DBG("top %d  idx is %d", i, indices);
     }
 
     return 0;

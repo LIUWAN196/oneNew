@@ -5,14 +5,12 @@
 #include <immintrin.h>
 #include "stdint.h"
 #include <omp.h>
-#include "string.h"
 #include "math.h"
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
 {
 //    show_dev_input(params);
-//    LOG_ERR("end in layer norm\n");
-//    show_dev_input(params);
+
     LAYERNORMALIZATION_CONFIG_S * cfg = (LAYERNORMALIZATION_CONFIG_S*)(params[0].addr);
 
     float* input_ptr = (float*)(inputs[0].addr);
@@ -68,7 +66,6 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
         }
 
         int32_t loop_size = elem_size / reduce_size;
-//    printf("loop_size is %d, reduce_size is %d\n", loop_size, reduce_size);
 
         float inv_reduce_size = 1.0f / reduce_size;
         for (int loop_i = 0; loop_i < loop_size; ++loop_i) {

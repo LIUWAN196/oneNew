@@ -1,10 +1,5 @@
-//
-// Created by wanzai on 24-11-9.
-//
-
 #ifndef ONENEW_MOBILESAM_MODEL_H
 #define ONENEW_MOBILESAM_MODEL_H
-
 
 // 上下文结构体
 struct MouseCallbackContext {
@@ -24,7 +19,6 @@ void mouseCallback(int event, int x, int y, int, void* userdata) {
     if (event == cv::EVENT_LBUTTONDOWN) {
         int32_t w_coord = cv::Point(x, y).x;
         int32_t h_coord = cv::Point(x, y).y;
-//        printf("w_coord is %d, h_coord is %d\n", w_coord, h_coord);
 
         std::string point_coords = "point_coords";
         // 自己构造一个坐标，给到 decoder 模型作为输入
@@ -43,7 +37,6 @@ void mouseCallback(int event, int x, int y, int, void* userdata) {
         std::vector<float> decoder_ofmap(decoder_ofmap_info.elem_size);
         memcpy(&decoder_ofmap[0], (void *)decoder_ofmap_info.addr, decoder_ofmap_info.buf_size);
 
-
         // 开始准备绘制带 mask 的图像
         std::vector<int> mask_level_vec = str2number<int>(cfg_info_map["sam_mask_level"]);
         int32_t mask_level = mask_level_vec[0];  // 0  1  2  3
@@ -55,7 +48,6 @@ void mouseCallback(int event, int x, int y, int, void* userdata) {
 
         // step 3: 为图片加 mask
         cv::Scalar mask_color_1(135, 116, 190); // BGR
-//        cv::Scalar mask_color_1(190, 207, 229); // BGR
         image_resized = get_masked_img(image_resized, mask, mask_color_1);
 
         imshow("Image", image_resized);
@@ -75,29 +67,6 @@ int do_mobile_sam(std::unordered_map<std::string, std::string> cfg_info_map) {
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
     std::unordered_map<std::string, BUFFER_INFO_S> io_buf_map;
-
-//    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
-//    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
-//    std::vector<float> normal_mean = str2number<float>(cfg_info_map["normal_mean"]);
-//    std::vector<float> normal_std = str2number<float>(cfg_info_map["normal_std"]);
-//
-//    int in_elem_size = 3 * crop_shapes[0] * crop_shapes[1];
-//
-//    std::vector<float> in_buf(in_elem_size);
-//
-//    TRANSFORMS_CONFIG_S trans_cfg;
-//    trans_cfg.resize_size[0] = resize_shapes[0];
-//    trans_cfg.resize_size[1] = resize_shapes[1];
-//    trans_cfg.crop_size[0] = crop_shapes[0];
-//    trans_cfg.crop_size[1] = crop_shapes[1];
-//
-//    trans_cfg.mean[0] = normal_mean[0];
-//    trans_cfg.mean[1] = normal_mean[1];
-//    trans_cfg.mean[2] = normal_mean[2];
-//
-//    trans_cfg.std[0] = normal_std[0];
-//    trans_cfg.std[1] = normal_std[1];
-//    trans_cfg.std[2] = normal_std[2];
 
     TRANSFORMS_CONFIG_S trans_cfg = cfg_info_map2preprocess_params(cfg_info_map);
     int in_elem_size = 3 * trans_cfg.crop_size[0] * trans_cfg.crop_size[1];
@@ -121,13 +90,6 @@ int do_mobile_sam(std::unordered_map<std::string, std::string> cfg_info_map) {
 
     std::string ofmap = "image_embeddings";
     BUFFER_INFO_S encoder_ofmap_info = io_buf_map[ofmap];
-
-
-//    char *image_embeddings_buf = (char*) aligned_alloc(32, 256*64*64*sizeof(float));
-//    std::string file_name = "/home/wanzai/桌面/mobile_sam_test_img/image_embeddings";
-//    load_bin(file_name.c_str(), 256*64*64*sizeof(float), image_embeddings_buf);
-//    BUFFER_INFO_S encoder_ofmap_info = {(int64_t)image_embeddings_buf, 256*64*64, 256*64*64*sizeof(float)};
-
 
     // do sam decoder
     const char* decoder_one_file_path = cfg_info_map["sam_decoder_one_file_path"].c_str();

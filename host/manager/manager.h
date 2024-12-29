@@ -5,15 +5,10 @@
 #include "unordered_map"
 #include "../op.h"
 
-// namespace one_new
-//{
-
 typedef int (*creator_)(std::shared_ptr<op>& op_ptr, char *op_cfg_ptr);
 
 class Manager
 {
-private:
-    /* data */
 public:
     std::unordered_map<std::string, creator_> Opmap;
     std::unordered_map<std::string, int32_t> op_cfg_size_map;
@@ -38,8 +33,6 @@ public:
         Manager &m = Manager::getInstance();
         m.registeredOp()[name] = creator_method;
         m.registeredOpCfgSize()[name] = cfg_size;
-
-//        std::cout << "op: " << name << " is registered!" << std::endl;
     };
 };
 

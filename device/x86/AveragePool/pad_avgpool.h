@@ -1,12 +1,7 @@
-//
-// Created by wanzai on 24-2-8.
-//
-
 #ifndef ONENEW_PAD_AVGPOOL_H
 #define ONENEW_PAD_AVGPOOL_H
 
 #include "../../../common/nn_common.h"
-//#include "memory.h"
 
 int do_pad_avgpool(char *dst_ptr, char *src_ptr, OPERAND_S *src_data_desc, PAD_INNER_CONFIG_S *cfg) {
     float pad_value = 0.0f;
@@ -33,10 +28,7 @@ int do_pad_avgpool(char *dst_ptr, char *src_ptr, OPERAND_S *src_data_desc, PAD_I
 
         }
     }
-
-
     return 0;
 }
-
 
 #endif //ONENEW_PAD_AVGPOOL_H

@@ -3,17 +3,15 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "math.h"
-#include "stdint.h"
-
 #include "float.h"
+
 // 按照 https://blog.csdn.net/weixin_45377629/article/details/132218227 这个逻辑来实现
 // 有一点需要注意，上面这个链接是 align_corners 为 true 的写法，我也是按照上面这个链接做的，但是 rt detr 是 align_corners 为 false 的
 // 做法，所以有一些误差，具体可见 https://blog.csdn.net/weixin_42973210/article/details/132315563
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 //    show_dev_input(params);
-//    printf("this is x86 mul start\n");
+
     GRID_SAMPLE_CONFIG_S *cfg = (GRID_SAMPLE_CONFIG_S *) (params[0].addr);
-//    printf("this is device, the op type is mul\n");
 
     float *input0_ptr = (float *) (inputs[0].addr);
     float *input1_ptr = (float *) (inputs[1].addr);
@@ -74,6 +72,5 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
         }
     }
 
-//    LOG_ERR("对不起，现在还没实现 grid sample 的计算过程");
     return 0;
 }

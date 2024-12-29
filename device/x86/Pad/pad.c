@@ -2,14 +2,12 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
-//#include "pad_avgpool.h"
 #include "stdint.h"
 
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-
 //    show_dev_input(params);
+
     PAD_CONFIG_S *cfg = (PAD_CONFIG_S *) (params[0].addr);
-//    printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 
     int pad_c_st = cfg->pads[1];
     int pad_c_ed = cfg->pads[4 + 1];
@@ -45,16 +43,12 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
         dst_f32[i] = pad_value;
     }
 
-//    LOG_DBG("%d %d %d %d %d %d", pad_c_st, pad_c_ed, pad_top, pad_bottom, pad_left, pad_right);
-//    LOG_DBG("dst_c %d  dst_h %d dst_w %d", dst_c, dst_h, dst_w);
-
     for (int c_i = pad_c_st; c_i < dst_c - pad_c_ed; ++c_i) {
         for (int h_i = pad_top; h_i < dst_h - pad_bottom; ++h_i) {
             for (int w_i = pad_left; w_i < dst_w - pad_right; ++w_i) {
                 dst_f32[c_i * dst_h * dst_w + h_i * dst_w + w_i]
                 = src_f32[(c_i - pad_c_st) * src_h * src_w + (h_i - pad_top) * src_w + (w_i - pad_left)];
             }
-
         }
     }
 

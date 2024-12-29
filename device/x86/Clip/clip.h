@@ -1,15 +1,7 @@
-#ifndef __RELU_H__
-#define __RELU_H__
+#ifndef __CLIP_H__
+#define __CLIP_H__
 
 #include "../../../common/nn_common.h"
-
-
-// typedef struct {
-//     OPERAND_S input;
-//     OPERAND_S output;
-
-//     float threshold;
-// } RELU6_CONFIG_S;
 
 int eval(BUFFER_INFO_S *, BUFFER_INFO_S *, BUFFER_INFO_S *);
 

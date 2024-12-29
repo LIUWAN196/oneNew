@@ -18,7 +18,6 @@
 #include "algorithm"
 #include <omp.h>
 #include <cuda_runtime.h>
-//#include "cuda_runtime.h"
 
 #define CUDA_CHECK(call) \
     do { \
@@ -29,15 +28,11 @@
         } \
     } while (0)
 
-// namespace one_new
-// {
 typedef int (*evalaa)(BUFFER_INFO_S *, BUFFER_INFO_S *, BUFFER_INFO_S *);
 
 class net;
 
-
 class extractor {
-
 public:
 
     std::unordered_map<std::string, BUFFER_INFO_S> operand_buf_map;
@@ -45,7 +40,6 @@ public:
     net *net_ptr;
 
     extractor(net *net_ptr_) : net_ptr(net_ptr_) {
-//        printf("new a extractor\n");
         new_output_buf();
     };
 

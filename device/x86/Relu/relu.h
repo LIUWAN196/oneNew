@@ -3,14 +3,6 @@
 
 #include "../../../common/nn_common.h"
 
-
-// typedef struct {
-//     OPERAND_S input;
-//     OPERAND_S output;
-
-//     float threshold;
-// } RELU6_CONFIG_S;
-
-int eval(BUFFER_INFO_S *, BUFFER_INFO_S *, BUFFER_INFO_S *);
+int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs);
 
 #endif

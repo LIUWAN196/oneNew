@@ -12,8 +12,6 @@ typedef enum {
     MSG_LEVEL = 3
 } LOG_LEVEL;
 
-//// 暂时手动定义日志等级为 MSG_LEVEL 级别，便于调试
-//#define LOG_LEV MSG_LEVEL
 
 // 3、打印调试信息
 #ifdef LOG_LEV

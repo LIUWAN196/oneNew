@@ -5,6 +5,25 @@
 #include "string.h"
 #include "stdint.h"
 
+int eval_perm_num4(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs);
+int eval_perm_num6(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs);
+
+int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+//    show_dev_input(params);
+
+    TRANSPOSE_CONFIG_S *cfg = (TRANSPOSE_CONFIG_S *) (params[0].addr);
+
+    if (cfg->perm_num <= 4) {
+        eval_perm_num4(params, inputs, outputs);
+    } else if (cfg->perm_num <= 6) {
+        eval_perm_num6(params, inputs, outputs);
+    } else {
+        LOG_ERR("current, just support perm num is 4 or 6, there is %ld", cfg->perm_num);
+    }
+
+    return 0;
+}
+
 int eval_perm_num4(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     TRANSPOSE_CONFIG_S *cfg = (TRANSPOSE_CONFIG_S *) (params[0].addr);
@@ -18,7 +37,6 @@ int eval_perm_num4(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *
     OPERAND_S *in_tensor = (OPERAND_S *) (params[1].addr);
     OPERAND_S *out_tensor = (OPERAND_S *) (params[2].addr);
 
-    // perm_num == 4
     int32_t in_n = in_tensor->shapes[0];
     int32_t in_c = in_tensor->shapes[1];
     int32_t in_h = in_tensor->shapes[2];
@@ -70,7 +88,6 @@ int eval_perm_num6(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *
     OPERAND_S *in_tensor = (OPERAND_S *) (params[1].addr);
     OPERAND_S *out_tensor = (OPERAND_S *) (params[2].addr);
 
-    // perm_num == 4
     int32_t in_n = in_tensor->shapes[0];
     int32_t in_c = in_tensor->shapes[1];
     int32_t in_h = in_tensor->shapes[2];
@@ -119,18 +136,5 @@ int eval_perm_num6(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *
     return 0;
 }
 
-int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-
-//    show_dev_input(params);
-    TRANSPOSE_CONFIG_S *cfg = (TRANSPOSE_CONFIG_S *) (params[0].addr);
-
-    if (cfg->perm_num <= 4) {
-        eval_perm_num4(params, inputs, outputs);
-    } else if (cfg->perm_num <= 6) {
-        eval_perm_num6(params, inputs, outputs);
-    }
-
-    return 0;
-}
 
 

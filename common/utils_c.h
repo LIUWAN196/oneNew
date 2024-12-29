@@ -1,7 +1,3 @@
-//
-// Created by wanzai on 24-8-19.
-//
-
 #ifndef ONENEW_UTILS_C_H
 #define ONENEW_UTILS_C_H
 
@@ -24,12 +20,6 @@ inline int32_t operand_buf_size(OPERAND_S *cur_operand)
     int32_t buf_size = operand_elem_size(cur_operand) * elem_info_map[cur_operand->data_type].size;
     return buf_size;
 }
-
-inline int32_t align_operand_buf_size(OPERAND_S *cur_operand)
-{
-    return (operand_buf_size(cur_operand) + 63) & (~63);
-}
-
 
 int32_t write_bin(const char *filename, const int64_t size, char *buf) {
     FILE *file_p = NULL;

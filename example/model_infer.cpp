@@ -4,7 +4,9 @@
 #include <functional>
 #include <algorithm>
 
-#include "cuda_runtime.h"
+#ifdef USING_GPU
+    #include "cuda_runtime.h"
+#endif
 
 #include "ops_head.h"
 #include "net.h"
@@ -52,7 +54,6 @@ int32_t rt_cfg_check(std::unordered_map<std::string, std::string> &cfg_info_map)
         LOG_ERR("the args: model_type must be set: normal or mobile_sam or clip");
         return -1;
     }
-
 
     // 根据 model_type 读取对应的 one 文件的路径
     if (str2lower_str(cfg_info_map["model_type"]) == "normal") {

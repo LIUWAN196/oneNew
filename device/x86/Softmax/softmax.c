@@ -3,7 +3,30 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "math.h"
-#include "stdint.h"
+
+int eval_dim_last(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs);
+int eval_dim_1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs);
+
+int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+
+    SOFTMAX_CONFIG_S *cfg = (SOFTMAX_CONFIG_S *) (params[0].addr);
+
+    float *input_ptr = (float *) (inputs[0].addr);
+    float *output_ptr = (float *) (outputs[0].addr);
+
+    OPERAND_S *in0_tensor = (OPERAND_S *) (params[1].addr);
+    OPERAND_S *out_tensor = (OPERAND_S *) (params[2].addr);
+
+    if (cfg->axis == -1 || cfg->axis == in0_tensor->dim_num_of_shapes - 1) {
+        eval_dim_last(params, inputs, outputs);
+    } else if (cfg->axis == 1 && in0_tensor->shapes[0] == 1) {
+        eval_dim_1(params, inputs, outputs);
+    } else {
+        LOG_ERR("error, cur softmax op only support with axis = 1 or -1, when axis == 1, the shape[0] must be 1\n");
+    }
+
+    return 0;
+}
 
 int eval_dim_last(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
@@ -95,24 +118,3 @@ int eval_dim_1(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outp
     return 0;
 }
 
-int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-
-    SOFTMAX_CONFIG_S *cfg = (SOFTMAX_CONFIG_S *) (params[0].addr);
-//    printf("yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
-
-    float *input_ptr = (float *) (inputs[0].addr);
-    float *output_ptr = (float *) (outputs[0].addr);
-
-    OPERAND_S *in0_tensor = (OPERAND_S *) (params[1].addr);
-    OPERAND_S *out_tensor = (OPERAND_S *) (params[2].addr);
-
-    if (cfg->axis == -1 || cfg->axis == in0_tensor->dim_num_of_shapes - 1) {
-        eval_dim_last(params, inputs, outputs);
-    } else if (cfg->axis == 1 && in0_tensor->shapes[0] == 1) {
-        eval_dim_1(params, inputs, outputs);
-    } else {
-        LOG_ERR("error, cur softmax op only support with axis = 1 or -1, when axis == 1, the shape[0] must be 1\n");
-    }
-
-    return 0;
-}

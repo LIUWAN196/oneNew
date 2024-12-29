@@ -31,7 +31,6 @@
 
       postprocess_type: pose_detect
 
-#      net_type: rt_detr
       cls_num: 80
       score_threshold: 0.3
       iou_threshold: 0.6

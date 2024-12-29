@@ -22,19 +22,6 @@
 #include "opencv/cv.h"
 #include "opencv2/opencv.hpp"
 
-int32_t load_bin(const char *filename, const int64_t size, char *buf) {
-    FILE *file_p = NULL;
-
-    file_p = fopen(filename, "r");
-    if (file_p == NULL) {
-        printf("cant open the input bin\n");
-    }
-    size_t bytes_read = fread(buf, sizeof(char), size, file_p);
-    fclose(file_p);
-
-    return 0;
-}
-
 std::vector<std::string> split(const std::string& s)
 {
     std::vector<std::string> words;
@@ -182,18 +169,6 @@ int set_default_args(std::unordered_map<std::string, std::string>& cfg_info_map,
     return 1;
 }
 
-std::vector<std::string> get_string_vec(std::string src_string) {
-    // 以 “;” 分割字符串
-    std::vector<std::string> tokens;
-    std::istringstream iss(src_string);
-    std::string token;
-    while (std::getline(iss, token, ';')) {
-        tokens.push_back(token);
-    }
-
-    return tokens;
-}
-
 int yml2map(std::unordered_map<std::string, std::string>& cfg_info_map, const std::string file_name)
 {
     // step 1: open yml cfg
@@ -261,11 +236,5 @@ TRANSFORMS_CONFIG_S cfg_info_map2preprocess_params(std::unordered_map<std::strin
 
     return trans_cfg;
 }
-
-// 自定义比较函数，使用 op type 用于比较两个 NODE_INFO_S
-bool compareNodeWithType(NODE_INFO_S node_a, NODE_INFO_S node_b) {
-    return std::strcmp(node_a.op_type, node_b.op_type) < 0;
-}
-
 
 #endif // __NN_COMMON_CPP_H__

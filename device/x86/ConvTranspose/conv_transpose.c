@@ -8,9 +8,9 @@
 #include <omp.h>
 #include "math.h"
 
-int eval_conv_transpose_mxn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-
+int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 //    show_dev_input(params);
+
     CONV_TRANSPOSE_CONFIG_S *cfg = (CONV_TRANSPOSE_CONFIG_S *) (params[0].addr);
 
     int32_t stride_x = cfg->strides[0];
@@ -18,7 +18,6 @@ int eval_conv_transpose_mxn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER
 
     float *input_ptr = (float *) (inputs[0].addr);
     float *weight_ptr = (float *) (inputs[1].addr);
-
 
     float *bias_ptr;
     if (cfg->has_bias) {
@@ -80,15 +79,4 @@ int eval_conv_transpose_mxn(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER
     return 0;
 
 }
-
-int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
-
-    eval_conv_transpose_mxn(params, inputs, outputs);
-
-    return 0;
-}
-
-
-
-
 

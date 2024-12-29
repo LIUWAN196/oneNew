@@ -3,9 +3,23 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <immintrin.h>
-#include "stdint.h"
 #include <omp.h>
 #include "math.h"
+
+int eval_nearest(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs);
+int eval_linear(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs);
+
+int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
+{
+    OPERAND_S* in_tensor = (OPERAND_S*)(params[1].addr);
+    OPERAND_S* out_tensor = (OPERAND_S *) (params[2].addr);
+    if (out_tensor->shapes[2] / in_tensor->shapes[2] == 2) {
+        eval_nearest(params, inputs, outputs);
+    } else {
+        eval_linear(params, inputs, outputs);
+    }
+    return 0;
+}
 
 int eval_nearest(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
 {
@@ -22,14 +36,10 @@ int eval_nearest(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *ou
     if (cfg->scales[0] == 0) {
         h_scale = out_tensor->shapes[2] * 1.0f / in_tensor->shapes[2];
         w_scale = out_tensor->shapes[3] * 1.0f / in_tensor->shapes[3];
-//        h_scale = in_tensor->shapes[2] * 1.0f / out_tensor->shapes[2];
-//        w_scale = in_tensor->shapes[3] * 1.0f / out_tensor->shapes[3];
     } else {
         h_scale = cfg->scales[2];
         w_scale = cfg->scales[3];
     }
-
-//    printf("h_scale is %f, w_scale if %f\n", h_scale, w_scale);
 
     int32_t in_elem_size = 1;
     for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
@@ -73,15 +83,8 @@ int eval_linear(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *out
     float* input_ptr = (float*)(inputs[0].addr);
     float* output_ptr = (float*)(outputs[0].addr);
 
-//    float h_scale = cfg->scales[2];
-//    float w_scale = cfg->scales[3];
-//
     OPERAND_S* in_tensor = (OPERAND_S*)(params[1].addr);
     OPERAND_S* out_tensor = (OPERAND_S *) (params[2].addr);
-//    int32_t in_elem_size = 1;
-//    for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
-//        in_elem_size *= in_tensor->shapes[dim_i];
-//    }
 
     int32_t in_n = in_tensor->shapes[0];
     int32_t in_c = in_tensor->shapes[1];
@@ -95,9 +98,6 @@ int eval_linear(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *out
 
     float scale_h = (in_h * 1.0f) / (out_h * 1.0f);
     float scale_w = (in_w * 1.0f) / (out_w * 1.0f);
-
-//    printf("scale_h is %f, scale_w is %f\n", scale_h, scale_w);
-
 
     float* cur_in_ptr;
     float* cur_out_ptr;
@@ -148,19 +148,4 @@ int eval_linear(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *out
     return 0;
 }
 
-
-int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
-{
-    OPERAND_S* in_tensor = (OPERAND_S*)(params[1].addr);
-    OPERAND_S* out_tensor = (OPERAND_S *) (params[2].addr);
-//    printf("goto resize\n");
-    if (out_tensor->shapes[2] / in_tensor->shapes[2] == 2) {
-//        printf("goto out_tensor->shapes[2] / in_tensor->shapes[2] == 2\n");
-        eval_nearest(params, inputs, outputs);
-//        printf("end goto out_tensor->shapes[2] / in_tensor->shapes[2] == 2\n");
-    } else {
-        eval_linear(params, inputs, outputs);
-    }
-    return 0;
-}
 

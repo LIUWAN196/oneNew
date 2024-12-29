@@ -1,7 +1,3 @@
-//
-// Created by wanzai on 24-11-9.
-//
-
 #ifndef ONENEW_CLIP_MODEL_H
 #define ONENEW_CLIP_MODEL_H
 
@@ -113,7 +109,6 @@ int show_img(std::vector<std::pair<std::string, float>> img_ratio, std::string i
     return 0;
 }
 
-
 // 传入 resize 到 1024x1024 的图片，以及 std::vector<uint8_t> mask_vec 数据，还有 mask 的 BGR 值。返回一个带 mask 的图像
 cv::Mat get_masked_img(cv::Mat src_img, std::vector<uint8_t> mask_vec, cv::Scalar& mask_color) {
 
@@ -183,31 +178,6 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
 
     std::unordered_map<std::string, BUFFER_INFO_S> io_buf_map;
 
-
-
-//    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
-//    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
-//    std::vector<float> normal_mean = str2number<float>(cfg_info_map["normal_mean"]);
-//    std::vector<float> normal_std = str2number<float>(cfg_info_map["normal_std"]);
-//
-//    int in_elem_size = 3 * crop_shapes[0] * crop_shapes[1];
-//
-//    std::vector<float> in_buf(in_elem_size);
-//
-//    TRANSFORMS_CONFIG_S trans_cfg;
-//    trans_cfg.resize_size[0] = resize_shapes[0];
-//    trans_cfg.resize_size[1] = resize_shapes[1];
-//    trans_cfg.crop_size[0] = crop_shapes[0];
-//    trans_cfg.crop_size[1] = crop_shapes[1];
-//
-//    trans_cfg.mean[0] = normal_mean[0];
-//    trans_cfg.mean[1] = normal_mean[1];
-//    trans_cfg.mean[2] = normal_mean[2];
-//
-//    trans_cfg.std[0] = normal_std[0];
-//    trans_cfg.std[1] = normal_std[1];
-//    trans_cfg.std[2] = normal_std[2];
-
     TRANSFORMS_CONFIG_S trans_cfg = cfg_info_map2preprocess_params(cfg_info_map);
     int in_elem_size = 3 * trans_cfg.crop_size[0] * trans_cfg.crop_size[1];
     std::vector<float> in_buf(in_elem_size);
@@ -254,7 +224,6 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
             clip_img_ofmap[i] = clip_img_ofmap[i] * 100.0f / psum_sqrt;
         }
         img_ofmp.push_back({img_name_vec[img_i], clip_img_ofmap});
-
 
         double omp_ed = omp_get_wtime();
         double elapsed = omp_ed - omp_st;
@@ -309,7 +278,6 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
         std::unordered_map<std::string, BUFFER_INFO_S> txt_io_buf_map;
 
         std::vector<int> texts = str2number<int>(token_list);
-//        std::vector<int> texts = str2number<int>(cfg_info_map["token_list"]);
         std::vector<float> texts_float(texts.size());
         memcpy((char *)&texts_float[0], (char *)&texts[0], texts.size() * sizeof(float));
 
@@ -358,7 +326,6 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
                       return a.second > b.second; // 降序排序
                   });
 
-
         // do softmax
         // find max
         float max_sim = -32768.0f;
@@ -381,6 +348,5 @@ int do_clip(std::unordered_map<std::string, std::string> cfg_info_map) {
     }
     return 0;
 }
-
 
 #endif //ONENEW_CLIP_MODEL_H

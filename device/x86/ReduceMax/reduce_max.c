@@ -3,12 +3,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "stdint.h"
-
 int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
     REDUCE_MAX_CONFIG_S *cfg = (REDUCE_MAX_CONFIG_S *) (params[0].addr);
-//    printf("yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 
     if (cfg->axes_num != 1 || cfg->axes[0] != -1) {
         LOG_ERR("cur, reduce max op just support axes == -1");

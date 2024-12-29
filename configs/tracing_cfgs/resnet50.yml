@@ -1,4 +1,4 @@
-# resnet50 runtime config
+# resnet50 tracing config
 
 do_preprocess: true
 

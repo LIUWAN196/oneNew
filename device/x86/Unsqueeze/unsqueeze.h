@@ -1,15 +1,7 @@
-#ifndef __FLATTEN_H__
-#define __FLATTEN_H__
+#ifndef __UNSQUEEZE_H__
+#define __UNSQUEEZE_H__
 
 #include "../../../common/nn_common.h"
-
-
-// typedef struct {
-//     OPERAND_S input;
-//     OPERAND_S output;
-
-//     float threshold;
-// } RELU6_CONFIG_S;
 
 int eval(BUFFER_INFO_S *, BUFFER_INFO_S *, BUFFER_INFO_S *);
 

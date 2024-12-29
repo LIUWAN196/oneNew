@@ -3,7 +3,21 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "string.h"
-#include "stdint.h"
+
+int eval_equal5dims(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs);
+int eval_less5dims(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs);
+
+int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
+
+    SLICE_CONFIG_S *cfg = (SLICE_CONFIG_S *) (params[0].addr);
+    if (cfg->axes[0] == 5) {
+        eval_equal5dims(params, inputs, outputs);
+    } else {
+        eval_less5dims(params, inputs, outputs);
+    }
+
+    return 0;
+}
 
 int eval_less5dims(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
@@ -69,8 +83,6 @@ int eval_less5dims(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *
 
 int eval_equal5dims(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
-//    show_dev_input(params);
-
     SLICE_CONFIG_S *cfg = (SLICE_CONFIG_S *) (params[0].addr);
 
     float *input_ptr = (float *) (inputs[0].addr);
@@ -99,16 +111,4 @@ int eval_equal5dims(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S 
     return 0;
 }
 
-int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs) {
 
-//    show_dev_input(params);
-
-    SLICE_CONFIG_S *cfg = (SLICE_CONFIG_S *) (params[0].addr);
-    if (cfg->axes[0] == 5) {
-        eval_equal5dims(params, inputs, outputs);
-    } else {
-        eval_less5dims(params, inputs, outputs);
-    }
-
-    return 0;
-}

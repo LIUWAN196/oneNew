@@ -5,10 +5,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "log.h"
-//#define OP_LIB_DIR "/home/wanzai/桌面/"
-
-//#define OP_X86_LIB_DIR "/home/wanzai/桌面/oneNew/cmake-build-debug/device/x86/"
-//#define OP_CU_LIB_DIR "/home/wanzai/桌面/oneNew/cmake-build-debug/device/cuda/"
 
 #define ONE_NODEL_MAGIC_NUM (123456)
 #define USEFUL_INFO_MAGIC_NUM (45678)
@@ -150,8 +146,8 @@ typedef struct
 typedef struct
 {
     char operand_name[OP_NAME_LEN];
-    BOOL is_fixed_val; // such as: weight, bias
-    BOOL not_need_buf;  // 用于 flatten 和 reshape 等算子的输出，此类输出不需要开辟 buffer
+    BOOL is_fixed_val;      // such as: weight, bias
+    BOOL not_need_buf;      // 用于 flatten 和 reshape 等算子的输出，此类输出不需要开辟 buffer
     int64_t p_data;
     int32_t dim_num_of_shapes;
     int32_t shapes[SHAPE_LEN];
@@ -387,7 +383,6 @@ typedef struct
     BASE_CONFIG_S op_base_cfg;
 } MUL_CONFIG_S;
 
-#define MAX_IN_TENSOR_NUM 9
 typedef enum
 {
     NET_UNKNOWN = 0,
@@ -405,7 +400,6 @@ typedef struct
     BASE_CONFIG_S op_base_cfg;
 
     DETECT_NET_TYPE_E net_type;
-
     int32_t cls_num;              // total num of object categories in this network
     int32_t img_w;
     int32_t img_h;
@@ -507,7 +501,6 @@ typedef struct
     int64_t sizes[8];    //  nchw
     int64_t scales_num;
 } RESIZE_CONFIG_S;
-
 
 typedef struct
 {
@@ -642,7 +635,6 @@ const ELEM_INFO elem_info_map[]= {
         {TYPE_COMPLEX128, "complex", 128},
         {TYPE_BF16, "bf16", 2},
 };
-
 
 #include "utils_c.h"
 

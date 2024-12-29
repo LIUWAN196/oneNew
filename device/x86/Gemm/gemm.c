@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <immintrin.h>
-#include "stdint.h"
 #include "string.h"
 #include "../../x86_utils/opt_gemm.h"
 
@@ -11,9 +10,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
 {
 //    show_dev_input(params);
 
-//    printf("this is gemm eval in x86\n");
     GEMM_CONFIG_S* cfg = (GEMM_CONFIG_S*)(params[0].addr);
-//    printf("\n yes this is device, the op type is %s, the op name is %s\n", cfg->op_type, cfg->op_name);
 
     OPERAND_S *in0_tensor = (OPERAND_S *) (params[1].addr);
     OPERAND_S *in1_tensor = (OPERAND_S *) (params[2].addr);
@@ -28,7 +25,6 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
     int32_t out_loop = 1;
     for (int i = 0; i < in0_tensor->dim_num_of_shapes - 2; ++i) {
         out_loop *= in0_tensor->shapes[i];
-//        printf("in0_tensor->shapes[i] is %d, out_loop is %d\n", in0_tensor->shapes[i], out_loop);
     }
 
     int32_t M = in0_tensor->shapes[in0_tensor->dim_num_of_shapes - 2];
@@ -46,7 +42,7 @@ int eval(BUFFER_INFO_S *params, BUFFER_INFO_S *inputs, BUFFER_INFO_S *outputs)
             float psum_vec[8];
             psum_vec[0] = 0, psum_vec[1] = 0, psum_vec[2] = 0, psum_vec[3] = 0;
             psum_vec[4] = 0, psum_vec[5] = 0, psum_vec[6] = 0, psum_vec[7] = 0;
-//#pragma unroll 4
+
             for (int k_i = 0; k_i < K; ++k_i) {
                 psum_vec[0] += cur_input0_ptr[k_i] * cur_input1_ptr[k_i];
                 psum_vec[1] += cur_input0_ptr[k_i] * cur_input1_ptr[k_i + 1 * K];

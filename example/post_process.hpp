@@ -1,7 +1,3 @@
-//
-// Created by wanzai on 24-11-11.
-//
-
 #ifndef ONENEW_POSTPROCESS_H
 #define ONENEW_POSTPROCESS_H
 
@@ -586,7 +582,6 @@ public:
                 }
             }
 
-
             image = get_masked_img(image, mask, mask_color_1);
             box_i++;
         }
@@ -605,7 +600,9 @@ public:
     }
 
     ~SegmentPerform() override {
-           }
+        ;
+    }
 
 };
+
 #endif //ONENEW_POSTPROCESS_H

@@ -1,7 +1,5 @@
 find_package(protobuf CONFIG)
 
-#set(CMAKE_BUILD_TYPE DEBUG)
-
 if(DEFINED USING_GPU)
     find_package(CUDA REQUIRED)
     include_directories(/usr/local/cuda/include)

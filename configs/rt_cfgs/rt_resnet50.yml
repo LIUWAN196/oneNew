@@ -4,10 +4,11 @@ do_preprocess: true
 
 do_postprocess: true
 
-one_file_path: /home/wanzai/桌面/oneNew/test/model_daily_test/tmp_one_model_path/resnet50/resnet50.one
+one_file_path: /home/wanzai/桌面/oneNew/model_zoo/resnet50.one
 
 input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/dog.png
 
+#model_exc_type: perf_profiling
 model_exc_type: efficient_exc
 
 postprocess_type: classify
@@ -16,4 +17,12 @@ resize_shapes: [256, 256]
 crop_shapes: [224, 224]
 normal_mean: [0.485ff, 0.456ff, 0.406ff]
 normal_std: [0.229f, 0.224f, 0.225f]
+
+
+cpu: 12400F
+cpu_hw_info: 2.5g * 8thread * 8 (avx2 = 8 * float32)
+hw_computing_power (GOPS): 160
+model name: resnet50
+tracing_csv_path: /home/wanzai/桌面/oneNew/tools/perf_profiling/timeline_info/resnet50.csv
+
 
