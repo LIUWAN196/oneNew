@@ -17,7 +17,9 @@ cd /home/oneNew/build/example
 ```shell {.line-numbers}
 please enter token（exit the program using 'exit'）>:
 ```  
-提示，此时需要到 oneNew/tools/tokenizer/clip_model_tokenizer.py 中，将文本转为 token id，并键入此处，enter 即可获取到与文本匹配的结果。  
+提示，此时需要到 oneNew/tools/tokenizer/clip_model_tokenizer.py 中，将文本转为 token id，并键入此处。  
+在 tokenizer.py 中，预设有文本 "This is a photo of a dog sitting on a green lawn"。将转换后的 token id 序列作为上述提示的输入。
+enter 即可获取到与文本匹配的结果。  
 4、**获取输出结果**  
 如果在执行完上述步骤后，终端显示如下图所示，即表示适配成功。  
 ![CLIP 输出结果](../docs/imgs/CLIP.png)
