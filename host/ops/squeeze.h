@@ -2,9 +2,7 @@
 #define OP_SQUEEZE_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Squeeze : public op
 {
@@ -15,21 +13,15 @@ public:
 
     Squeeze()
     {
-//        printf("new a Squeeze\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *squeeze_cfg_ptr)
     {
         // new Squeeze op
         std::shared_ptr<Squeeze> relu_ptr = std::make_shared<Squeeze>();
-//        relu_ptr.get()->find_handle((BUFFER_GROUP_S *)squeeze_cfg_ptr);
 
         // fill op config
         memcpy(&(relu_ptr->squeeze_cfg), squeeze_cfg_ptr, sizeof(SQUEEZE_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = squeeze_cfg_ptr;
-        // op_name = squeeze_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = relu_ptr;
 
@@ -42,7 +34,6 @@ public:
         OPERAND_S* out = &operand_stu_map[out_operands[0]];
         out->not_need_buf = TRUE;
         // the out shape equal in shape
-//        memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
         for (int i = 0; i < SHAPE_LEN; ++i) {
             out->shapes[i] = 1;
         }
@@ -63,16 +54,10 @@ public:
             }
         }
 
-
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&squeeze_cfg);
         params_vec[0] = params;
-//        params_vec.push_back(params);
-
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&squeeze_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };

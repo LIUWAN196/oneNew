@@ -1,7 +1,3 @@
-//
-// Created by wanzai on 24-8-22.
-//
-
 #ifndef ONENEW_OP_FUSION_HPP
 #define ONENEW_OP_FUSION_HPP
 
@@ -41,9 +37,7 @@ typedef struct
 {
     BASE_CONFIG_S * base_cfg;
     int32_t be_fused;
-//    std::string fusion_op_type;
-//    char fusion_op_type[256];
-//    FUSION_OP_TYPE_E fusion_op_type;
+
     int32_t fusion_op_cnt_in_entire_net;    // 如果融合，那么融合后的融合算子这是整个网络的第几个融合算子
     int32_t cur_op_cnt_in_fusion_op;        // 如果融合，那么当前这个算子是融合算子的第几个子算子
 } FUSE_MARK_S;
@@ -238,7 +232,6 @@ int fill_layer_normalization_fuse_op_cfg(std::vector<BASE_CONFIG_S *> &total_fus
 
     REDUCE_MEAN_CONFIG_S *reduce_mean_cfg = (REDUCE_MEAN_CONFIG_S *)sub_op_cfg[1];
     ln_cfg->axes[0] = reduce_mean_cfg->axes[0];
-//    LOG_DBG("ln_cfg->axes[0] is %d\n", ln_cfg->axes[0]);
 
     // 修改消费者 op 为最后一个 div 的输出 op
     BASE_CONFIG_S *div_cfg = sub_op_cfg[7];
@@ -399,7 +392,6 @@ int fuse_operator(std::string fuse_op_type, char* one_file_buf, std::vector<sub_
 
         // 标记完后，需要生成新的 cfg
         fill_fuse_op_cfg(total_fuse_op_cfg_set, sub_op_cfg);
-
     }
 
     return 0;
@@ -467,7 +459,6 @@ int do_fuse(char* optimize_one_buf_ptr, char* one_buf_ptr,
     memcpy(optimize_node_cfg_ptr, ori_io_cfg_buf_ptr, ori_one_model_io_cfg_buf_size);
     optimize_node_cfg_ptr += ori_one_model_io_cfg_buf_size;
 
-
     return 0;
 }
 
@@ -488,7 +479,6 @@ int32_t op_fusion(char *fusion_one_buf_ptr, char *one_buf_ptr, CFG_MAP cfg_info_
     int32_t one_file_size = std::stoi(cfg_info_map["one_file_size"]);
 
     ONE_MODEL_DESC_S* src_one_desc = (ONE_MODEL_DESC_S*)one_buf_ptr;
-//    LOG_MSG("src node_cnt is %d\n", src_one_desc->node_cnt);
 
     // step 9: fuse_operator
     std::vector<BASE_CONFIG_S *> total_fuse_op_cfg_set;
@@ -596,7 +586,7 @@ int32_t op_fusion(char *fusion_one_buf_ptr, char *one_buf_ptr, CFG_MAP cfg_info_
     do_fuse(fusion_one_buf_ptr, one_buf_ptr, one_file_size, total_fuse_op_cfg_set);
 
     ONE_MODEL_DESC_S* fused_one_desc = (ONE_MODEL_DESC_S*)fusion_one_buf_ptr;
-//    LOG_MSG("fused node_cnt is %d\n", fused_one_desc->node_cnt);
+
     return 0;
 }
 

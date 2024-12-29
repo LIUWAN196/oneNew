@@ -2,22 +2,15 @@
 #define OP_GEMM_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Gemm : public op {
 public:
     GEMM_CONFIG_S gemm_cfg;
     std::vector<std::vector<float>> initial_datas;  // weight and bias
     std::vector<OPERAND_S> initial_operands;  // weight and bias
-//    std::vector<float> weight;
-//    std::vector<float> bias;
-//    OPERAND_S weight_operand_desc;
-//    OPERAND_S bias_operand_desc;
 
     Gemm() {
-//        printf("new a Gemm\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *gemm_cfg_ptr) {
@@ -26,7 +19,6 @@ public:
 
         // fill op config
         memcpy(&(gemm_ptr->gemm_cfg), gemm_cfg_ptr, sizeof(GEMM_CONFIG_S));
-
 
         op_ptr = gemm_ptr;
 
@@ -51,7 +43,6 @@ public:
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&gemm_cfg);
         params_vec[0] = params;
-//        params_vec.push_back(params);
 
         return 0;
     };
@@ -94,13 +85,11 @@ public:
             if (init_operands == weight_oprand) {
                 int32_t init_operand_elem_size = operand_elem_size(operand_ptr);
                 float *data_ptr = (float *) (cur_init_info_ptr + sizeof(OPERAND_S));
-//                std::cout << "the init operand is weight of " << this->op_type << "op." << std::endl;
                 memcpy(&initial_operands[0], operand_ptr, sizeof(OPERAND_S));
                 initial_datas[0].assign(data_ptr, data_ptr + init_operand_elem_size);
             } else if (init_operands == bias_oprand) {
                 int32_t init_operand_elem_size = operand_elem_size(operand_ptr);
                 float *data_ptr = (float *) (cur_init_info_ptr + sizeof(OPERAND_S));
-//                std::cout << "the init operand is bias of " << this->op_type << " op." << std::endl;
                 memcpy(&initial_operands[1], operand_ptr, sizeof(OPERAND_S));
                 initial_datas[1].assign(data_ptr, data_ptr + init_operand_elem_size);
             }
@@ -110,45 +99,29 @@ public:
             cur_init_info_ptr += align_buf_size(sizeof(OPERAND_S) + init_size);
         }
 
-        int b = 101;
-
         return 0;
     }
 
     int prepare_init_operand_data() override {
         // set desc struct
 
-//        params_vec: cfg / ifmap desc / weight desc / bias desc / ofmap desc
         BUFFER_INFO_S weight_desc;
         weight_desc.addr = (int64_t) (&initial_operands[0]);
         params_vec[2] = weight_desc;
-//        this->params_vec.push_back(weight_desc);
+
         BUFFER_INFO_S bias_desc;
         bias_desc.addr = (int64_t) (&initial_operands[1]);
         params_vec[3] = bias_desc;
-//        this->params_vec.push_back(bias_desc);
-
 
         // set buf
         BUFFER_INFO_S weight_buf;
         weight_buf.addr = (int64_t) (&(initial_datas[0][0]));
         inputs_vec[1] = weight_buf;
-//        this->inputs_vec.push_back(weight_buf);
+
         BUFFER_INFO_S bias_buf;
         bias_buf.addr = (int64_t) (&(initial_datas[1][0]));
         inputs_vec[2] = bias_buf;
-//        this->inputs_vec.push_back(bias_buf);
 
-//        // set buf
-//        BUFFER_INFO_S weight_buf;
-//        weight_buf.addr = (int64_t) (&(initial_datas[0][0]));
-//        this->inputs_vec.push_back(weight_buf);
-//        BUFFER_INFO_S bias_buf;
-//        bias_buf.addr = (int64_t) (&(initial_datas[1][0]));
-//        this->inputs_vec.push_back(bias_buf);
-
-
-        int c = 101;
         return 0;
     }
 

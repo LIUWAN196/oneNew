@@ -2,9 +2,7 @@
 #define OP_CONCAT_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Concat : public op
 {
@@ -16,7 +14,6 @@ public:
     int32_t init_ifmap_idx = -1;
     Concat()
     {
-//        printf("new a Concat\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *relu_cfg_ptr)
@@ -27,10 +24,6 @@ public:
         // fill op config
         memcpy(&(concat_ptr->concat_cfg), relu_cfg_ptr, sizeof(CONCAT_CONFIG_S));
 
-        // // fill op type and op name
-        // op_type = relu_cfg_ptr;
-        // op_name = relu_cfg_ptr + OP_TYPE_LEN;
-
         op_ptr = concat_ptr;
 
         return 0;
@@ -39,7 +32,6 @@ public:
     virtual int shape_infer(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         OPERAND_S* in = &operand_stu_map[in_operands[0]];
         OPERAND_S* in1 = &operand_stu_map[in_operands[1]];
-//        std::cout << in1 << std::endl;
 
         OPERAND_S* out = &operand_stu_map[out_operands[0]];
         // the out shape equal in shape
@@ -69,18 +61,10 @@ public:
         }
         out->shapes[concat_cfg.axis] = dim_num_possible_overlap[concat_cfg.axis];
 
-//        LOG_DBG("the op name is %s, ofmap shape is: %d %d %d %d %d %d %d", concat_cfg.op_base_cfg.op_name,
-//                out->shapes[0], out->shapes[1], out->shapes[2], out->shapes[3], out->shapes[4], out->shapes[5],
-//                out->shapes[6]);
-
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&concat_cfg);
         params_vec[0] = params;
-
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&concat_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };
@@ -105,7 +89,6 @@ public:
             this->out_operands.push_back(out_operand);
         }
 
-
         // 下面是输入操作数是否在 init 中
         ONE_MODEL_DESC_S *one_model_desc_ptr = (ONE_MODEL_DESC_S *) one_buf_ptr;
         int32_t init_cnt = one_model_desc_ptr->init_cnt;
@@ -125,10 +108,8 @@ public:
                     initial_datas.resize(1);
                     int32_t init_operand_elem_size = operand_elem_size(operand_ptr);
                     float *data_ptr = (float *) (cur_init_info_ptr + sizeof(OPERAND_S));
-//                std::cout << "the init operand is weight of " << this->op_type << "op." << std::endl;
                     memcpy(&initial_operands[0], operand_ptr, sizeof(OPERAND_S));
                     initial_datas[0].assign(data_ptr, data_ptr + init_operand_elem_size);
-
             }
 
             // update cur_init_info_ptr
@@ -141,7 +122,6 @@ public:
 
     int prepare_init_operand_data() override {
         // set desc struct
-
         if (initial_operands.size() != 0) {
             BUFFER_INFO_S first_operand_desc;
             first_operand_desc.addr = (int64_t) (&initial_operands[0]);

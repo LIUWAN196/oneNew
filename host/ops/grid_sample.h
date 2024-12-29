@@ -2,9 +2,7 @@
 #define OP_GRID_SAMPLE_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class GridSample : public op
 {
@@ -16,7 +14,6 @@ public:
     std::vector<OPERAND_S> initial_operands;  // weight and bias
     GridSample()
     {
-//        printf("new a GridSample\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *relu_cfg_ptr)
@@ -26,10 +23,6 @@ public:
 
         // fill op config
         memcpy(&(grid_sample_ptr->grid_sample_cfg), relu_cfg_ptr, sizeof(GRID_SAMPLE_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = relu_cfg_ptr;
-        // op_name = relu_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = grid_sample_ptr;
 
@@ -56,7 +49,6 @@ public:
         out->shapes[2] = in1->shapes[1];
         out->shapes[3] = in1->shapes[2];
 
-
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&grid_sample_cfg);
@@ -70,10 +62,6 @@ public:
         // fill op type and op name
         op_type = (char*)(&(this->grid_sample_cfg));
         op_name = (char*)((int64_t)&(this->grid_sample_cfg) + OP_TYPE_LEN);
-
-        if (strcmp(op_name, "/model.10/attn/GridSample") == 0) {
-            int a = 101;
-        }
 
         BASE_CONFIG_S* base_cfg = (BASE_CONFIG_S*)(&(this->grid_sample_cfg));
         int32_t in_operand_num = base_cfg->in_operand_num;
@@ -91,7 +79,6 @@ public:
 
         return 0;
     }
-
 
 };
 

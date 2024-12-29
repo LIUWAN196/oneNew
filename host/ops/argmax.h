@@ -3,7 +3,6 @@
 
 #include "op.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class ArgMax : public op
 {
@@ -14,24 +13,17 @@ public:
 
     ArgMax()
     {
-//        printf("new a ArgMax\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *argmax_cfg_ptr)
     {
         // new ArgMax op
         std::shared_ptr<ArgMax> argmax_ptr = std::make_shared<ArgMax>();
-//        argmax_ptr.get()->find_handle((BUFFER_GROUP_S *)argmax_cfg_ptr);
 
         // fill op config
         memcpy(&(argmax_ptr->argmax_cfg), argmax_cfg_ptr, sizeof(ARGMAX_CONFIG_S));
 
-        // // fill op type and op name
-        // op_type = argmax_cfg_ptr;
-        // op_name = argmax_cfg_ptr + OP_TYPE_LEN;
-
         op_ptr = argmax_ptr;
-
         return 0;
     }
 
@@ -47,7 +39,6 @@ public:
         if (argmax_cfg.keepdims == 0) {
             out->dim_num_of_shapes = in->dim_num_of_shapes - 1;
         }
-
 
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
@@ -80,7 +71,6 @@ public:
 
         return 0;
     }
-
 
 };
 

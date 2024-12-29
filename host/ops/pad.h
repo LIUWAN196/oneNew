@@ -2,9 +2,7 @@
 #define OP_PAD_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Pad : public op
 {
@@ -13,21 +11,15 @@ public:
 
     Pad()
     {
-//        printf("new a Pad\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *pad_cfg_ptr)
     {
         // new Pad op
         std::shared_ptr<Pad> pad_ptr = std::make_shared<Pad>();
-//        pad_ptr.get()->find_handle((BUFFER_GROUP_S *)pad_cfg_ptr);
 
         // fill op config
         memcpy(&(pad_ptr->pad_cfg), pad_cfg_ptr, sizeof(PAD_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = pad_cfg_ptr;
-        // op_name = pad_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = pad_ptr;
 
@@ -52,13 +44,8 @@ public:
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&pad_cfg);
         params_vec[0] = params;
-//        params_vec.push_back(params);
 
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&pad_cfg);
-//        params_vec.push_back(params);
         return  0;
-
     };
 
     int fill_operands(char *one_buf_ptr) override

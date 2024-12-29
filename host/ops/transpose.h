@@ -2,9 +2,7 @@
 #define OP_TRANSPOSE_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Transpose : public op
 {
@@ -15,21 +13,15 @@ public:
 
     Transpose()
     {
-//        printf("new a Transpose\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *transpose_cfg_ptr)
     {
         // new Transpose op
         std::shared_ptr<Transpose> transpose_ptr = std::make_shared<Transpose>();
-//        transpose_ptr.get()->find_handle((BUFFER_GROUP_S *)transpose_cfg_ptr);
 
         // fill op config
         memcpy(&(transpose_ptr->transpose_cfg), transpose_cfg_ptr, sizeof(TRANSPOSE_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = transpose_cfg_ptr;
-        // op_name = transpose_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = transpose_ptr;
 
@@ -48,16 +40,10 @@ public:
             out->shapes[i] = in->shapes[this->transpose_cfg.perm[i]];
         }
 
-
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&transpose_cfg);
         params_vec[0] = params;
-//        params_vec.push_back(params);
-//
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&transpose_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };
@@ -85,11 +71,6 @@ public:
         return 0;
     }
 
-//    int prepare_init_operand_data() override {
-//
-//        int c = 101;
-//        return 0;
-//    }
 };
 
 OP_REGISTER_GLOBAL(Transpose, Transpose::create_instance, sizeof(TRANSPOSE_CONFIG_S));

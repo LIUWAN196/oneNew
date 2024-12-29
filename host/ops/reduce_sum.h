@@ -2,9 +2,8 @@
 #define OP_REDUCE_SUM_H
 
 #include "op.h"
-// #include "../../device/x86/reduce_sum6/reduce_sum6.h"
+
 #include "../manager/manager.h"
-// namespace one_new {
 
 class ReduceSum : public op
 {
@@ -15,27 +14,20 @@ public:
 
     ReduceSum()
     {
-//        printf("new a ReduceSum\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *reduce_sum_cfg_ptr)
     {
         // new ReduceSum op
         std::shared_ptr<ReduceSum> reduce_sum_ptr = std::make_shared<ReduceSum>();
-//        reduce_sum_ptr.get()->find_handle((BUFFER_GROUP_S *)reduce_sum_cfg_ptr);
 
         // fill op config
         memcpy(&(reduce_sum_ptr->reduce_sum_cfg), reduce_sum_cfg_ptr, sizeof(REDUCE_SUM_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = reduce_sum_cfg_ptr;
-        // op_name = reduce_sum_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = reduce_sum_ptr;
 
         return 0;
     }
-
 
     virtual int shape_infer(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         OPERAND_S* in = &operand_stu_map[in_operands[0]];
@@ -94,17 +86,10 @@ public:
             }
         }
 
-//        std::cout << "out->operand_name is; " << out->operand_name << std::endl;
-
-
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&reduce_sum_cfg);
         params_vec[0] = params;
-//
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&reduce_sum_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };

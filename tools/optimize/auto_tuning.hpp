@@ -1,7 +1,3 @@
-//
-// Created by wanzai on 24-8-22.
-//
-
 #ifndef ONENEW_MODEL_AUTO_TUNING_HPP
 #define ONENEW_MODEL_AUTO_TUNING_HPP
 
@@ -31,85 +27,6 @@ int32_t auto_tuning(BLOCK_INFO_S* block_info) {
     int m_tile_size_arr[m_option_cnt] = {8, 16, 32, 64, 128, 256, 512, 1024};
     int n_tile_size_arr[n_option_cnt] = {8, 16, 32, 64, 128, 256, 512, 1024};
     int k_tile_size_arr[k_option_cnt] = {8, 16, 32, 64, 128, 256, 512, 1024};
-
-
-//    // step 1: set size of ifmap and ofmap
-//    const int M = 256, N = 256, K = 128 * 9;
-//
-//    // step 2: malloc buf and set init val
-//    float *ifmap0_ptr = (float *) malloc( M * K * sizeof(float));
-//    float *ifmap1_ptr = (float *) malloc(N * K * sizeof(float));
-//    float *ofmap_ptr = (float *) malloc(M * N * sizeof(float));
-//
-//    // step 3: do optimize gemm
-//    GEMM_TILE_INFO gemm_tile_info;
-//    gemm_tile_info.M = M;
-//    gemm_tile_info.N = N;
-//    gemm_tile_info.K = K;
-//    const int32_t m_option_cnt = 8;
-//    const int32_t n_option_cnt = 4;
-//    const int32_t k_option_cnt = 9;
-//    int m_tile_size_arr[m_option_cnt] = {4, 8, 12, 16, 32, 64, 128, 256};
-//    int n_tile_size_arr[n_option_cnt] = {32, 64, 128, 256};
-//    int k_tile_size_arr[k_option_cnt] = {4, 8, 12, 16, 32, 64, 128, 256, 512};
-
-
-//    const int M = 512, N = 49, K = 512 * 9;
-//
-//    // step 2: malloc buf and set init val
-//    size_t alignment = 32; // 32 字节对齐
-//    float *ifmap0_ptr = (float *) aligned_alloc(alignment, M * K * sizeof(float));
-//    float *ifmap1_ptr = (float *) aligned_alloc(alignment, N * K * sizeof(float));
-//    float *ofmap_ptr = (float *) malloc(M * N * sizeof(float));
-//
-////     step 3: do optimize gemm
-//    GEMM_TILE_INFO gemm_tile_info;
-//    gemm_tile_info.M = M;
-//    gemm_tile_info.N = N;
-//    gemm_tile_info.K = K;
-
-//    const int32_t m_option_cnt = 5;
-//    const int32_t n_option_cnt = 5;
-//    const int32_t k_option_cnt = 5;
-//    int m_tile_size_arr[m_option_cnt] = {4, 4, 4, 4, 4};
-//    int n_tile_size_arr[n_option_cnt] = {49, 49, 49, 49, 49};
-//    int k_tile_size_arr[k_option_cnt] = {128, 128, 128, 128, 128};
-
-
-////    // step 3: do optimize gemm
-//    const int32_t m_option_cnt = 8;
-//    const int32_t n_option_cnt = 6;
-//    const int32_t k_option_cnt = 12;
-////    int m_tile_size_arr[m_option_cnt] = {4, 8, 12, 16, 32, 64, 128, 256};
-////    int n_tile_size_arr[n_option_cnt] = {32, 64, 128, 256};
-////    int k_tile_size_arr[k_option_cnt] = {4, 8, 12, 16, 32, 64, 128, 256, 512};
-//
-//
-//
-//
-//    int m_tile_size_arr[m_option_cnt] = {4, 8, 16, 32, 64, 128, 256, 512};
-//    int n_tile_size_arr[n_option_cnt] = {2, 4, 8, 16, 32, 49};
-//    int k_tile_size_arr[k_option_cnt] = {8, 16, 32, 64, 128, 256, 512, 1024, 1152, 2048, 2304, 4608};
-
-
-//    const int M = 64, N = 56 * 56, K = 64 * 9;
-//
-//    // step 2: malloc buf and set init val
-//    float *ifmap0_ptr = (float *) malloc( M * K * sizeof(float));
-//    float *ifmap1_ptr = (float *) malloc(N * K * sizeof(float));
-//    float *ofmap_ptr = (float *) malloc(M * N * sizeof(float));
-//
-//    // step 3: do optimize gemm
-//    GEMM_TILE_INFO gemm_tile_info;
-//    gemm_tile_info.M = M;
-//    gemm_tile_info.N = N;
-//    gemm_tile_info.K = K;
-//    const int32_t option_cnt = 9;
-//    int m_tile_size_arr[option_cnt] = {4, 4, 8, 16, 24, 32, 48, 56, 64};
-//    int n_tile_size_arr[option_cnt] = {32, 64, 128, 256, 512, 784, 1024, 1568, 3136};
-//    int k_tile_size_arr[option_cnt] = {8, 16, 32, 64, 128, 256, 288, 512, 576};
-
-
 
     double min_single_th_time = 1e16;
     double min_multi_th_time = 1e16;
@@ -143,15 +60,6 @@ int32_t auto_tuning(BLOCK_INFO_S* block_info) {
                 best_multi_th_k = multi_time < ratio * min_multi_th_time ? k_tile_size_arr[k_tile_i] : best_multi_th_k;
                 min_multi_th_time = multi_time < ratio * min_multi_th_time ? multi_time : min_multi_th_time;
 
-                //                printf("m n k is %d %d %d, the opt using time is %f ms\n",
-//                       m_tile_size_arr[m_tile_i], n_tile_size_arr[n_tile_i], k_tile_size_arr[k_tile_i], single_time);
-//                printf("best m n k is %d %d %d, best_gflops is %f GFLOPs\n", best_single_th_m, best_single_th_n, best_single_th_k, min_single_th_time);
-
-//                printf("m n k is %d %d %d, the opt using time is %f ms\n",
-//                       m_tile_size_arr[m_tile_i], n_tile_size_arr[n_tile_i], k_tile_size_arr[k_tile_i], multi_time);
-//                printf("best m n k is %d %d %d, best_gflops is %f ms\n", best_multi_th_m, best_multi_th_n, best_multi_th_k, min_multi_th_time);
-
-
             }
         }
     }
@@ -159,10 +67,6 @@ int32_t auto_tuning(BLOCK_INFO_S* block_info) {
     block_info->x86_gemm_single_threads_tile_m = best_single_th_m;
     block_info->x86_gemm_single_threads_tile_n = best_single_th_n;
     block_info->x86_gemm_single_threads_tile_k = best_single_th_k;
-
-//    block_info->x86_gemm_multi_threads_tile_m = best_single_th_m;
-//    block_info->x86_gemm_multi_threads_tile_n = best_single_th_n;
-//    block_info->x86_gemm_multi_threads_tile_k = best_single_th_k;
 
     block_info->x86_gemm_multi_threads_tile_m = best_multi_th_m;
     block_info->x86_gemm_multi_threads_tile_n = best_multi_th_n;

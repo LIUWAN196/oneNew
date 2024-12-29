@@ -1,71 +1,7 @@
-//
-// Created by wanzai on 24-8-22.
-//
-
 #ifndef ONENEW_MODEL_QUANT_HPP
 #define ONENEW_MODEL_QUANT_HPP
 
-//#include <iostream>
-//#include <fstream>
-//#include "cstring"
-//#include <time.h>
-//#include <vector>
-//#include "cmath"
-//#include <iostream>
-//#include "opencv/cv.h"
-//#include "opencv2/opencv.hpp"
-//#include "opencv/cv.h"
-//#include "opencv2/opencv.hpp"
-//#include <dlfcn.h>
-//#include <cstring>
-//#include <iostream>
-//#include <memory>
-//#include <vector>
-//#include <sys/time.h>
-//#include <thread>
-//#include <pthread.h>
-//#include <functional>
-//#include <vector>
-//#include <algorithm>
-//#include <omp.h>
-//#include "../manager/manager.h"
-
-//#include "ops_head.h"
-//#include "net.h"
 #include "optimize.hpp"
-//#include "../../common/utils_cpp.hpp"
-
-
-//#include <iostream>
-//#include <fstream>
-//#include "cstring"
-//#include <time.h>
-//#include <vector>
-//#include "cmath"
-//#include <iostream>
-//#include "opencv/cv.h"
-//#include "opencv2/opencv.hpp"
-//#include "opencv/cv.h"
-//#include "opencv2/opencv.hpp"
-//#include <dlfcn.h>
-//#include <cstring>
-//#include <iostream>
-//#include <memory>
-//#include <vector>
-//#include <sys/time.h>
-//#include <thread>
-//#include <pthread.h>
-//#include <functional>
-//#include <vector>
-//#include <algorithm>
-//#include <omp.h>
-//#include "../manager/manager.h"
-//#include "../../common/utils_cpp.hpp"
-//
-//#include "ops_head.h"
-//#include "net.h"
-
-
 
 void quant_weight_bias(CONV_CONFIG_S *conv_cfg, float * weight_ptr, float* bias_ptr, int32_t * weight_shapes){
 
@@ -152,31 +88,6 @@ int quant_percent(std::unordered_map<std::string, float> &threshold_map, net *ne
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
 
-//    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
-//    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
-//    std::vector<float> normal_mean = str2number<float>(cfg_info_map["normal_mean"]);
-//    std::vector<float> normal_std = str2number<float>(cfg_info_map["normal_std"]);
-//    std::vector<int> img_num_vec = str2number<int>(cfg_info_map["calibrate_img_num"]);
-//    int32_t calibrate_img_num = img_num_vec[0];
-//
-//    int in_elem_size = 3 * crop_shapes[0] * crop_shapes[1];
-//
-//    std::vector<float> in_buf(in_elem_size);
-//
-//    TRANSFORMS_CONFIG_S trans_cfg;
-//    trans_cfg.resize_size[0] = resize_shapes[0];
-//    trans_cfg.resize_size[1] = resize_shapes[1];
-//    trans_cfg.crop_size[0] = crop_shapes[0];
-//    trans_cfg.crop_size[1] = crop_shapes[1];
-//
-//    trans_cfg.mean[0] = normal_mean[0];
-//    trans_cfg.mean[1] = normal_mean[1];
-//    trans_cfg.mean[2] = normal_mean[2];
-//
-//    trans_cfg.std[0] = normal_std[0];
-//    trans_cfg.std[1] = normal_std[1];
-//    trans_cfg.std[2] = normal_std[2];
-
     TRANSFORMS_CONFIG_S trans_cfg = cfg_info_map2preprocess_params(cfg_info_map);
     int in_elem_size = 3 * trans_cfg.crop_size[0] * trans_cfg.crop_size[1];
     std::vector<float> in_buf(in_elem_size);
@@ -227,12 +138,6 @@ int quant_percent(std::unordered_map<std::string, float> &threshold_map, net *ne
         std::string img_path = path + img;
 
         transforms(in_buf, img_path, trans_cfg);
-//        int32_t elem_size = in_buf.size();
-//        int32_t buf_size = elem_size * sizeof(float);
-//        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
-//        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
-//        exe_net->prepare_for_op(io_buf_map);
-
 
         std::unordered_map<std::string, std::string> cfg_info_map;
 
@@ -296,31 +201,6 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
     std::unordered_map<std::string, BUFFER_INFO_S> io_buf_map;
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
-
-//    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
-//    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
-//    std::vector<float> normal_mean = str2number<float>(cfg_info_map["normal_mean"]);
-//    std::vector<float> normal_std = str2number<float>(cfg_info_map["normal_std"]);
-//    std::vector<int> img_num_vec = str2number<int>(cfg_info_map["calibrate_img_num"]);
-//    int32_t calibrate_img_num = img_num_vec[0];
-//
-//    int in_elem_size = 3 * crop_shapes[0] * crop_shapes[1];
-//
-//    std::vector<float> in_buf(in_elem_size);
-//
-//    TRANSFORMS_CONFIG_S trans_cfg;
-//    trans_cfg.resize_size[0] = resize_shapes[0];
-//    trans_cfg.resize_size[1] = resize_shapes[1];
-//    trans_cfg.crop_size[0] = crop_shapes[0];
-//    trans_cfg.crop_size[1] = crop_shapes[1];
-//
-//    trans_cfg.mean[0] = normal_mean[0];
-//    trans_cfg.mean[1] = normal_mean[1];
-//    trans_cfg.mean[2] = normal_mean[2];
-//
-//    trans_cfg.std[0] = normal_std[0];
-//    trans_cfg.std[1] = normal_std[1];
-//    trans_cfg.std[2] = normal_std[2];
 
     TRANSFORMS_CONFIG_S trans_cfg = cfg_info_map2preprocess_params(cfg_info_map);
     int in_elem_size = 3 * trans_cfg.crop_size[0] * trans_cfg.crop_size[1];
@@ -422,13 +302,8 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
         std::string img_path = path + img;
 
         transforms(in_buf, img_path, trans_cfg);
-//        int32_t elem_size = in_buf.size();
-//        int32_t buf_size = elem_size * sizeof(float);
-//        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
-//        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
 
         std::unordered_map<std::string, std::string> cfg_info_map;
-//        exe_net->prepare_for_op(io_buf_map);
         exe_net->impl(io_buf_map, cfg_info_map);
 
         float schedule = 50.0f + (img_i + 1.0f) / calibrate_img_num / 2.0f * 100;
@@ -554,10 +429,7 @@ int quant_kl(std::unordered_map<std::string, float> &threshold_map, net *net_1, 
 
         float threshold = (best_bins + 0.5f) * max_elem_map[key] / num_his_bins;
         threshold_map[key] = threshold;
-//        std::cout << "ifmap name is: " << key << ", threshold is: " << threshold << ", best_bins is: " << best_bins << std::endl;
     }
-
-
 
     return 0;
 }
@@ -570,32 +442,6 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
     std::unordered_map<std::string, BUFFER_INFO_S> io_buf_map;
     auto* ifmap_of_model = (io*)exe_net->net_ptr->op_exec_order[0].get();
     std::string in_operand_name = ifmap_of_model->io_cfg.operand.operand_name;
-
-//
-//    std::vector<int> crop_shapes = str2number<int>(cfg_info_map["crop_shapes"]);
-//    std::vector<int> resize_shapes = str2number<int>(cfg_info_map["resize_shapes"]);
-//    std::vector<float> normal_mean = str2number<float>(cfg_info_map["normal_mean"]);
-//    std::vector<float> normal_std = str2number<float>(cfg_info_map["normal_std"]);
-//
-//
-//    int in_elem_size = 3 * crop_shapes[0] * crop_shapes[1];
-//
-//    std::vector<float> in_buf(in_elem_size);
-//
-//    TRANSFORMS_CONFIG_S trans_cfg;
-//    trans_cfg.resize_size[0] = resize_shapes[0];
-//    trans_cfg.resize_size[1] = resize_shapes[1];
-//    trans_cfg.crop_size[0] = crop_shapes[0];
-//    trans_cfg.crop_size[1] = crop_shapes[1];
-//
-//    trans_cfg.mean[0] = normal_mean[0];
-//    trans_cfg.mean[1] = normal_mean[1];
-//    trans_cfg.mean[2] = normal_mean[2];
-//
-//    trans_cfg.std[0] = normal_std[0];
-//    trans_cfg.std[1] = normal_std[1];
-//    trans_cfg.std[2] = normal_std[2];
-
 
     TRANSFORMS_CONFIG_S trans_cfg = cfg_info_map2preprocess_params(cfg_info_map);
     int in_elem_size = 3 * trans_cfg.crop_size[0] * trans_cfg.crop_size[1];
@@ -658,12 +504,6 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
         std::string img_path = path + img;
 
         transforms(in_buf, img_path, trans_cfg);
-//        int32_t elem_size = in_buf.size();
-//        int32_t buf_size = elem_size * sizeof(float);
-//        int64_t cur_operand_ptr = (int64_t)&in_buf[0];
-//        io_buf_map[in_operand_name] = {cur_operand_ptr, elem_size, buf_size};
-//
-//        exe_net->prepare_for_op(io_buf_map);
 
         std::unordered_map<std::string, std::string> cfg_info_map;
 
@@ -777,10 +617,7 @@ int quant_mse(std::unordered_map<std::string, float> &threshold_map, net *net_1,
 
         float threshold = (best_bins + 0.5f) * max_elem_map[key] / num_his_bins;
         threshold_map[key] = threshold;
-//        std::cout << "in mes quant type, ifmap name is: " << key << ", threshold is: " << threshold << ", best_bins is: " << best_bins << std::endl;
     }
-
-
 
     return 0;
 }
@@ -812,7 +649,6 @@ int32_t model_quant(char *quant_one_buf_ptr, char *one_buf_ptr, CFG_MAP cfg_info
     double elapsed = op_ed - op_st;
     std::vector<int> img_num_vec = str2number<int>(cfg_info_map["calibrate_img_num"]);
     int32_t calibrate_img_num = img_num_vec[0];
-//    std::cout << "============= using img num: " << calibrate_img_num << " to quant, using time is: " << elapsed << " s. =============="<< std::endl;
 
     ONE_MODEL_DESC_S *one_model_info_ptr = (ONE_MODEL_DESC_S *)quant_one_buf_ptr;
     int32_t node_cnt = one_model_info_ptr->node_cnt;

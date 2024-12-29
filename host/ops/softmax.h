@@ -2,9 +2,7 @@
 #define OP_SOFTMAX_H
 
 #include "op.h"
-// #include "../../device/x86/softmax6/softmax6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Softmax : public op
 {
@@ -15,21 +13,15 @@ public:
 
     Softmax()
     {
-//        printf("new a Softmax\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *softmax_cfg_ptr)
     {
         // new Softmax op
         std::shared_ptr<Softmax> softmax_ptr = std::make_shared<Softmax>();
-//        softmax_ptr.get()->find_handle((BUFFER_GROUP_S *)softmax_cfg_ptr);
 
         // fill op config
         memcpy(&(softmax_ptr->softmax_cfg), softmax_cfg_ptr, sizeof(SOFTMAX_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = softmax_cfg_ptr;
-        // op_name = softmax_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = softmax_ptr;
 
@@ -41,26 +33,15 @@ public:
         OPERAND_S* out = &operand_stu_map[out_operands[0]];
         // the out shape equal in shape
         memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
-//        for (int i = SHAPE_LEN - 1; i > 0; i--) {
-//            if (in->shapes[i] != 1) {
-//                in->dim_num_of_shapes = i + 1;
-//                break;
-//            }
-//        }
+
         out->dim_num_of_shapes = in->dim_num_of_shapes;
 
-
-inputs_vec.resize(in_operands.size());
+        inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&softmax_cfg);
         params_vec[0] = params;
 
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&softmax_cfg);
-//        params_vec.push_back(params);
-
         return  0;
-
     };
 
     int fill_operands(char *one_buf_ptr) override

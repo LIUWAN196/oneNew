@@ -48,7 +48,6 @@ int main(int argc, char **argv) {
            0.0f, buffer, arr[1], 0, metrics_img_num, 0.0f, 0.0f, 0.0f);
     fflush(stdout);
 
-
     int32_t elem_size = in_buf.size();
     int32_t buf_size = elem_size * sizeof(float);
     int64_t cur_operand_ptr = (int64_t)&in_buf[0];

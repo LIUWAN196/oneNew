@@ -2,9 +2,7 @@
 #define OP_FLATTEN_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Flatten : public op
 {
@@ -13,7 +11,6 @@ public:
 
     Flatten()
     {
-//        printf("new a Flatten\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *flatten_cfg_ptr)
@@ -23,7 +20,6 @@ public:
 
         // fill op config
         memcpy(&(flatten_ptr->flatten_cfg), flatten_cfg_ptr, sizeof(FLATTEN_CONFIG_S));
-
 
         op_ptr = flatten_ptr;
 
@@ -42,7 +38,6 @@ public:
         }
         out->dim_num_of_shapes = flatten_cfg.axis + 1;
 
-//        memset(&out->shapes[0], 1, SHAPE_LEN * sizeof(int32_t));
         out->shapes[flatten_cfg.axis] = 1;     // NCHW, the 3 is W dims
         for (int dim_i = flatten_cfg.axis; dim_i < SHAPE_LEN; ++dim_i) {
             out->shapes[flatten_cfg.axis] *= in->shapes[dim_i];

@@ -13,21 +13,15 @@ public:
 
     PoseDetect()
     {
-//        printf("new a PoseDetection\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *pose_detect_cfg_ptr)
     {
         // new Pose_detection op
         std::shared_ptr<PoseDetect> pose_detection_ptr = std::make_shared<PoseDetect>();
-//        Pose_detection_ptr.get()->find_handle((BUFFER_GROUP_S *)Pose_detection_cfg_ptr);
 
         // fill op config
         memcpy(&(pose_detection_ptr->pose_detect_cfg), pose_detect_cfg_ptr, sizeof(POSE_DETECT_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = Pose_detection_cfg_ptr;
-        // op_name = Pose_detection_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = pose_detection_ptr;
 

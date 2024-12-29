@@ -127,7 +127,6 @@ int main(int argc, char **argv)
     // do op fusion
     size_t do_fusion = optimize_type.find("op_fusion");
     if (do_fusion != std::string::npos) {
-//        LOG_DBG("into the op_fusion\n");
         char *fused_one_buf_ptr = (char *)aligned_alloc(32, one_file_size);
         op_fusion(fused_one_buf_ptr, one_buf_ptr, cfg_info_map);
 
@@ -146,17 +145,6 @@ int main(int argc, char **argv)
         one_buf_ptr = quant_one_buf_ptr;
         free(tmp_ptr);
     }
-
-//    // do auto_tuning
-//    size_t do_tuning = optimize_type.find("auto_tuning");
-//    if (do_tuning != std::string::npos) {
-//        LOG_DBG("auto_tuning");
-//        ONE_MODEL_DESC_S* one_model = (ONE_MODEL_DESC_S*)one_buf_ptr;
-//        BLOCK_INFO_S* block_info = &one_model->useful_info.block_info;
-//        auto_tuning(block_info);
-//        LOG_DBG("m n k is %d, %d, %d", block_info->x86_gemm_single_threads_tile_m, block_info->x86_gemm_single_threads_tile_n, block_info->x86_gemm_single_threads_tile_k);
-//        LOG_DBG("m n k is %d, %d, %d", block_info->x86_gemm_multi_threads_tile_m, block_info->x86_gemm_multi_threads_tile_n, block_info->x86_gemm_multi_threads_tile_k);
-//    }
 
     // step 10: dump the optimize_one_buf_ptr as .one
     FILE *opt_file_p = fopen(opt_one_file_path, "w");

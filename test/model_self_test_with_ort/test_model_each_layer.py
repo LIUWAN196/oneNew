@@ -31,7 +31,6 @@ def cosine_similarity(vec1, vec2):
     else:
         return dot_product / (norm_a * norm_b)
 
-
 if __name__ == '__main__':
 
     if len(sys.argv) != 3:
@@ -46,23 +45,11 @@ if __name__ == '__main__':
     model = onnx.load(model_path)
     providers = ['CPUExecutionProvider']
 
-
-
     # step 2: load input data
     img = np.fromfile(ofmap_folder + ifmap_name, dtype=np.float32)
     ifmap_elem_size = img.shape[0]
     ifmap_h_w = np.sqrt(ifmap_elem_size // 3)
     img = img.reshape(-1, 3, int(ifmap_h_w), int(ifmap_h_w))
-
-    # txt_seq = np.array([[49406,   589,   533,   320,  1125,   539,   320,  1579,  4558, 49407,
-    #                      0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-    #                      0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-    #                      0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-    #                      0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-    #                      0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-    #                      0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-    #                      0,     0,     0,     0,     0,     0,     0]]).astype(np.int32)
-    # img = txt_seq
 
     # step 3: model infer to obtain the output of each layer
     for node in model.graph.node:
@@ -100,19 +87,6 @@ if __name__ == '__main__':
         if (key == "/model.28/Reshape_18_output_0") :
             continue
 
-        if (key == "onnx::Conv_336") :
-            # continue
-            a = 101
-            # onenew_data_path = (np.fromfile(onenew_data_path, dtype=np.int32))
-            # print("onenew_data_path")
-            # print(onenew_data_path)
-            # print("onnx_ref")
-            # print(onnx_ref)
-            err = onnx_ref - onenew_data
-            # print("err")
-            # print(err)
-            b = 102
-
         # compute similarity
         err = onnx_ref - onenew_data
         err_max = abs(err.reshape(-1)).max()
@@ -121,7 +95,6 @@ if __name__ == '__main__':
         if (cos_sim < 0.999) | (math.isnan(cos_sim)):
             print("=========== the output of {} have big error, it is the {}th tensor, please check, cos_sim is {} ".format(key, correct_layer_num, cos_sim))
             fail_layer_num = fail_layer_num + 1
-            # break
         else:
             print("the output of {} have small error, it is the {}th tensor, cos_sim is {} ".format(key, correct_layer_num, cos_sim))
         correct_layer_num = correct_layer_num + 1

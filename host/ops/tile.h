@@ -2,9 +2,7 @@
 #define OP_TILE_H
 
 #include "op.h"
-// #include "../../device/x86/tile6/tile6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Tile : public op
 {
@@ -15,27 +13,20 @@ public:
 
     Tile()
     {
-//        printf("new a Tile\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *tile_cfg_ptr)
     {
         // new Tile op
         std::shared_ptr<Tile> tile_ptr = std::make_shared<Tile>();
-//        tile_ptr.get()->find_handle((BUFFER_GROUP_S *)tile_cfg_ptr);
 
         // fill op config
         memcpy(&(tile_ptr->tile_cfg), tile_cfg_ptr, sizeof(TILE_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = tile_cfg_ptr;
-        // op_name = tile_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = tile_ptr;
 
         return 0;
     }
-
 
     virtual int shape_infer(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         OPERAND_S* in = &operand_stu_map[in_operands[0]];
@@ -44,15 +35,10 @@ public:
         memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
         out->dim_num_of_shapes = in->dim_num_of_shapes;
 
-
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&tile_cfg);
         params_vec[0] = params;
-//
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&tile_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };

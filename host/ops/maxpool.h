@@ -2,9 +2,7 @@
 #define OP_MAXPOOL_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class MaxPool : public op
 {
@@ -13,21 +11,15 @@ public:
 
     MaxPool()
     {
-//        printf("new a MaxPool\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *max_pool_cfg_ptr)
     {
         // new MaxPool op
         std::shared_ptr<MaxPool> max_pool_ptr = std::make_shared<MaxPool>();
-//        max_pool_ptr.get()->find_handle((BUFFER_GROUP_S *)max_pool_cfg_ptr);
 
         // fill op config
         memcpy(&(max_pool_ptr->max_pool_cfg), max_pool_cfg_ptr, sizeof(MAX_POOL_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = max_pool_cfg_ptr;
-        // op_name = max_pool_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = max_pool_ptr;
 
@@ -57,11 +49,7 @@ public:
         params.addr = (int64_t) (&max_pool_cfg);
         params_vec[0] = params;
 
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&max_pool_cfg);
-//        params_vec.push_back(params);
         return  0;
-
     };
 
     int fill_operands(char *one_buf_ptr) override

@@ -2,9 +2,7 @@
 #define OP_RESHAPE_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Reshape : public op
 {
@@ -15,27 +13,20 @@ public:
 
     Reshape()
     {
-//        printf("new a Reshape\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *reshape_cfg_ptr)
     {
         // new Reshape op
         std::shared_ptr<Reshape> relu_ptr = std::make_shared<Reshape>();
-//        relu_ptr.get()->find_handle((BUFFER_GROUP_S *)reshape_cfg_ptr);
 
         // fill op config
         memcpy(&(relu_ptr->reshape_cfg), reshape_cfg_ptr, sizeof(RESHAPE_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = reshape_cfg_ptr;
-        // op_name = reshape_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = relu_ptr;
 
         return 0;
     }
-
 
     virtual int shape_infer(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         OPERAND_S* in = &operand_stu_map[in_operands[0]];
@@ -50,7 +41,6 @@ public:
             elem_size *= in->shapes[i];
         }
 
-//        memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
         for (int i = 0; i < this->reshape_cfg.dst_shape_num; ++i) {
             out->shapes[i] = this->reshape_cfg.dst_shape[i];
         }
@@ -71,23 +61,10 @@ public:
         std::string opname = std::string(reshape_cfg.op_base_cfg.op_name);
         out->dim_num_of_shapes = this->reshape_cfg.dst_shape_num;
 
-//        if (opname == "/model.28/decoder/layers.4/cross_attn/Reshape_7") {
-//            printf("elem_size is %d, elem_size_no_doubt is %d, out->dim_num_of_shapes is %d\n",
-//                   elem_size, elem_size_no_doubt, out->dim_num_of_shapes);
-//            printf("out->shapes[i] is %d %d %d %d\n", out->shapes[0], out->shapes[1], out->shapes[2], out->shapes[3]);
-//        }
-
-
-
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&reshape_cfg);
         params_vec[0] = params;
-//        params_vec.push_back(params);
-
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&reshape_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };

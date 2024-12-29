@@ -8,21 +8,6 @@
 #include "ops_head.h"
 #include "net.h"
 
-void print_dim(const ::onnx::TensorShapeProto_Dimension &dim)
-{
-	switch (dim.value_case())
-	{
-	case onnx::TensorShapeProto_Dimension::ValueCase::kDimParam:
-		std::cout << dim.dim_param();
-		break;
-	case onnx::TensorShapeProto_Dimension::ValueCase::kDimValue:
-		std::cout << dim.dim_value();
-		break;
-	default:
-        LOG_ERR("should never happen");
-	}
-}
-
 void fill_io_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::ValueInfoProto> &inputs, const ::google::protobuf::RepeatedPtrField<::onnx::ValueInfoProto> &outputs, char *io_cfg_ptr)
 {
 	char *cur_io_cfg_ptr = io_cfg_ptr;
@@ -79,7 +64,6 @@ void fill_io_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::ValueInfoPro
         for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
             io_cfg->operand.shapes[dim_i] = 1;
         }
-//        memset(& io_cfg->operand.shapes[0], 1, SHAPE_LEN * sizeof(int32_t));
         for (int i = 0; i < data_shape.dim_size(); ++i) {
             io_cfg->operand.shapes[i] = (int32_t)(data_shape.dim(i).dim_value());
         }
@@ -306,8 +290,6 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
                 clip_cfg->max = max_data_ptr[0];
             }
 
-//            LOG_DBG("clip_cfg->min is %f, clip_cfg->max is %f", clip_cfg->min, clip_cfg->max);
-
             // clip 算子的第 2、3 个输入是 min 和 max，这个我放到 cfg 中，不作为输入。所以这里修改 clip 算子的输入为 1 个
             clip_cfg->op_base_cfg.in_operand_num = 1;
             memset(clip_cfg->op_base_cfg.in_operand_name[1], 0, (OPERAND_MAXNUM - 1) * OPERAND_NAME_LEN);
@@ -473,8 +455,6 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
                         LOG_ERR("sorry, cur, the Einsum's equation must be bmchw,bnmc->bmhwn or bchw,bkc->bkhw");
                     }
                     strcpy(einsum_cfg->equation, equation.c_str());
-//                    std::cout << "einsum op's equation is: " << param.s() << std::endl;
-//                    LOG_DBG("einsum op's equation is:%s", param.s());
                 }
             }
         }
@@ -891,7 +871,6 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
                 base_cfg->in_operand_num = 1;   //  split operand have been trans to attr
             }
 
-
         }
         else if (op_type == "TopK") {
             TOP_K_CONFIG_S *top_k_cfg = (TOP_K_CONFIG_S *) cur_node_cfg_ptr;
@@ -1009,7 +988,6 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
                     unsqueeze_cfg->axes[i] = axes_data_ptr[i];
                 }
             }
-//            LOG_DBG("Unsqueeze axes is %d %d %d", unsqueeze_cfg->axes[0], unsqueeze_cfg->axes[1], unsqueeze_cfg->axes[2]);
         }
 
 		// update cur_node_cfg_ptr
@@ -1245,17 +1223,6 @@ int fill_producer_and_consumer(char* one_file_buf) {
         }
     }
     return 0;
-}
-
-int32_t get_time_stamp()
-{
-	time_t current_time;
-	struct tm *local_time;
-	current_time = time(NULL);
-	local_time = localtime(&current_time);
-	int32_t time_stamp = (local_time->tm_year + 1900) * 1000000 + (local_time->tm_mon + 1) * 10000 + local_time->tm_mday * 100 + local_time->tm_hour;
-
-	return time_stamp;
 }
 
 int main(int argc, char **argv)

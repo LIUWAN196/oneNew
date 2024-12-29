@@ -2,9 +2,7 @@
 #define OP_TOP_K_H
 
 #include "op.h"
-// #include "../../device/x86/top_k6/top_k6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class TopK : public op
 {
@@ -15,27 +13,20 @@ public:
 
     TopK()
     {
-//        printf("new a TopK\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *top_k_cfg_ptr)
     {
         // new TopK op
         std::shared_ptr<TopK> top_k_ptr = std::make_shared<TopK>();
-//        top_k_ptr.get()->find_handle((BUFFER_GROUP_S *)top_k_cfg_ptr);
 
         // fill op config
         memcpy(&(top_k_ptr->top_k_cfg), top_k_cfg_ptr, sizeof(TOP_K_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = top_k_cfg_ptr;
-        // op_name = top_k_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = top_k_ptr;
 
         return 0;
     }
-
 
     virtual int shape_infer(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         OPERAND_S* in = &operand_stu_map[in_operands[0]];
@@ -59,7 +50,6 @@ public:
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&top_k_cfg);
         params_vec[0] = params;
-
 
         return  0;
     };

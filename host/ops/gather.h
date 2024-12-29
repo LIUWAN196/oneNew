@@ -2,9 +2,7 @@
 #define OP_GATHER_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Gather : public op {
 public:
@@ -14,7 +12,6 @@ public:
     int32_t init_ifmap_idx = -1;
 
     Gather() {
-//        printf("new a Gather\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *cfg_ptr) {
@@ -125,7 +122,6 @@ public:
                 initial_datas.resize(1);
                 int32_t init_operand_elem_size = operand_elem_size(operand_ptr);
                 float *data_ptr = (float *) (cur_init_info_ptr + sizeof(OPERAND_S));
-//                std::cout << "the init operand is weight of " << this->op_type << "op." << std::endl;
                 memcpy(&initial_operands[0], operand_ptr, sizeof(OPERAND_S));
                 initial_datas[0].assign(data_ptr, data_ptr + init_operand_elem_size);
             }
@@ -140,7 +136,6 @@ public:
 
     int prepare_init_operand_data() override {
         // set desc struct
-
         if (initial_operands.size() != 0) {
             BUFFER_INFO_S first_operand_desc;
             first_operand_desc.addr = (int64_t) (&initial_operands[0]);

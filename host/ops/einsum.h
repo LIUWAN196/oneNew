@@ -3,9 +3,7 @@
 
 #include "op.h"
 #include "math.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Einsum : public op {
 public:
@@ -14,13 +12,12 @@ public:
     std::vector<OPERAND_S> initial_operands;  // weight and bias
 
     Einsum() {
-//        printf("new a Einsum\n");
+
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *einsum_cfg_ptr) {
         // new Einsum op
         std::shared_ptr<Einsum> einsum_ptr = std::make_shared<Einsum>();
-//        einsum_ptr.get()->find_handle((BUFFER_GROUP_S *)einsum_cfg_ptr);
 
         // fill op config
         memcpy(&(einsum_ptr->einsum_cfg), einsum_cfg_ptr, sizeof(EINSUM_CONFIG_S));
@@ -63,17 +60,10 @@ public:
             out->shapes[i] = letters_shape_map[cur_char];
         }
 
-//        LOG_MSG("in1 shape is %d", in1->shapes[0]);
-//        LOG_ERR("this einsum equation is %s", einsum_cfg.equation);
-
-
-
         inputs_vec.resize(BUF_MAXNUM);
-//        inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&einsum_cfg);
         params_vec[0] = params;
-//        params_vec.push_back(params);
 
         return 0;
     };
@@ -107,9 +97,6 @@ public:
         }
 
         // set the weight and bias
-
-
-
         initial_operands.resize(1);
         initial_datas.resize(1);
 
@@ -122,7 +109,6 @@ public:
             if (init_operands == weigth_oprand) {
                 int32_t init_operand_elem_size = operand_elem_size(operand_ptr);
                 float *data_ptr = (float *) (cur_init_info_ptr + sizeof(OPERAND_S));
-//                std::cout << "the init operand is weight of " << this->op_type << "op." << std::endl;
                 memcpy(&initial_operands[0], operand_ptr, sizeof(OPERAND_S));
                 initial_datas[0].assign(data_ptr, data_ptr + init_operand_elem_size);
             }
@@ -132,26 +118,20 @@ public:
             cur_init_info_ptr += align_buf_size(sizeof(OPERAND_S) + init_size);
         }
 
-        int b = 101;
-
         return 0;
     }
 
     int prepare_init_operand_data() override {
         // set desc struct
-
-//        params_vec: cfg / ifmap desc / weight desc / bias desc / ofmap desc
         BUFFER_INFO_S weight_desc;
         weight_desc.addr = (int64_t) (&initial_operands[0]);
         params_vec[2] = weight_desc;
-//        this->params_vec.push_back(weight_desc);
 
         // set buf
         BUFFER_INFO_S weight_buf;
         weight_buf.addr = (int64_t) (&(initial_datas[0][0]));
         inputs_vec[1] = weight_buf;
 
-        int c = 101;
         return 0;
     }
 
@@ -166,7 +146,7 @@ public:
         int32_t each_ofmap_elem_computation = 1;
         int32_t in_c = ifmap->shapes[1];
         int32_t mac = 2; // mul and add, so is 2 computation
-        each_ofmap_elem_computation = mac;  // todo: einsum 的计算量比较难统计，看看如何来统计
+        each_ofmap_elem_computation = mac;
 
         return (double)(out_elem_size * each_ofmap_elem_computation * 1e-6);
     };

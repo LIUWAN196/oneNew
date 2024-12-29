@@ -10,16 +10,12 @@
 #include "set"
 #include <unordered_map>
 
-// namespace one_new
-// {
 typedef int (*evalaa)(BUFFER_INFO_S *, BUFFER_INFO_S *, BUFFER_INFO_S *);
 
 class op {
 public:
-
     evalaa evla_impl;
 
-    BOOL support_cuda;
     char *op_type;
     char *op_name;
     std::vector<std::string> in_operands;
@@ -45,10 +41,6 @@ public:
     int find_handle(char *cfg_ptr) {
         char *op_type = (char *) (cfg_ptr);
         std::string op_lib_name(op_type);
-
-//        if (op_lib_name == "Gemm") {
-//            std::cout << "the op lib name is " << op_lib_name << std::endl;
-//        }
 
         char op_cuda_lib_path[256] = {0};
         char op_x86_lib_path[256] = {0};
@@ -83,10 +75,7 @@ public:
             return 0;
         }
 #endif
-
         LOG_ERR("the handle of %s op is not find.", op_type);
-
-//        std::cout << "the handle of " << op_type << " op is not find. " << std::endl;
         return 0;
     };
 
@@ -113,8 +102,6 @@ public:
     }
 
     virtual int forward() {
-//        std::cout << "start forward. " << std::endl;
-
         int ret = evla_impl(&(this->params_vec[0]), &(this->inputs_vec[0]), &(this->outputs_vec[0]));
         return 0;
     };
@@ -188,8 +175,6 @@ public:
         // 判断是否需要进行计算，例如 reshape / flatten 根本不需要计算
         OPERAND_S* first_ofmap = (OPERAND_S*)&(operand_stu_map[this->out_operands[0]]);
         if (first_ofmap->not_need_buf == TRUE) {
-//            // 只需要将输入的 buffer 描述拷贝到输出的 buffer 描述即可。后面都不需要计算
-//            operand_buf_map[this->out_operands[0]] = operand_buf_map[this->in_operands[0]];
             return 0;
         }
 
@@ -207,7 +192,5 @@ public:
 
     virtual int fill_operands(char *one_buf_ptr) = 0;
 };
-
-// } // namespace one_new
 
 #endif // OP_H

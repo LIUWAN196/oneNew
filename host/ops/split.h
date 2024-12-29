@@ -2,9 +2,7 @@
 #define OP_SPLIT_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Split : public op
 {
@@ -13,7 +11,6 @@ public:
 
     Split()
     {
-//        printf("new a Split\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *cfg_ptr)
@@ -23,10 +20,6 @@ public:
 
         // fill op config
         memcpy(&(split_ptr->split_cfg), cfg_ptr, sizeof(SPLIT_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = relu_cfg_ptr;
-        // op_name = relu_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = split_ptr;
 
@@ -56,17 +49,10 @@ public:
             }
         }
 
-
-
-inputs_vec.resize(in_operands.size());
+        inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&split_cfg);
         params_vec[0] = params;
-//        params_vec.push_back(params);
-
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&split_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };

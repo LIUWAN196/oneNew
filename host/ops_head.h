@@ -1,7 +1,3 @@
-//
-// Created by wanzai on 24-7-17.
-//
-
 #ifndef ONENEW_OPS_HEAD_H
 
 #include "add.h"
@@ -53,7 +49,6 @@
 #include "tile.h"
 #include "top_k.h"
 #include "unsqueeze.h"
-
 
 #define ONENEW_OPS_HEAD_H
 

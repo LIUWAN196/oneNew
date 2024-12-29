@@ -2,9 +2,7 @@
 #define OP_REDUCE_MAX_H
 
 #include "op.h"
-// #include "../../device/x86/reduce_max6/reduce_max6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class ReduceMax : public op
 {
@@ -15,27 +13,20 @@ public:
 
     ReduceMax()
     {
-//        printf("new a ReduceMax\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *reduce_max_cfg_ptr)
     {
         // new ReduceMax op
         std::shared_ptr<ReduceMax> reduce_max_ptr = std::make_shared<ReduceMax>();
-//        reduce_max_ptr.get()->find_handle((BUFFER_GROUP_S *)reduce_max_cfg_ptr);
 
         // fill op config
         memcpy(&(reduce_max_ptr->reduce_max_cfg), reduce_max_cfg_ptr, sizeof(REDUCE_MAX_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = reduce_max_cfg_ptr;
-        // op_name = reduce_max_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = reduce_max_ptr;
 
         return 0;
     }
-
 
     virtual int shape_infer(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         OPERAND_S* in = &operand_stu_map[in_operands[0]];
@@ -82,17 +73,10 @@ public:
             }
         }
 
-//        std::cout << "out->operand_name is; " << out->operand_name << std::endl;
-
-
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&reduce_max_cfg);
         params_vec[0] = params;
-//
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&reduce_max_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };

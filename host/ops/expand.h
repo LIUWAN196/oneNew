@@ -2,9 +2,7 @@
 #define OP_EXPAND_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Expand : public op
 {
@@ -15,27 +13,20 @@ public:
 
     Expand()
     {
-//        printf("new a Expand\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *expand_cfg_ptr)
     {
         // new Expand op
         std::shared_ptr<Expand> relu_ptr = std::make_shared<Expand>();
-//        relu_ptr.get()->find_handle((BUFFER_GROUP_S *)expand_cfg_ptr);
 
         // fill op config
         memcpy(&(relu_ptr->expand_cfg), expand_cfg_ptr, sizeof(EXPAND_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = expand_cfg_ptr;
-        // op_name = expand_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = relu_ptr;
 
         return 0;
     }
-
 
     virtual int shape_infer(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         OPERAND_S* in = &operand_stu_map[in_operands[0]];
@@ -50,7 +41,6 @@ public:
             elem_size *= in->shapes[i];
         }
 
-//        memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
         for (int i = 0; i < this->expand_cfg.dst_shape_num; ++i) {
             out->shapes[i] = this->expand_cfg.dst_shape[i];
         }
@@ -68,19 +58,12 @@ public:
             }
         }
 
-
         out->dim_num_of_shapes = this->expand_cfg.dst_shape_num;
-
 
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&expand_cfg);
         params_vec[0] = params;
-//        params_vec.push_back(params);
-
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&expand_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };

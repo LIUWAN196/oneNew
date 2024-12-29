@@ -2,9 +2,7 @@
 #define OP_SLICE_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Slice : public op
 {
@@ -13,7 +11,6 @@ public:
 
     Slice()
     {
-//        printf("new a Slice\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *cfg_ptr)
@@ -23,10 +20,6 @@ public:
 
         // fill op config
         memcpy(&(slice_ptr->slice_cfg), cfg_ptr, sizeof(SLICE_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = relu_cfg_ptr;
-        // op_name = relu_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = slice_ptr;
 
@@ -61,7 +54,6 @@ public:
             int32_t steps = slice_cfg.steps[axis_idx];
             out->shapes[axis] = (ends - starts) / steps;
         }
-
 
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;

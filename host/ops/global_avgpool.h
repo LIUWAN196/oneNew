@@ -2,9 +2,7 @@
 #define OP_GLOBAL_AVGPOOL_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class GlobalAveragePool : public op
 {
@@ -13,7 +11,6 @@ public:
 
     GlobalAveragePool()
     {
-//        printf("new a GlobalAveragePool\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *global_avgpool_cfg_ptr)
@@ -23,7 +20,6 @@ public:
 
         // fill op config
         memcpy(&(global_avgpool_ptr->global_avgpool_cfg), global_avgpool_cfg_ptr, sizeof(GLOBAL_AVGPOOL_CONFIG_S));
-
 
         op_ptr = global_avgpool_ptr;
 
@@ -37,19 +33,13 @@ public:
         for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
             out->shapes[dim_i] = 1;
         }
-//        memset(&out->shapes[0], 1, SHAPE_LEN * sizeof(int32_t));
         out->shapes[1] = in->shapes[1]; // out w equal in c
         out->dim_num_of_shapes = in->dim_num_of_shapes;
 
-
-inputs_vec.resize(in_operands.size());
+        inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&global_avgpool_cfg);
         params_vec[0] = params;
-
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&global_avgpool_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };

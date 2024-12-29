@@ -2,9 +2,7 @@
 #define OP_LEAKYRELU_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class LeakyRelu : public op
 {
@@ -15,7 +13,7 @@ public:
 
     LeakyRelu()
     {
-//        printf("new a LeakyRelu\n");
+
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *leaky_relu_cfg_ptr)
@@ -25,10 +23,6 @@ public:
 
         // fill op config
         memcpy(&(leaky_relu_ptr->leaky_relu_cfg), leaky_relu_cfg_ptr, sizeof(LEAKYRELU_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = relu_cfg_ptr;
-        // op_name = relu_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = leaky_relu_ptr;
 
@@ -43,16 +37,10 @@ public:
         memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
         out->dim_num_of_shapes = in->dim_num_of_shapes;
 
-
-inputs_vec.resize(in_operands.size());
+        inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&leaky_relu_cfg);
         params_vec[0] = params;
-//        params_vec.push_back(params);
-
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&leaky_relu_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };

@@ -2,9 +2,7 @@
 #define OP_LAYERNORMALIZATION_H
 
 #include "op.h"
-// #include "../../device/x86/layer_normalization6/layer_normalization6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class LayerNormalization : public op {
 public:
@@ -15,21 +13,15 @@ public:
     OPERAND_S out_operand_stu;
 
     LayerNormalization() {
-//        printf("new a LayerNormalization\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *layer_normalization_cfg_ptr) {
         // new LayerNormalization op
         std::shared_ptr<LayerNormalization> layer_normalization_ptr = std::make_shared<LayerNormalization>();
-//        layer_normalization_ptr.get()->find_handle((BUFFER_GROUP_S *)layer_normalization_cfg_ptr);
 
         // fill op config
         memcpy(&(layer_normalization_ptr->layer_normalization_cfg), layer_normalization_cfg_ptr,
                sizeof(LAYERNORMALIZATION_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = layer_normalization_cfg_ptr;
-        // op_name = layer_normalization_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = layer_normalization_ptr;
 
@@ -44,15 +36,10 @@ public:
         memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
         out->dim_num_of_shapes = in->dim_num_of_shapes;
 
-
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&layer_normalization_cfg);
         params_vec[0] = params;
-//
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&layer_normalization_cfg);
-//        params_vec.push_back(params);
 
         return 0;
     };
@@ -92,20 +79,16 @@ public:
             if (init_operands == weigth_oprand) {
                 int32_t init_operand_elem_size = operand_elem_size(operand_ptr);
                 float *data_ptr = (float *) (cur_init_info_ptr + sizeof(OPERAND_S));
-//                std::cout << "the init operand is weight of " << this->op_type << "op." << std::endl;
                 memcpy(&initial_operands[0], operand_ptr, sizeof(OPERAND_S));
                 initial_datas[0].assign(data_ptr, data_ptr + init_operand_elem_size);
             }
 
-
             if (init_operands == bias_oprand) {
                 int32_t init_operand_elem_size = operand_elem_size(operand_ptr);
                 float *data_ptr = (float *) (cur_init_info_ptr + sizeof(OPERAND_S));
-//                std::cout << "the init operand is bias of " << this->op_type << " op." << std::endl;
                 memcpy(&initial_operands[1], operand_ptr, sizeof(OPERAND_S));
                 initial_datas[1].assign(data_ptr, data_ptr + init_operand_elem_size);
             }
-
 
             // update cur_init_info_ptr
             int init_size = operand_buf_size(operand_ptr);
@@ -116,29 +99,24 @@ public:
 
     int prepare_init_operand_data() override {
         // set desc struct
-//        params_vec: cfg / ifmap desc / weight desc / bias desc / ofmap desc
+
         BUFFER_INFO_S weight_desc;
         weight_desc.addr = (int64_t) (&initial_operands[0]);
         params_vec[2] = weight_desc;
-//        this->params_vec.push_back(weight_desc);
 
         BUFFER_INFO_S bias_desc;
         bias_desc.addr = (int64_t) (&initial_operands[1]);
         params_vec[3] = bias_desc;
-//        this->params_vec.push_back(bias_desc);
 
         // set buf
         BUFFER_INFO_S weight_buf;
         weight_buf.addr = (int64_t) (&(initial_datas[0][0]));
         inputs_vec[1] = weight_buf;
-//        this->inputs_vec.push_back(weight_buf);
 
         BUFFER_INFO_S bias_buf;
         bias_buf.addr = (int64_t) (&(initial_datas[1][0]));
         inputs_vec[2] = bias_buf;
-//        this->inputs_vec.push_back(bias_buf);
 
-        int c = 101;
         return 0;
     }
 

@@ -2,9 +2,7 @@
 #define OP_REDUCE_MEAN_H
 
 #include "op.h"
-// #include "../../device/x86/reduce_mean6/reduce_mean6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class ReduceMean : public op
 {
@@ -15,27 +13,20 @@ public:
 
     ReduceMean()
     {
-//        printf("new a ReduceMean\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *reduce_mean_cfg_ptr)
     {
         // new ReduceMean op
         std::shared_ptr<ReduceMean> reduce_mean_ptr = std::make_shared<ReduceMean>();
-//        reduce_mean_ptr.get()->find_handle((BUFFER_GROUP_S *)reduce_mean_cfg_ptr);
 
         // fill op config
         memcpy(&(reduce_mean_ptr->reduce_mean_cfg), reduce_mean_cfg_ptr, sizeof(REDUCE_MEAN_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = reduce_mean_cfg_ptr;
-        // op_name = reduce_mean_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = reduce_mean_ptr;
 
         return 0;
     }
-
 
     virtual int shape_infer(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         OPERAND_S* in = &operand_stu_map[in_operands[0]];
@@ -82,17 +73,10 @@ public:
             }
         }
 
-//        std::cout << "out->operand_name is; " << out->operand_name << std::endl;
-
-
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&reduce_mean_cfg);
         params_vec[0] = params;
-//
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&reduce_mean_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };

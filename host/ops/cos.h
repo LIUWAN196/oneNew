@@ -2,9 +2,8 @@
 #define OP_COS_H
 
 #include "op.h"
-// #include "../../device/x86/cos6/cos6.h"
+
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Cos : public op
 {
@@ -15,21 +14,16 @@ public:
 
     Cos()
     {
-//        printf("new a Cos\n");
+
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *cos_cfg_ptr)
     {
         // new Cos op
         std::shared_ptr<Cos> cos_ptr = std::make_shared<Cos>();
-//        cos_ptr.get()->find_handle((BUFFER_GROUP_S *)cos_cfg_ptr);
 
         // fill op config
         memcpy(&(cos_ptr->cos_cfg), cos_cfg_ptr, sizeof(COS_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = cos_cfg_ptr;
-        // op_name = cos_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = cos_ptr;
 
@@ -44,15 +38,10 @@ public:
         memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
         out->dim_num_of_shapes = in->dim_num_of_shapes;
 
-
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&cos_cfg);
         params_vec[0] = params;
-//
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&cos_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };

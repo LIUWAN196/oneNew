@@ -1,8 +1,6 @@
 import sys
 import os
 
-
-
 import collections
 import onnxruntime
 import onnxruntime as ort
@@ -15,7 +13,6 @@ import numpy as np
 import numpy as np
 import sys
 import os
-
 def cosine_similarity(vec1, vec2):
     # 确保两个向量具有相同的维度
     assert len(vec1) == len(vec2), "两个向量的维度必须相同"
@@ -33,7 +30,6 @@ def cosine_similarity(vec1, vec2):
         return 0
     else:
         return dot_product / (norm_a * norm_b)
-
 
 if __name__ == '__main__':
 
@@ -97,10 +93,6 @@ if __name__ == '__main__':
             min_cos_sim = cos_sim
         if cos_sim > max_cos_sim:
             max_cos_sim = cos_sim
-        # if cos_sim < 0.98:
-        #     print("=========== the output of {} have big error, it is the {}th tensor, please check, cos_sim is {} ".format(key, correct_layer_num, cos_sim))
-        # else:
-        #     print("the output of {} have small error, it is the {}th tensor, cos_sim is {} ".format(key, correct_layer_num, cos_sim))
         correct_layer_num = correct_layer_num + 1
 
 model_name = os.path.splitext(os.path.basename(sys.argv[1]))[0]

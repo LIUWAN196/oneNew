@@ -64,9 +64,7 @@ public:
     std::vector<std::shared_ptr<op>> op_exec_order;
     std::set<std::string> operands_list;
     std::set<std::string> init_operands_list;
-//    std::vector<OPERAND_S> operand_stu_vec;
     std::unordered_map<std::string, OPERAND_S> operand_stu_map;
-//    friend class extractor;
 
     int load_one_model(const char *one_path) {
         // step 1: get one file size
@@ -109,7 +107,6 @@ public:
         Manager &m = Manager::getInstance();
 
         ONE_MODEL_DESC_S *one_model_info_ptr = (ONE_MODEL_DESC_S *)one_buf_ptr;
-//        int32_t *head_ptr = (int32_t *) one_buf_ptr;
 
         int32_t io_cnt = one_model_info_ptr->io_cfg_cnt;
         char *cur_io_cfg_ptr = (char *) (one_buf_ptr + one_model_info_ptr->io_cfg_offset);
@@ -140,7 +137,7 @@ public:
         for (int32_t node_i = 0; node_i < node_cnt; node_i++) {
             // get op type
             std::string op_type_str(cur_node_cfg_ptr);
-//            std::cout << "this op type is:" << op_type_str << std::endl;
+
             // get the instance method
             creator_ creator_method = m.Opmap[op_type_str];
             // build this op
@@ -164,8 +161,7 @@ public:
 
     int mv_init_operands() {
         ONE_MODEL_DESC_S *one_model_info_ptr = (ONE_MODEL_DESC_S *)one_buf_ptr;
-//        int32_t *head_ptr = (int32_t *) one_buf_ptr;
-//        int32_t *head_ptr = (int32_t *) one_buf_ptr;
+
         int32_t init_cnt = one_model_info_ptr->init_cnt;
         char *cur_init_info_ptr = (char *) (one_buf_ptr + one_model_info_ptr->init_info_offset);
 
@@ -193,34 +189,28 @@ public:
     }
 
     net(const char *one_path) {
-//        std::cout << "start load_one_model" << std::endl;
         if (load_one_model(one_path) != 0) {
             LOG_ERR("load_one_model failed!");
         }
 
-//        std::cout << "start instantiate net op" << std::endl;
         if (instantiate_op() != 0) {
             std::cout << "failed: instantiate object of op class failed! " << std::endl;
         }
 
-//        std::cout << "start remove the init operands" << std::endl;
         if (mv_init_operands() != 0) {
             std::cout << "failed: remove the init operands failed! " << std::endl;
         }
     };
 
     net(void *one_buf_ptr) {
-//        std::cout << "start load_one_model" << std::endl;
         if (load_one_buf((char*)one_buf_ptr) != 0) {
             std::cout << "failed: load_one_buf failed! " << std::endl;
         }
 
-//        std::cout << "start instantiate net op" << std::endl;
         if (instantiate_op() != 0) {
             std::cout << "failed: instantiate object of op class failed! " << std::endl;
         }
 
-//        std::cout << "start remove the init operands" << std::endl;
         if (mv_init_operands() != 0) {
             std::cout << "failed: remove the init operands failed! " << std::endl;
         }
@@ -277,7 +267,6 @@ public:
     int build_graph_seq() {
         while (!op_pre_node.empty()) {
             auto a = op_pre_node;
-//            printf("op_pre_node.size is %d\n", op_pre_node.size());
             for (auto opa : a) {
                 if (opa.second.empty()) {
                     op_exec_order.push_back(opa.first);
@@ -288,24 +277,16 @@ public:
                         auto bbbb = op_other.second;
                         op_other.second.erase(std::remove(op_other.second.begin(), op_other.second.end(), opa.first),
                                               op_other.second.end());
-
-                        int c = 101;
                     }
 
                     break;
                 }
-//                std::cout << "warning: the no op is no input" << std::endl;
             }
         }
         return 0;
     }
 
     int show_op_exec_order() {
-//        std::cout << "\n=========== start show_op_exec_order ===========" << std::endl;
-//        for (auto op : op_exec_order) {
-//            std::cout << "op_type: " << op->op_type << ", op_name:" << op->op_name << std::endl;
-//        }
-//        std::cout << "=========== end show_op_exec_order ===========" << std::endl;
         return 0;
     }
 
@@ -332,7 +313,6 @@ public:
             OPERAND_S operands = {0};
             strcpy(operands.operand_name, operands_name.c_str());
             operand_stu_map[operands_name] = operands;
-//            operand_stu_vec.push_back(operands);
         }
         return 0;
     }
@@ -364,24 +344,17 @@ public:
     }
 
     int build_graph() {
-//        show_operands();
         build_op_pre_node();
         build_graph_seq();
 
         show_op_exec_order();
 
-//        std::cout << "===========================================" << std::endl;
-
         gen_operands_list();
 
         fill_operand_shape();
 
-        int c = 101;
-
-
         return 0;
     }
-
 
     extractor *create_exe() {
 
@@ -394,11 +367,7 @@ public:
 
 };
 
-// } // namespace one_new
-
 int extractor::new_output_buf() {
-//    printf("start new_output_buf\n");
-
     // 开辟一块公共空间，不允许在设备侧 malloc
     ONE_MODEL_DESC_S* one_model = (ONE_MODEL_DESC_S*)net_ptr->one_buf_ptr;
     PUBLIC_BUF_INFO_S* publice_buf = &one_model->useful_info.public_buf_info;
@@ -427,22 +396,8 @@ int extractor::new_output_buf() {
 #else
         int64_t cur_operand_ptr = (int64_t)aligned_alloc(32, buf_size);
 #endif
-
         operand_buf_map[operand.first] = {cur_operand_ptr, elem_size, buf_size};
-//        if (elem_size != 0) {
-//            total_buf_size += buf_size;
-//            op_idx ++;
-//            LOG_DBG("this is %dth op, and total buf size is %ld MB, operand name is %s, buf size is %f MB, elem_size is %d, shape is [%d, %d, %d, %d]",
-//                    op_idx, total_buf_size / 1024 / 1024, operand.first.c_str(), elem_size * sizeof(float) * 1.0f / 1024 / 1024, elem_size, operand.second.shapes[0], operand.second.shapes[1],
-//                    operand.second.shapes[2], operand.second.shapes[3]);
-//        }
-
-//        LOG_DBG("this is %dth op, and total buf size is %ld", op_idx, total_buf_size);
-//        std::cout << "end new_output_buf for:" << operand.first << std::endl;
-
     }
-
-    int a = 101;
 
     return 0;
 }
@@ -458,9 +413,7 @@ int extractor::impl_dump_ofmap(std::unordered_map<std::string, BUFFER_INFO_S> &i
     double elapsed;
 
     gettimeofday(&begin, 0);
-//    for (auto input:io_buf_map) {
-//        operand_buf_map[input.first] = input.second;
-//    }
+
     gettimeofday(&end, 0);
 
     elapsed = (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec) * 1e-6;
@@ -471,16 +424,12 @@ int extractor::impl_dump_ofmap(std::unordered_map<std::string, BUFFER_INFO_S> &i
     // 依次执行 net 中排好序的 op
     int op_idx = 0;
     for (auto op : net_ptr->op_exec_order) {
-//        gettimeofday(&begin, 0);
-
         op_idx++;
 
         double op_st = omp_get_wtime();
-//        std::cout << "this op type is: " << op->op_type << ", op->op_name is: " << op->op_name << ", op_idx is: " << op_idx << std::endl;
 
         op.get()->forward(operand_buf_map, net_ptr->operand_stu_map, net_ptr->init_operands_list);
-//        std::cout << "=== end this op type is:" << op->op_type << ", op_idx is: " << op_idx << std::endl;
-//
+
         double op_ed = omp_get_wtime();
         elapsed = op_ed - op_st;
 
@@ -496,7 +445,6 @@ int extractor::impl_dump_ofmap(std::unordered_map<std::string, BUFFER_INFO_S> &i
             std::string ofmap_path = ofmap_folder + ofmap_name;
             write_bin(ofmap_path.c_str(), buf_size, ofmap_ptr);
         }
-//        gettimeofday(&end, 0);
 
     }
 
@@ -568,10 +516,6 @@ int extractor::impl_tracing(std::unordered_map<std::string, BUFFER_INFO_S> &io_b
     op_with_tracing[1][10] = cfg_info_map["hw_computing_power (GOPS)"];
     op_with_tracing[1][11] = cfg_info_map["model name"];
 
-//    for (auto input:io_buf_map) {
-//        operand_buf_map[input.first] = input.second;
-//    }
-
     std::string ofmap_folder = cfg_info_map["ofmap_folder"];
     // 依次执行 net 中排好序的 op
     int op_idx = 0;
@@ -614,24 +558,10 @@ int extractor::impl_tracing(std::unordered_map<std::string, BUFFER_INFO_S> &io_b
     return 0;
 }
 
-
 int extractor::impl(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
-//    for (auto input:io_buf_map) {
-//        operand_buf_map[input.first] = input.second;
-//    }
-
     // 依次执行 net 中排好序的 op
     for (auto op : net_ptr->op_exec_order) {
-//        if (std::strcmp(op.get()->op_type, "Flatten") == 0) {
-//            std::cout << "this op_type is: " << op.get()->op_type << std::endl;
-//            op.get()->forward(operand_buf_map, net_ptr->operand_stu_map, net_ptr->init_operands_list);
-//            continue;
-//        }
-//        std::cout << "this op_type is: " << op.get()->op_type << std::endl;
-
-//        std::cout << "impl layer is: " << op.get()->op_name << std::endl;
         op.get()->forward(operand_buf_map, net_ptr->operand_stu_map, net_ptr->init_operands_list);
-//        std::cout << "impl end : " << op.get()->op_name << std::endl;
     }
 
     // 将 out 数据放到 io_buf_map 中
@@ -644,8 +574,6 @@ int extractor::impl(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map, 
     return 0;
 }
 
-
-
 int extractor::prepare_for_op(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map) {
     for (auto input:io_buf_map) {
         operand_buf_map[input.first] = input.second;
@@ -653,15 +581,10 @@ int extractor::prepare_for_op(std::unordered_map<std::string, BUFFER_INFO_S> &io
 
     // 每个 layer 依次准备 op 需要的数据，包括 params / ifmap / ofmap
     for (auto op : net_ptr->op_exec_order) {
-//        std::cout << "layer is: " << op.get()->op_name << std::endl;
         op.get()->rt_prepare(operand_buf_map, net_ptr->operand_stu_map, net_ptr->init_operands_list);
-//        std::cout << "end : " << op.get()->op_name << std::endl;
     }
 
     return 0;
 }
-
-
-
 
 #endif // NET_H

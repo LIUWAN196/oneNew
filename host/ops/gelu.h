@@ -3,9 +3,7 @@
 
 #include "op.h"
 #include "math.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Gelu : public op
 {
@@ -16,7 +14,6 @@ public:
     std::vector<float> lut;
     Gelu()
     {
-
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *relu_cfg_ptr)
@@ -32,14 +29,12 @@ public:
         return 0;
     }
 
-
     virtual int shape_infer(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         OPERAND_S* in = &operand_stu_map[in_operands[0]];
         OPERAND_S* out = &operand_stu_map[out_operands[0]];
         // the out shape equal in shape
         memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
         out->dim_num_of_shapes = in->dim_num_of_shapes;
-
 
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;

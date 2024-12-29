@@ -2,9 +2,7 @@
 #define OP_AVGPOOL_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class AveragePool : public op
 {
@@ -13,24 +11,17 @@ public:
 
     AveragePool()
     {
-//        printf("new a AveragePool\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *avg_pool_cfg_ptr)
     {
         // new AveragePool op
         std::shared_ptr<AveragePool> avg_pool_ptr = std::make_shared<AveragePool>();
-//        avg_pool_ptr.get()->find_handle((BUFFER_GROUP_S *)avg_pool_cfg_ptr);
 
         // fill op config
         memcpy(&(avg_pool_ptr->avg_pool_cfg), avg_pool_cfg_ptr, sizeof(AVG_POOL_CONFIG_S));
 
-        // // fill op type and op name
-        // op_type = avg_pool_cfg_ptr;
-        // op_name = avg_pool_cfg_ptr + OP_TYPE_LEN;
-
         op_ptr = avg_pool_ptr;
-
         return 0;
     }
 
@@ -50,17 +41,12 @@ public:
                 (in->shapes[3] + avg_pool_cfg.pads[1] + avg_pool_cfg.pads[3] - avg_pool_cfg.kernel_shape[1]) / avg_pool_cfg.strides[1] +
                 1;
 
-
-inputs_vec.resize(in_operands.size());
+        inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&avg_pool_cfg);
         params_vec[0] = params;
 
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&avg_pool_cfg);
-//        params_vec.push_back(params);
         return  0;
-
     };
 
     int fill_operands(char *one_buf_ptr) override

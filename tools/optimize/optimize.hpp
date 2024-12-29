@@ -34,7 +34,6 @@
 
 typedef std::unordered_map<std::string, std::string> CFG_MAP;
 
-
 #define ONENEW_OPTIMIZE_HEAD_H
 
 #endif //ONENEW_OPTIMIZE_HEAD_H

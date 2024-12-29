@@ -2,9 +2,7 @@
 #define OP_MATMUL_H
 
 #include "op.h"
-// #include "../../device/x86/relu6/relu6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class MatMul : public op
 {
@@ -16,7 +14,6 @@ public:
 
     MatMul()
     {
-//        printf("new a MatMul\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *relu_cfg_ptr)
@@ -26,10 +23,6 @@ public:
 
         // fill op config
         memcpy(&(add_ptr->mat_mul_cfg), relu_cfg_ptr, sizeof(MATMUL_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = relu_cfg_ptr;
-        // op_name = relu_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = add_ptr;
 
@@ -55,16 +48,10 @@ public:
         int32_t last_dims = out->dim_num_of_shapes - 1;
         out->shapes[last_dims] = in1->shapes[in1->dim_num_of_shapes - 1];
 
-
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&mat_mul_cfg);
         params_vec[0] = params;
-//        params_vec.push_back(params);
-
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&mat_mul_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };
@@ -107,7 +94,6 @@ public:
                 initial_datas.resize(1);
                 int32_t init_operand_elem_size = operand_elem_size(operand_ptr);
                 float *data_ptr = (float *) (cur_init_info_ptr + sizeof(OPERAND_S));
-//                std::cout << "the init operand is weight of " << this->op_type << "op." << std::endl;
                 memcpy(&initial_operands[0], operand_ptr, sizeof(OPERAND_S));
                 initial_datas[0].assign(data_ptr, data_ptr + init_operand_elem_size);
             }
@@ -116,8 +102,6 @@ public:
             int init_size = operand_buf_size(operand_ptr);
             cur_init_info_ptr += align_buf_size(sizeof(OPERAND_S) + init_size);
         }
-
-        int b = 101;
 
         return 0;
     }

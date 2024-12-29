@@ -2,9 +2,7 @@
 #define OP_SQRT_H
 
 #include "op.h"
-// #include "../../device/x86/sqrt6/sqrt6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Sqrt : public op
 {
@@ -15,21 +13,15 @@ public:
 
     Sqrt()
     {
-//        printf("new a Sqrt\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *sqrt_cfg_ptr)
     {
         // new Sqrt op
         std::shared_ptr<Sqrt> sqrt_ptr = std::make_shared<Sqrt>();
-//        sqrt_ptr.get()->find_handle((BUFFER_GROUP_S *)sqrt_cfg_ptr);
 
         // fill op config
         memcpy(&(sqrt_ptr->sqrt_cfg), sqrt_cfg_ptr, sizeof(SQRT_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = sqrt_cfg_ptr;
-        // op_name = sqrt_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = sqrt_ptr;
 
@@ -44,15 +36,10 @@ public:
         memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
         out->dim_num_of_shapes = in->dim_num_of_shapes;
 
-
-inputs_vec.resize(in_operands.size());
+        inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&sqrt_cfg);
         params_vec[0] = params;
-//
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&sqrt_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };

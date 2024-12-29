@@ -2,9 +2,7 @@
 #define OP_LOG_H
 
 #include "op.h"
-// #include "../../device/x86/log6/log6.h"
 #include "../manager/manager.h"
-// namespace one_new {
 
 class Log : public op
 {
@@ -15,27 +13,20 @@ public:
 
     Log()
     {
-//        printf("new a Log\n");
     };
 
     static int create_instance(std::shared_ptr<op> &op_ptr, char *log_cfg_ptr)
     {
         // new Log op
         std::shared_ptr<Log> log_ptr = std::make_shared<Log>();
-//        log_ptr.get()->find_handle((BUFFER_GROUP_S *)log_cfg_ptr);
 
         // fill op config
         memcpy(&(log_ptr->log_cfg), log_cfg_ptr, sizeof(LOG_CONFIG_S));
-
-        // // fill op type and op name
-        // op_type = log_cfg_ptr;
-        // op_name = log_cfg_ptr + OP_TYPE_LEN;
 
         op_ptr = log_ptr;
 
         return 0;
     }
-
 
     virtual int shape_infer(std::unordered_map<std::string, OPERAND_S> &operand_stu_map) override {
         OPERAND_S* in = &operand_stu_map[in_operands[0]];
@@ -44,15 +35,10 @@ public:
         memcpy(&out->shapes[0], &in->shapes[0], SHAPE_LEN * sizeof(int32_t));
         out->dim_num_of_shapes = in->dim_num_of_shapes;
 
-
         inputs_vec.resize(in_operands.size());
         BUFFER_INFO_S params;
         params.addr = (int64_t) (&log_cfg);
         params_vec[0] = params;
-//
-//        BUFFER_INFO_S params;
-//        params.addr = (int64_t)(&log_cfg);
-//        params_vec.push_back(params);
 
         return  0;
     };
