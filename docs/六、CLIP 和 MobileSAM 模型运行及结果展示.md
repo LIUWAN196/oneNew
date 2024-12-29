@@ -9,15 +9,15 @@ CLIP 和 mobileSAM 的 onnx 模型在 oneNew model/onnx model 的同名路径下
 2、**执行推理程序**  
 步骤 2 的流程和上述 5.2.1 节完全一致。只是需要将 rt_cfgs/rt_CLIP.yml 作为可执行程序 model_infer 的入参
 ```shell {.line-numbers}
-cd /home/oneNew/a_rls_build/example
+cd /home/oneNew/build/example
 ./model_infer /home/oneNew/configs/rt_cfgs/rt_CLIP.yml
-```  
+```
 3. **输入 txt**  
 在步骤 2 结束后，会有
 ```shell {.line-numbers}
 please enter token（exit the program using 'exit'）>:
 ```  
-提示，此时需要到 oneNew/tools/tokenizer/clip_model_tokenizer.py 中，将文本转为 token id，并键入此处，enter 即可获取到与文本匹配的结果。
+提示，此时需要到 oneNew/tools/tokenizer/clip_model_tokenizer.py 中，将文本转为 token id，并键入此处，enter 即可获取到与文本匹配的结果。  
 4、**获取输出结果**  
 如果在执行完上述步骤后，终端显示如下图所示，即表示适配成功。  
 ![CLIP 输出结果](../docs/imgs/CLIP.png)
@@ -28,7 +28,7 @@ please enter token（exit the program using 'exit'）>:
 2、**执行推理程序**  
 步骤 2 的流程和上述 5.2.1 节完全一致。只是需要将 rt_cfgs/rt_mobileSAM.yml 作为可执行程序 model_infer 的入参
 ```shell {.line-numbers}
-cd /home/oneNew/a_rls_build/example
+cd /home/oneNew/build/example
 ./model_infer /home/oneNew/configs/rt_cfgs/rt_mobileSAM.yml
 ```  
 3、**获取输出结果**  

@@ -1,7 +1,7 @@
 # oneNew
 
 ## 一、项目概述  
-一款轻量化的推理部署框架，项目结构简单、易懂。目前已支持包括图文互搜模型 CLIP、开发式轻量化分割模型 mobileSAM 等大量模型的推理部署。
+一款轻量化的推理部署框架，项目结构简单、易懂。目前已支持包括图文互搜模型 CLIP、开放式轻量化分割模型 mobileSAM 等大量模型的推理部署。
 
 项目主要包括：  
 1、自定义一种中间表示：one，并支持ONNX ----> one的**模型转换**  
@@ -66,16 +66,16 @@
 大部分常见模型的原始的 onnx 模型，以及转换之后的 one 模型 (**该 one 模型已经进行算子融合，无需再进行 optimize 操作，可以直接部署推理**) 已经上传到百度网盘：  
 链接:https://pan.baidu.com/s/1h_hK5HaUDY9E0thHVx5img 提取码:x01u  
 第一次使用，推荐先下载上述百度网盘中：oneNew model/one model 下的 one 模型直接使用。自然，你也可以从 oneNew model/onnx model 路径下，下载 onnx 模型，然后使用下面的模型转换工具 onnx2one 转为 one 模型，再进行推理部署。  
-注意：本框架目前配置路径及信息均采用绝对路径。所以在拉取代码后，请将 “/home/wanzai/桌面/oneNew” 替换为您下载的 oneNew 路径  
+注意：本框架目前配置路径及信息均采用绝对路径。所以在拉取代码后，请将 “/home/wanzai/桌面/oneNew” 替换为您下载后保存的 oneNew 路径  
 
 ### 5.2 运行模型  
 #### 5.2.1 以运行 resnet50 模型为例:  
 1、**配置运行信息**  
-将下载或者使用 onnx2one 转化得到的 resnet50.one 的存放路径，假设为: /home/oneNew/model_zoo/resnet50.one，放置到 oneNew/configs/rt_cfgs 下的 rt_resnet50.yml 的 one_file_path 中。并配置 input_data_path 为绝对路径，例如：/home/oneNew/imgs/dog.png。  
+将下载或者使用 onnx2one 转化得到的 resnet50.one 的存放路径，假设为: /home/oneNew/model_zoo/resnet50.one，放置到 oneNew/configs/rt_cfgs 下的 rt_resnet50.yml 的 one_file_path 中。并配置 input_data_path 为绝对路径，例如：/home/oneNew/imgs/src_img/dog.png。  
 2、**执行推理程序**  
-假设在上述 '**四、代码编译**' 的编译绝对路径为 /home/oneNew/a_rls_build。
+假设在上述 '**四、代码编译**' 的编译绝对路径为 /home/oneNew/build。
 ```shell {.line-numbers}
-cd /home/oneNew/a_rls_build/example
+cd /home/oneNew/build/example
 ./model_infer /home/oneNew/configs/rt_cfgs/rt_resnet50.yml
 ```  
 即将上面的配置信息 rt_resnet50.yml 的绝对路径作为可执行程序 model_infer 的入参，进行 resnet50 模型的端到端推理。  
@@ -89,11 +89,11 @@ top k cls_label is: 207  160  176  231  219
 #### 5.2.2 以运行 yolov8m pose 模型为例: 
 在上述 5.2.1 节，以 resnet50 为例，使用 oneNew 推理框架跑通了一个简单模型。下面以 yolov8m pose 模型为例，讲述较为复杂模型的配置和输出结果展示。  
 1、**配置运行信息**  
-和 5.2.1 节类似，将 yolov8m_pose.one 模型的路径存放到 rt_cfgs/rt_yolov8m_pose.yml 中，并配置 input_data_path 的路径为 /home/oneNew/imgs/street.jpg。   
+和 5.2.1 节类似，将 yolov8m_pose.one 模型的路径存放到 rt_cfgs/rt_yolov8m_pose.yml 中，并配置 input_data_path 的路径为 /home/oneNew/imgs/src_img/street.jpg。   
 2、**执行推理程序**  
 步骤 2 的流程和上述 5.2.1 节完全一致。只是需要将 rt_cfgs/rt_yolov8m_pose.yml 作为可执行程序 model_infer 的入参
 ```shell {.line-numbers}
-cd /home/oneNew/a_rls_build/example
+cd /home/oneNew/build/example
 ./model_infer /home/oneNew/configs/rt_cfgs/rt_yolov8m_pose.yml
 ```  
 3、**获取输出结果**  
