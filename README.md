@@ -69,7 +69,7 @@
 
 ### 5.2 运行模型  
 #### 5.2.1 以运行 resnet50 模型为例:  
-1、**配置运行信息**：  
+1、**配置运行信息**  
 将下载或者使用 onnx2one 转化得到的 resnet50.one 的存放路径，假设为: /home/oneNew/model_zoo/resnet50.one，放置到 oneNew/configs/rt_cfgs 下的 rt_resnet50.yml 的 one_file_path 中。并配置 input_data_path 为绝对路径，例如：/home/oneNew/imgs/dog.png。  
 2、**执行推理程序**  
 假设在上述 '**四、代码编译**' 的编译绝对路径为 /home/oneNew/a_rls_build。
@@ -78,7 +78,7 @@ cd /home/oneNew/a_rls_build/example
 ./model_infer /home/oneNew/configs/rt_cfgs/rt_resnet50.yml
 ```  
 即将上面的配置信息 rt_resnet50.yml 的绝对路径作为可执行程序 model_infer 的入参，进行 resnet50 模型的端到端推理。  
-3、**获取输出结果**：  
+3、**获取输出结果**  
 如果在执行完上述步骤后，终端显示如下所示，则表明结果正确 (ImageNet数据集的 207 和 160 等类别均为 dog，和图片相符)：  
 ```shell {.line-numbers}
 top k cls_label is: 207  160  176  231  219
@@ -87,7 +87,7 @@ top k cls_label is: 207  160  176  231  219
 
 #### 5.2.2 以运行 yolov8m pose 模型为例: 
 在上述 5.2.1 节，以 resnet50 为例，使用 oneNew 推理框架跑通了一个简单模型。下面以 yolov8m pose 模型为例，讲述较为复杂模型的配置和输出结果展示。  
-1、**配置运行信息**：  
+1、**配置运行信息**  
 和 5.2.1 节类似，将 yolov8m_pose.one 模型的路径存放到 rt_cfgs/rt_yolov8m_pose.yml 中，并配置 input_data_path 的路径为 /home/oneNew/imgs/street.jpg。   
 2、**执行推理程序**  
 步骤 2 的流程和上述 5.2.1 节完全一致。只是需要将 rt_cfgs/rt_yolov8m_pose.yml 作为可执行程序 model_infer 的入参
@@ -95,7 +95,7 @@ top k cls_label is: 207  160  176  231  219
 cd /home/oneNew/a_rls_build/example
 ./model_infer /home/oneNew/configs/rt_cfgs/rt_yolov8m_pose.yml
 ```  
-3、**获取输出结果**：  
+3、**获取输出结果**  
 如果在执行完上述步骤后，终端显示如下图所示，则表明结果正确。即此时，使用 oneNew 推理框架，推理 yolov8m pose 模型，可以精确监测并绘制人物姿态：  
 ![yolov8m pose 输出结果](./docs/imgs/yolov8m_pose.png)
 

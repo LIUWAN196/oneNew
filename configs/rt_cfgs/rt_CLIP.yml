@@ -1,0 +1,19 @@
+# resnet50 runtime config
+
+do_preprocess: true
+
+do_postprocess: false
+
+clip_img_one_file_path: /home/wanzai/桌面/oneNew/model_zoo/clip_img.one
+clip_txt_one_file_path: /home/wanzai/桌面/oneNew/model_zoo/clip_txt.one
+
+model_type: CLIP
+
+img_folder_path: /home/wanzai/桌面/oneNew/imgs/src_img/
+
+model_exc_type: efficient_exc
+
+resize_shapes: [256, 256]
+crop_shapes: [224, 224]
+normal_mean: [0.5f, 0.5f, 0.5f]
+normal_std: [0.5f, 0.5f, 0.5f]

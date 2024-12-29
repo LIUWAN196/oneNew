@@ -1,0 +1,22 @@
+# resnet50 runtime config
+
+do_preprocess: true
+
+do_postprocess: false
+
+sam_encoder_one_file_path: /home/wanzai/桌面/oneNew/model_zoo/mobile_sam_encoder.one
+sam_decoder_one_file_path: /home/wanzai/桌面/oneNew/model_zoo/mobile_sam_decoder.one
+
+model_type: mobile_sam
+
+sam_mask_level: 3
+
+input_data_path: /home/wanzai/桌面/oneNew/imgs/src_img/street.jpg
+
+model_exc_type: efficient_exc
+
+resize_shapes: [1024, 1024]
+crop_shapes: [1024, 1024]
+normal_mean: [0.485ff, 0.456ff, 0.406ff]
+normal_std: [0.229f, 0.224f, 0.225f]
+
