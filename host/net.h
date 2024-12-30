@@ -17,8 +17,12 @@
 #include <set>
 #include "algorithm"
 #include <omp.h>
-#include <cuda_runtime.h>
 
+#ifdef USING_GPU
+#include <cuda_runtime.h>
+#endif
+
+#ifdef USING_GPU
 #define CUDA_CHECK(call) \
     do { \
         cudaError_t err = call; \
@@ -27,6 +31,7 @@
             exit(EXIT_FAILURE); \
         } \
     } while (0)
+#endif
 
 typedef int (*evalaa)(BUFFER_INFO_S *, BUFFER_INFO_S *, BUFFER_INFO_S *);
 
@@ -34,7 +39,8 @@ class net;
 
 class extractor {
 public:
-
+    int* public_buf_ptr;
+    std::vector<char*> operand_ptr;
     std::unordered_map<std::string, BUFFER_INFO_S> operand_buf_map;
 
     net *net_ptr;
@@ -45,13 +51,38 @@ public:
 
     int new_output_buf();
 
-    int impl_dump_ofmap(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
-    int impl_tracing(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
+    int impl_dump_ofmap(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map,
+                        std::unordered_map<std::string, std::string> cfg_info_map);
 
-    int impl(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map);
+    int impl_tracing(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map,
+                     std::unordered_map<std::string, std::string> cfg_info_map);
+
+    int impl(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map,
+             std::unordered_map<std::string, std::string> cfg_info_map);
 
     int prepare_for_op(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map);
 
+    ~extractor() {
+        // release public_buf_ptr
+        if (public_buf_ptr != nullptr) {
+#ifdef USING_GPU
+            cudaFree(public_buf_ptr);
+#else
+            free(public_buf_ptr);
+#endif
+            public_buf_ptr = nullptr;
+        }
+
+        // release operand_ptr
+        for (int i = 0; i < operand_ptr.size(); ++i) {
+#ifdef USING_GPU
+            cudaFree(operand_ptr[i]);
+#else
+            free(operand_ptr[i]);
+#endif
+            operand_ptr[i] = nullptr;
+        }
+    }
 };
 
 
@@ -65,6 +96,7 @@ public:
     std::set<std::string> operands_list;
     std::set<std::string> init_operands_list;
     std::unordered_map<std::string, OPERAND_S> operand_stu_map;
+    extractor *exc_cls;
 
     int load_one_model(const char *one_path) {
         // step 1: get one file size
@@ -89,7 +121,7 @@ public:
         fclose(file_p);
 
         // 当模型读取进内存后，先通过 one_model_magic_num 魔法数判断是否为 one 模型
-        ONE_MODEL_DESC_S *one_model_info_ptr = (ONE_MODEL_DESC_S *)one_buf_ptr;
+        ONE_MODEL_DESC_S *one_model_info_ptr = (ONE_MODEL_DESC_S *) one_buf_ptr;
         if (one_model_info_ptr->one_model_magic_num != ONE_MAGIC_NUM) {
             LOG_ERR("one_model_magic_num error, should be %d, currently is %d, please check .one model.",
                     ONE_MAGIC_NUM, one_model_info_ptr->one_model_magic_num);
@@ -106,7 +138,7 @@ public:
     int instantiate_op() {
         Manager &m = Manager::getInstance();
 
-        ONE_MODEL_DESC_S *one_model_info_ptr = (ONE_MODEL_DESC_S *)one_buf_ptr;
+        ONE_MODEL_DESC_S *one_model_info_ptr = (ONE_MODEL_DESC_S *) one_buf_ptr;
 
         int32_t io_cnt = one_model_info_ptr->io_cfg_cnt;
         char *cur_io_cfg_ptr = (char *) (one_buf_ptr + one_model_info_ptr->io_cfg_offset);
@@ -160,7 +192,7 @@ public:
     }
 
     int mv_init_operands() {
-        ONE_MODEL_DESC_S *one_model_info_ptr = (ONE_MODEL_DESC_S *)one_buf_ptr;
+        ONE_MODEL_DESC_S *one_model_info_ptr = (ONE_MODEL_DESC_S *) one_buf_ptr;
 
         int32_t init_cnt = one_model_info_ptr->init_cnt;
         char *cur_init_info_ptr = (char *) (one_buf_ptr + one_model_info_ptr->init_info_offset);
@@ -169,9 +201,9 @@ public:
             OPERAND_S *operand_ptr = (OPERAND_S *) cur_init_info_ptr;
             std::string init_operands = std::string(operand_ptr->operand_name);
 
-            for (auto &op_in_operands : op_in_operands_map) {
+            for (auto &op_in_operands: op_in_operands_map) {
                 auto operand_names = op_in_operands.second;
-                for (auto operand_name : operand_names) {
+                for (auto operand_name: operand_names) {
                     if (operand_name == init_operands) {
                         init_operands_list.insert(operand_name);
                     }
@@ -203,7 +235,7 @@ public:
     };
 
     net(void *one_buf_ptr) {
-        if (load_one_buf((char*)one_buf_ptr) != 0) {
+        if (load_one_buf((char *) one_buf_ptr) != 0) {
             std::cout << "failed: load_one_buf failed! " << std::endl;
         }
 
@@ -218,20 +250,20 @@ public:
 
     int show_operands() {
         std::cout << "========= show op_in_operands_map" << std::endl;
-        for (auto op_in_operands : op_in_operands_map) {
+        for (auto op_in_operands: op_in_operands_map) {
             std::cout << "op_type: " << op_in_operands.first.get()->op_type << ", in_operands:"
                       << op_in_operands.first.get()->op_name;
-            for (auto operand_name : op_in_operands.second) {
+            for (auto operand_name: op_in_operands.second) {
                 std::cout << operand_name << ", ";
             }
             std::cout << std::endl;
         }
 
         std::cout << "=========== show op_out_operands_map" << std::endl;
-        for (auto op_out_operands : op_out_operands_map) {
+        for (auto op_out_operands: op_out_operands_map) {
             std::cout << "op_type: " << op_out_operands.first.get()->op_type << ", out_operands:"
                       << op_out_operands.first.get()->op_name;
-            for (auto operand_name : op_out_operands.second) {
+            for (auto operand_name: op_out_operands.second) {
                 std::cout << operand_name << ", ";
             }
             std::cout << std::endl;
@@ -241,17 +273,17 @@ public:
     }
 
     int build_op_pre_node() {
-        for (auto op_in_operands : op_in_operands_map) {
+        for (auto op_in_operands: op_in_operands_map) {
             if (op_in_operands.second.empty()) {
                 op_pre_node.insert(std::make_pair(op_in_operands.first, NULL));
             }
         }
 
-        for (auto op_out_operands : op_out_operands_map) {
+        for (auto op_out_operands: op_out_operands_map) {
             // traverse each output operands of this op
-            for (auto operand_name : op_out_operands.second) {
-                for (auto op_in_operands : op_in_operands_map) {
-                    for (auto in_operand_name : op_in_operands.second) {
+            for (auto operand_name: op_out_operands.second) {
+                for (auto op_in_operands: op_in_operands_map) {
+                    for (auto in_operand_name: op_in_operands.second) {
                         if (in_operand_name == operand_name) {
                             op_pre_node[op_in_operands.first].push_back(op_out_operands.first);
                             int bbb = 101;
@@ -267,13 +299,13 @@ public:
     int build_graph_seq() {
         while (!op_pre_node.empty()) {
             auto a = op_pre_node;
-            for (auto opa : a) {
+            for (auto opa: a) {
                 if (opa.second.empty()) {
                     op_exec_order.push_back(opa.first);
                     op_pre_node.erase(opa.first);
 
                     // erase the previous nodes of op_pre_node
-                    for (auto &op_other : op_pre_node) {
+                    for (auto &op_other: op_pre_node) {
                         auto bbbb = op_other.second;
                         op_other.second.erase(std::remove(op_other.second.begin(), op_other.second.end(), opa.first),
                                               op_other.second.end());
@@ -291,8 +323,8 @@ public:
     }
 
     int gen_operands_list() {
-        for (auto operands_vec : op_in_operands_map) {
-            for (auto operand : operands_vec.second) {
+        for (auto operands_vec: op_in_operands_map) {
+            for (auto operand: operands_vec.second) {
                 if (operand.empty()) {
                     continue;
                 }
@@ -300,8 +332,8 @@ public:
             }
         }
 
-        for (auto operands_vec : op_out_operands_map) {
-            for (auto operand : operands_vec.second) {
+        for (auto operands_vec: op_out_operands_map) {
+            for (auto operand: operands_vec.second) {
                 if (operand.empty()) {
                     continue;
                 }
@@ -309,7 +341,7 @@ public:
             }
         }
 
-        for (auto operands_name : operands_list) {
+        for (auto operands_name: operands_list) {
             OPERAND_S operands = {0};
             strcpy(operands.operand_name, operands_name.c_str());
             operand_stu_map[operands_name] = operands;
@@ -319,7 +351,7 @@ public:
 
     int fill_operand_shape() {
 
-        for (auto op : op_exec_order) {
+        for (auto op: op_exec_order) {
             std::string op_type_str(op.get()->op_type);
             // if is io op, 先把输出的 ofmap 的 tensor 放到 operand_stu_map 中
             if (op_type_str == "io") {
@@ -331,7 +363,7 @@ public:
         }
 
         // 做 shape infer，推理获得 ofmap 的 shape
-        for (auto op : op_exec_order) {
+        for (auto op: op_exec_order) {
             std::string op_type_str(op.get()->op_type);
             // if is io op
             if (op_type_str != "io") {
@@ -358,31 +390,48 @@ public:
 
     extractor *create_exe() {
 
-        extractor *a = new extractor(this);
+        extractor *_exc_cls = new extractor(this);
+        exc_cls = _exc_cls;
 
+        return _exc_cls;
+    }
 
-        return a;
+        ~net(){
+        // release one_buf_ptr
+        if (one_buf_ptr != nullptr) {
+#ifdef USING_GPU
+            cudaFree(one_buf_ptr);
+#else
+            free(one_buf_ptr);
+#endif
+            one_buf_ptr = nullptr;
+        }
 
+        // release extractor
+        if (exc_cls != nullptr) {
+            free(exc_cls);
+            exc_cls = nullptr;
+        }
     }
 
 };
 
 int extractor::new_output_buf() {
     // 开辟一块公共空间，不允许在设备侧 malloc
-    ONE_MODEL_DESC_S* one_model = (ONE_MODEL_DESC_S*)net_ptr->one_buf_ptr;
-    PUBLIC_BUF_INFO_S* publice_buf = &one_model->useful_info.public_buf_info;
+    ONE_MODEL_DESC_S *one_model = (ONE_MODEL_DESC_S *) net_ptr->one_buf_ptr;
+    PUBLIC_BUF_INFO_S *publice_buf = &one_model->useful_info.public_buf_info;
 
 #ifdef USING_GPU
     int* public_buf_ptr = nullptr;
     CUDA_CHECK(cudaMallocManaged(&public_buf_ptr, publice_buf->public_buf_size, cudaMemAttachGlobal));
     publice_buf->public_buf_ptr = (int64_t)public_buf_ptr;
 #else
-    publice_buf->public_buf_ptr = (int64_t)aligned_alloc(32, publice_buf->public_buf_size);
+    publice_buf->public_buf_ptr = (int64_t) aligned_alloc(32, publice_buf->public_buf_size);
 #endif
 
     int64_t total_buf_size = 0;
     int32_t op_idx = 0;
-    for (auto operand : net_ptr->operand_stu_map) {
+    for (auto operand: net_ptr->operand_stu_map) {
         if (operand.second.not_need_buf == TRUE) {
             continue;
         }
@@ -394,7 +443,7 @@ int extractor::new_output_buf() {
         CUDA_CHECK(cudaMallocManaged(&cur_ptr, buf_size, cudaMemAttachGlobal));
         int64_t cur_operand_ptr = (int64_t)cur_ptr;
 #else
-        int64_t cur_operand_ptr = (int64_t)aligned_alloc(32, buf_size);
+        int64_t cur_operand_ptr = (int64_t) aligned_alloc(32, buf_size);
 #endif
         operand_buf_map[operand.first] = {cur_operand_ptr, elem_size, buf_size};
     }
@@ -404,7 +453,8 @@ int extractor::new_output_buf() {
 
 #include <sys/time.h>
 
-int extractor::impl_dump_ofmap(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
+int extractor::impl_dump_ofmap(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map,
+                               std::unordered_map<std::string, std::string> cfg_info_map) {
 
     std::unordered_map<std::string, double> op_type_time;
     std::unordered_map<std::string, double> op_name_time;
@@ -423,7 +473,7 @@ int extractor::impl_dump_ofmap(std::unordered_map<std::string, BUFFER_INFO_S> &i
     std::string ofmap_folder = cfg_info_map["ofmap_folder"];
     // 依次执行 net 中排好序的 op
     int op_idx = 0;
-    for (auto op : net_ptr->op_exec_order) {
+    for (auto op: net_ptr->op_exec_order) {
         op_idx++;
 
         double op_st = omp_get_wtime();
@@ -438,8 +488,8 @@ int extractor::impl_dump_ofmap(std::unordered_map<std::string, BUFFER_INFO_S> &i
 
         if (!op.get()->out_operands.empty()) {
             std::string omap_name = op.get()->out_operands[0];
-            char* omap_name_c = (char*)omap_name.c_str();
-            char* ofmap_ptr = (char *)operand_buf_map[omap_name].addr;
+            char *omap_name_c = (char *) omap_name.c_str();
+            char *ofmap_ptr = (char *) operand_buf_map[omap_name].addr;
             int64_t buf_size = operand_buf_map[omap_name].buf_size;
             std::string ofmap_name(replace_char(omap_name_c));
             std::string ofmap_path = ofmap_folder + ofmap_name;
@@ -450,8 +500,8 @@ int extractor::impl_dump_ofmap(std::unordered_map<std::string, BUFFER_INFO_S> &i
 
     // 将 out 数据放到 io_buf_map 中
     gettimeofday(&begin, 0);
-    for (auto op : net_ptr->op_exec_order) {
-        if (std::string(op.get()->op_type) == "io" && op.get()->out_operands.empty()){
+    for (auto op: net_ptr->op_exec_order) {
+        if (std::string(op.get()->op_type) == "io" && op.get()->out_operands.empty()) {
             io_buf_map[op.get()->in_operands[0]] = operand_buf_map[op.get()->in_operands[0]];
         }
     }
@@ -462,35 +512,37 @@ int extractor::impl_dump_ofmap(std::unordered_map<std::string, BUFFER_INFO_S> &i
     op_name_time["cp_out_data"] = elapsed;
 
     double total_time = 0;
-    for (auto op_time : op_name_time) {
+    for (auto op_time: op_name_time) {
         total_time += op_time.second;
     }
 
     std::vector<std::pair<std::string, double>> vec(op_type_time.begin(), op_type_time.end());
     std::sort(vec.begin(), vec.end(),
-              [](const std::pair<std::string, double>& a, const std::pair<std::string, double>& b) {
-        return a.second > b.second; // 降序排序
-    });
+              [](const std::pair<std::string, double> &a, const std::pair<std::string, double> &b) {
+                  return a.second > b.second; // 降序排序
+              });
 
     std::cout << "======================  the total_time is: " << total_time << " ======================" << std::endl;
     const int align_pixel = 24;
     std::cout << std::setw(align_pixel) << std::left << "op_type" << std::setw(align_pixel) << "op_time (ms)"
-    << std::setw(align_pixel) << "op_time_ratio (%)" << std::setw(align_pixel)  << std::endl;
-    for (auto op_time : vec) {
-        std::cout << std::setw(align_pixel) << std::left << op_time.first << std::setw(align_pixel) << op_time.second * 1000
-        << std::setw(align_pixel) << op_time.second * 100 / total_time << std::setw(align_pixel)  << std::endl;
+              << std::setw(align_pixel) << "op_time_ratio (%)" << std::setw(align_pixel) << std::endl;
+    for (auto op_time: vec) {
+        std::cout << std::setw(align_pixel) << std::left << op_time.first << std::setw(align_pixel)
+                  << op_time.second * 1000
+                  << std::setw(align_pixel) << op_time.second * 100 / total_time << std::setw(align_pixel) << std::endl;
     }
     std::cout << "======================  end show op_type time ======================" << std::endl;
 
     return 0;
 }
 
-int extractor::impl_tracing(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
+int extractor::impl_tracing(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map,
+                            std::unordered_map<std::string, std::string> cfg_info_map) {
 
     std::vector<std::vector<std::string>> op_with_tracing;
     op_with_tracing.resize(net_ptr->op_exec_order.size() + 1);
     const int inner_size = 5;   // op name / op type / op start / op end / computation
-    for (auto& row : op_with_tracing) {
+    for (auto &row: op_with_tracing) {
         row.resize(inner_size);
     }
     op_with_tracing[0].resize(12);
@@ -520,7 +572,7 @@ int extractor::impl_tracing(std::unordered_map<std::string, BUFFER_INFO_S> &io_b
     // 依次执行 net 中排好序的 op
     int op_idx = 0;
     double model_st_tamp = omp_get_wtime();
-    for (auto op : net_ptr->op_exec_order) {
+    for (auto op: net_ptr->op_exec_order) {
 
         double op_st = omp_get_wtime();
 
@@ -539,15 +591,15 @@ int extractor::impl_tracing(std::unordered_map<std::string, BUFFER_INFO_S> &io_b
     }
 
     // 将 out 数据放到 io_buf_map 中
-    for (auto op : net_ptr->op_exec_order) {
-        if (std::string(op.get()->op_type) == "io" && op.get()->out_operands.empty()){
+    for (auto op: net_ptr->op_exec_order) {
+        if (std::string(op.get()->op_type) == "io" && op.get()->out_operands.empty()) {
             io_buf_map[op.get()->in_operands[0]] = operand_buf_map[op.get()->in_operands[0]];
         }
     }
 
     std::string csv_file = cfg_info_map["tracing_csv_path"];
     std::ofstream file(csv_file.c_str());
-    for (const auto& row : op_with_tracing) {
+    for (const auto &row: op_with_tracing) {
         for (size_t i = 0; i < row.size(); i++) {
             file << row[i];
             if (i < row.size() - 1) file << ",";
@@ -558,15 +610,16 @@ int extractor::impl_tracing(std::unordered_map<std::string, BUFFER_INFO_S> &io_b
     return 0;
 }
 
-int extractor::impl(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map, std::unordered_map<std::string, std::string> cfg_info_map) {
+int extractor::impl(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map,
+                    std::unordered_map<std::string, std::string> cfg_info_map) {
     // 依次执行 net 中排好序的 op
-    for (auto op : net_ptr->op_exec_order) {
+    for (auto op: net_ptr->op_exec_order) {
         op.get()->forward(operand_buf_map, net_ptr->operand_stu_map, net_ptr->init_operands_list);
     }
 
     // 将 out 数据放到 io_buf_map 中
-    for (auto op : net_ptr->op_exec_order) {
-        if (std::string(op.get()->op_type) == "io" && op.get()->out_operands.empty()){
+    for (auto op: net_ptr->op_exec_order) {
+        if (std::string(op.get()->op_type) == "io" && op.get()->out_operands.empty()) {
             io_buf_map[op.get()->in_operands[0]] = operand_buf_map[op.get()->in_operands[0]];
         }
     }
@@ -575,12 +628,12 @@ int extractor::impl(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map, 
 }
 
 int extractor::prepare_for_op(std::unordered_map<std::string, BUFFER_INFO_S> &io_buf_map) {
-    for (auto input:io_buf_map) {
+    for (auto input: io_buf_map) {
         operand_buf_map[input.first] = input.second;
     }
 
     // 每个 layer 依次准备 op 需要的数据，包括 params / ifmap / ofmap
-    for (auto op : net_ptr->op_exec_order) {
+    for (auto op: net_ptr->op_exec_order) {
         op.get()->rt_prepare(operand_buf_map, net_ptr->operand_stu_map, net_ptr->init_operands_list);
     }
 

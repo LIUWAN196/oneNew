@@ -210,10 +210,23 @@ int32_t rt_cfg_check(std::unordered_map<std::string, std::string> &cfg_info_map)
     return 0;
 }
 
+void printHelp(const std::string& programName) {
+    std::cout << "Usage: " << programName << " [runtime.yml]，for example: configs/samples/runtime_sample.yml]\n";
+}
+
 int main(int argc, char **argv) {
     if (argc != 2) {
-        LOG_ERR("Usage: %s [runtime.yml]，for example: model_and_cfg_zoo/configs/samples/runtime_sample.yml]", argv[0]);
+        LOG_ERR("Usage: %s [runtime.yml]，for example: configs/samples/runtime_sample.yml]", argv[0]);
     }
+
+    std::vector<std::string> args(argv, argv + argc);
+    for (const auto& arg : args) {
+        if (arg == "-h" || arg == "--h" || arg == "-help" || arg == "--help") {
+            printHelp(args[0]);
+            return 0;
+        }
+    }
+
     const char *rt_cfg_txt = argv[1];
     std::string rt_cfg_txt_str(rt_cfg_txt);
     std::unordered_map<std::string, std::string> cfg_info_map;

@@ -66,7 +66,7 @@
 大部分常见模型的原始的 onnx 模型，以及转换之后的 one 模型 (**该 one 模型已经进行算子融合，无需再进行 optimize 操作，可以直接部署推理**) 已经上传到百度网盘：  
 链接:https://pan.baidu.com/s/1h_hK5HaUDY9E0thHVx5img 提取码:x01u  
 第一次使用，推荐先下载上述百度网盘中：oneNew model/one model 下的 one 模型直接使用。自然，你也可以从 oneNew model/onnx model 路径下，下载 onnx 模型，然后使用下面的模型转换工具 onnx2one 转为 one 模型，再进行推理部署。  
-注意：本框架目前配置路径及信息均采用绝对路径。所以在拉取代码后，请将 “/home/wanzai/桌面/oneNew” 替换为您下载后保存的 oneNew 路径  
+注意：本框架目前配置路径及信息均采用绝对路径。所以在拉取代码后，请将 “/home/wanzai/桌面/oneNew” 全局替换为您下载后保存的 oneNew 项目的绝对路径  
 
 ### 5.2 运行模型  
 #### 5.2.1 以运行 resnet50 模型为例:  
@@ -131,7 +131,14 @@ bash ./daily_test.sh
 cd /home/oneNew/a_rls_build/tools/onnx2one
 ./onnx2one ../example0.onnx ../example0.one
 ```  
-目的：将 example0.onnx 模型转为 example0.one 模型。 
+目的：将 example0.onnx 模型转为 example0.one 模型。   
+注意：如果在使用 onnx2one 时，提示如下信息：  
+```shell {.line-numbers}
+[libprotobuf ERROR google/protobuf/io/coded_stream.cc:207] A protocol message was rejected because 
+it was too big (more than 67108864 bytes).  To increase the limit (or to disable these warnings), see 
+CodedInputStream::SetTotalBytesLimit() in google/protobuf/io/coded_stream.h.
+```  
+表示 proto 版本太低，请使用 ‘protoc --version’ 查看 proto 版本信息，并升级版本。（已知 libprotoc 3.19.4 及以上版本可以正常使用）
 #### 9.2.2 one 结构简述  
 为了适配 ONNX、pt、GGUF 等模型格式。在本项目中定义了一个新的模型存储结构 .one，这个存储结构如下所示：  
 |                      |                                             |  |  |

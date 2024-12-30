@@ -3,6 +3,8 @@
 
 #include "op.h"
 #include "math.h"
+#include <algorithm>
+#include <cctype>
 #include "../manager/manager.h"
 
 class Einsum : public op {

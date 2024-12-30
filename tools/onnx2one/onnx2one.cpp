@@ -3,6 +3,7 @@
 #include "onnx.pb.h"
 #include <time.h>
 
+#include <unordered_set>
 #include "../manager/manager.h"
 
 #include "ops_head.h"
@@ -10,25 +11,25 @@
 
 void fill_io_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::ValueInfoProto> &inputs, const ::google::protobuf::RepeatedPtrField<::onnx::ValueInfoProto> &outputs, char *io_cfg_ptr)
 {
-	char *cur_io_cfg_ptr = io_cfg_ptr;
+    char *cur_io_cfg_ptr = io_cfg_ptr;
 
-	for (auto input : inputs)
-	{
-		IO_CONFIG_S *io_cfg = (IO_CONFIG_S *)cur_io_cfg_ptr;
+    for (auto input : inputs)
+    {
+        IO_CONFIG_S *io_cfg = (IO_CONFIG_S *)cur_io_cfg_ptr;
 
-		std::string op_type = "io";
-		strcpy(io_cfg->op_type, op_type.c_str());
+        std::string op_type = "io";
+        strcpy(io_cfg->op_type, op_type.c_str());
 
-		std::string op_name = "input";
-		strcpy(io_cfg->op_name, op_name.c_str());
+        std::string op_name = "input";
+        strcpy(io_cfg->op_name, op_name.c_str());
 
-		strcpy(io_cfg->operand.operand_name, input.name().c_str());
-		io_cfg->operand.is_fixed_val = FALSE;
+        strcpy(io_cfg->operand.operand_name, input.name().c_str());
+        io_cfg->operand.is_fixed_val = FALSE;
 
-		auto elem_type = input.type().tensor_type().elem_type();
-		io_cfg->operand.data_type = (ELEM_TYPE_E)elem_type;
+        auto elem_type = input.type().tensor_type().elem_type();
+        io_cfg->operand.data_type = (ELEM_TYPE_E)elem_type;
 
-		auto data_shape = input.type().tensor_type().shape();
+        auto data_shape = input.type().tensor_type().shape();
 
         io_cfg->operand.dim_num_of_shapes = data_shape.dim_size();
         for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
@@ -39,27 +40,27 @@ void fill_io_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::ValueInfoPro
             io_cfg->operand.shapes[i] = (int32_t)(data_shape.dim(i).dim_value());
         }
 
-		// update cur_io_cfg_ptr
-		cur_io_cfg_ptr += align_buf_size(sizeof(IO_CONFIG_S));
-	}
+        // update cur_io_cfg_ptr
+        cur_io_cfg_ptr += align_buf_size(sizeof(IO_CONFIG_S));
+    }
 
-	for (auto output : outputs)
-	{
-		IO_CONFIG_S *io_cfg = (IO_CONFIG_S *)cur_io_cfg_ptr;
+    for (auto output : outputs)
+    {
+        IO_CONFIG_S *io_cfg = (IO_CONFIG_S *)cur_io_cfg_ptr;
 
-		std::string op_type = "io";
-		strcpy(io_cfg->op_type, op_type.c_str());
+        std::string op_type = "io";
+        strcpy(io_cfg->op_type, op_type.c_str());
 
-		std::string op_name = "output";
-		strcpy(io_cfg->op_name, op_name.c_str());
+        std::string op_name = "output";
+        strcpy(io_cfg->op_name, op_name.c_str());
 
-		strcpy(io_cfg->operand.operand_name, output.name().c_str());
-		io_cfg->operand.is_fixed_val = FALSE;
+        strcpy(io_cfg->operand.operand_name, output.name().c_str());
+        io_cfg->operand.is_fixed_val = FALSE;
 
-		auto elem_type = output.type().tensor_type().elem_type();
-		io_cfg->operand.data_type = (ELEM_TYPE_E)elem_type;
+        auto elem_type = output.type().tensor_type().elem_type();
+        io_cfg->operand.data_type = (ELEM_TYPE_E)elem_type;
 
-		auto data_shape = output.type().tensor_type().shape();
+        auto data_shape = output.type().tensor_type().shape();
         io_cfg->operand.dim_num_of_shapes = data_shape.dim_size();
         for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
             io_cfg->operand.shapes[dim_i] = 1;
@@ -68,44 +69,44 @@ void fill_io_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::ValueInfoPro
             io_cfg->operand.shapes[i] = (int32_t)(data_shape.dim(i).dim_value());
         }
 
-		// update cur_io_cfg_ptr
-		cur_io_cfg_ptr += align_buf_size(sizeof(IO_CONFIG_S));
-	}
+        // update cur_io_cfg_ptr
+        cur_io_cfg_ptr += align_buf_size(sizeof(IO_CONFIG_S));
+    }
 }
 
 int get_align_cfg_size(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto> &node, int32_t &node_cnt, int32_t &align_cfg_size)
 {
-	node_cnt = 0;
-	align_cfg_size = 0;
+    node_cnt = 0;
+    align_cfg_size = 0;
 
-	Manager &m = Manager::getInstance();
+    Manager &m = Manager::getInstance();
 
-	for (auto cur_node : node)
-	{
-		std::string op_type = cur_node.op_type();
+    for (auto cur_node : node)
+    {
+        std::string op_type = cur_node.op_type();
         if (op_type == "Constant" || op_type == "Identity" ) {
             continue; // Constant op will be processed elsewhere
         }
 
-		if (m.Opmap.find(op_type) == m.Opmap.end())
-		{
+        if (m.Opmap.find(op_type) == m.Opmap.end())
+        {
             LOG_ERR("sorry, op: %s is not implemented!", op_type.c_str());
-			return -1;
-		}
+            return -1;
+        }
 
-		align_cfg_size += align_buf_size(m.op_cfg_size_map[op_type]);
-		++node_cnt;
-	}
+        align_cfg_size += align_buf_size(m.op_cfg_size_map[op_type]);
+        ++node_cnt;
+    }
 
-	return 0;
+    return 0;
 }
 
 void get_align_init_size(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto> &nodes,
                          const ::google::protobuf::RepeatedPtrField<::onnx::TensorProto> &init_info,
                          int32_t &init_cnt, int32_t &align_init_size)
 {
-	init_cnt = 0;
-	align_init_size = 0;
+    init_cnt = 0;
+    align_init_size = 0;
 
     // 这里将 constant 算子的输出也作为 init 数据，为其准备空间
     for (auto node : nodes) {
@@ -135,25 +136,25 @@ void get_align_init_size(const ::google::protobuf::RepeatedPtrField<::onnx::Node
     }
 
     // 为 init 数据准备空间
-	for (auto init_ : init_info)
-	{
-		auto data_type = init_.data_type();
-		auto dims = init_.dims();
+    for (auto init_ : init_info)
+    {
+        auto data_type = init_.data_type();
+        auto dims = init_.dims();
 
-		int elem_size = 1;
-		int buf_size = 0;
+        int elem_size = 1;
+        int buf_size = 0;
 
-		for (auto dim : dims)
-		{
-			elem_size *= dim;
-		}
-		buf_size = elem_size * elem_info_map[data_type].size;
+        for (auto dim : dims)
+        {
+            elem_size *= dim;
+        }
+        buf_size = elem_size * elem_info_map[data_type].size;
 
         align_init_size += align_buf_size(sizeof(OPERAND_S) + buf_size);
 
-		++init_cnt;
-	}
-	return;
+        ++init_cnt;
+    }
+    return;
 }
 
 void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto> &nodes,
@@ -177,7 +178,7 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
 
     // 开始填充 node cfg
     char *cur_node_cfg_ptr = node_cfg_ptr;
-	for (auto node : nodes) {
+    for (auto node : nodes) {
         auto op_type = node.op_type();
         auto name = node.name();
 
@@ -585,46 +586,46 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
             }
         }
         else if (op_type == "MaxPool")
-		{
-			MAX_POOL_CONFIG_S *max_pool_cfg = (MAX_POOL_CONFIG_S *)cur_node_cfg_ptr;
+        {
+            MAX_POOL_CONFIG_S *max_pool_cfg = (MAX_POOL_CONFIG_S *)cur_node_cfg_ptr;
 
-			// max pool other attributes
-			auto attr = node.attribute();
-			for (auto param : attr)
-			{
-				if (param.name() == "ceil_mode")
-				{
+            // max pool other attributes
+            auto attr = node.attribute();
+            for (auto param : attr)
+            {
+                if (param.name() == "ceil_mode")
+                {
                     max_pool_cfg->ceil_mode = param.i();
-				}
+                }
 
-				if (param.name() == "kernel_shape")
-				{
-					int i = 0;
-					for (auto val : param.ints())
-					{
-						max_pool_cfg->kernel_shape[i++] = val;
-					}
-				}
+                if (param.name() == "kernel_shape")
+                {
+                    int i = 0;
+                    for (auto val : param.ints())
+                    {
+                        max_pool_cfg->kernel_shape[i++] = val;
+                    }
+                }
 
-				if (param.name() == "pads")
-				{
-					int i = 0;
-					for (auto val : param.ints())
-					{
-						max_pool_cfg->pads[i++] = val;
-					}
-				}
+                if (param.name() == "pads")
+                {
+                    int i = 0;
+                    for (auto val : param.ints())
+                    {
+                        max_pool_cfg->pads[i++] = val;
+                    }
+                }
 
-				if (param.name() == "strides")
-				{
-					int i = 0;
-					for (auto val : param.ints())
-					{
-						max_pool_cfg->strides[i++] = val;
-					}
-				}
-			}
-		}
+                if (param.name() == "strides")
+                {
+                    int i = 0;
+                    for (auto val : param.ints())
+                    {
+                        max_pool_cfg->strides[i++] = val;
+                    }
+                }
+            }
+        }
         else if (op_type == "Pad")
         {
             PAD_CONFIG_S *pad_cfg = (PAD_CONFIG_S *)cur_node_cfg_ptr;
@@ -990,16 +991,16 @@ void fill_node_cfg(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto>
             }
         }
 
-		// update cur_node_cfg_ptr
-		cur_node_cfg_ptr += align_buf_size(m.op_cfg_size_map[op_type]);
-	}
+        // update cur_node_cfg_ptr
+        cur_node_cfg_ptr += align_buf_size(m.op_cfg_size_map[op_type]);
+    }
 }
 
 void fill_init_info(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto> &nodes,
                     const ::google::protobuf::RepeatedPtrField<::onnx::TensorProto> &init_info,
                     char *init_info_ptr)
 {
-	char *cur_init_info_ptr = init_info_ptr;
+    char *cur_init_info_ptr = init_info_ptr;
 
     // 步骤 1： 填充 constant 数据
     // 这里将 constant 算子的输出也作为 init 数据，为其准备空间
@@ -1018,7 +1019,7 @@ void fill_init_info(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto
                 continue;
             }
             OPERAND_S *operand_ptr = (OPERAND_S *)cur_init_info_ptr;
-            std::string cur_operand_name = node.output()[operand_idx++];
+            std::string cur_operand_name = node.output().Get(operand_idx++);
             strcpy(operand_ptr->operand_name, cur_operand_name.c_str());
             operand_ptr->is_fixed_val = TRUE;
 
@@ -1053,21 +1054,21 @@ void fill_init_info(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto
     }
 
     // 步骤 2： 填充 init 数据
-	for (auto init_ : init_info)
-	{
-		OPERAND_S *operand_ptr = (OPERAND_S *)cur_init_info_ptr;
-		strcpy(operand_ptr->operand_name, init_.name().c_str());
-		operand_ptr->is_fixed_val = TRUE;
+    for (auto init_ : init_info)
+    {
+        OPERAND_S *operand_ptr = (OPERAND_S *)cur_init_info_ptr;
+        strcpy(operand_ptr->operand_name, init_.name().c_str());
+        operand_ptr->is_fixed_val = TRUE;
 
-		auto data_type = init_.data_type();
-		operand_ptr->data_type = (ELEM_TYPE_E)data_type;
+        auto data_type = init_.data_type();
+        operand_ptr->data_type = (ELEM_TYPE_E)data_type;
 
-		auto dims = init_.dims();
-		std::vector<int32_t> vec_dim;
-		for (auto dim : dims)
-		{
-			vec_dim.push_back((int32_t)dim);
-		}
+        auto dims = init_.dims();
+        std::vector<int32_t> vec_dim;
+        for (auto dim : dims)
+        {
+            vec_dim.push_back((int32_t)dim);
+        }
 
         operand_ptr->dim_num_of_shapes = vec_dim.size();
         for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
@@ -1081,11 +1082,11 @@ void fill_init_info(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto
         for (int i = 0; i < vec_dim.size(); ++i) {
             operand_ptr->shapes[i] = vec_dim[i];
         }
-		auto raw_data = init_.raw_data();
-		char *data_ptr = (char *)raw_data.c_str(); // read raw_data
-		char *init_data_ptr = (char *)(cur_init_info_ptr + sizeof(OPERAND_S));
-		int init_size = operand_buf_size(operand_ptr);
-		memcpy(init_data_ptr, data_ptr, init_size * sizeof(int8_t));
+        auto raw_data = init_.raw_data();
+        char *data_ptr = (char *)raw_data.c_str(); // read raw_data
+        char *init_data_ptr = (char *)(cur_init_info_ptr + sizeof(OPERAND_S));
+        int init_size = operand_buf_size(operand_ptr);
+        memcpy(init_data_ptr, data_ptr, init_size * sizeof(int8_t));
 
         // 有的特殊的 init 数据，是放在 int64_data 而不是 raw_data 中
         if (raw_data.size() == 0) {
@@ -1093,13 +1094,13 @@ void fill_init_info(const ::google::protobuf::RepeatedPtrField<::onnx::NodeProto
             int elem_size = operand_elem_size(operand_ptr);
             int64_t *init_data_s64_ptr = (int64_t *)init_data_ptr;
             for (int i = 0; i < elem_size; ++i) {
-                init_data_s64_ptr[i] = tmp_raw_data[i];
+                init_data_s64_ptr[i] = tmp_raw_data.Get(i);
             }
         }
 
-		// update cur_init_info_ptr
-		cur_init_info_ptr += align_buf_size(sizeof(OPERAND_S) + init_size);
-	}
+        // update cur_init_info_ptr
+        cur_init_info_ptr += align_buf_size(sizeof(OPERAND_S) + init_size);
+    }
 }
 
 int insert_unique(std::vector<NODE_INFO_S>& vec, NODE_INFO_S& value) {
@@ -1225,14 +1226,26 @@ int fill_producer_and_consumer(char* one_file_buf) {
     return 0;
 }
 
+void printHelp(const std::string& programName) {
+    std::cout << "Usage: " << programName << " [onnx_path] [one_path] or [yml_path]\n";
+}
+
 int main(int argc, char **argv)
 {
-	if (argc != 2 && argc != 3)
-	{
-		std::cout << "Usage: " << argv[0] << " [onnx_path] [one_path]" << std::endl;
-		std::cout << "Usage: " << argv[0] << " [yml_path]" << std::endl;
-		exit(-1);
-	}
+    if (argc != 2 && argc != 3)
+    {
+        std::cout << "Usage: " << argv[0] << " [onnx_path] [one_path]" << std::endl;
+        std::cout << "Usage: " << argv[0] << " [yml_path]" << std::endl;
+        exit(-1);
+    }
+
+    std::vector<std::string> args(argv, argv + argc);
+    for (const auto& arg : args) {
+        if (arg == "-h" || arg == "--h" || arg == "-help" || arg == "--help") {
+            printHelp(args[0]);
+            return 0;
+        }
+    }
 
     std::string onnx_path_str,  one_path_str;
     if (argc == 2) {
@@ -1250,47 +1263,47 @@ int main(int argc, char **argv)
     const char *onnx_path = onnx_path_str.c_str();
     const char *one_path = one_path_str.c_str();
 
-	// step 1: load onnx model
-	onnx::ModelProto model;
-	std::ifstream onnx_file(onnx_path, std::ios::ate | std::ios::binary);
-	std::streamsize onnx_size = onnx_file.tellg();
-	onnx_file.seekg(0, std::ios::beg);
-	std::vector<char> buffer(onnx_size);
-	onnx_file.read(buffer.data(), onnx_size);
+    // step 1: load onnx model
+    onnx::ModelProto model;
+    std::ifstream onnx_file(onnx_path, std::ios::ate | std::ios::binary);
+    std::streamsize onnx_size = onnx_file.tellg();
+    onnx_file.seekg(0, std::ios::beg);
+    std::vector<char> buffer(onnx_size);
+    onnx_file.read(buffer.data(), onnx_size);
 
-	// step 2: parse protobuf
-	model.ParseFromArray(buffer.data(), onnx_size);
-	auto graph = model.graph();
+    // step 2: parse protobuf
+    model.ParseFromArray(buffer.data(), onnx_size);
+    auto graph = model.graph();
 
-	// step 3: get node size of this onnx model, and traverse each node to get op cfg size
-	int32_t node_cnt, align_cfg_size;
-	if (get_align_cfg_size(graph.node(), node_cnt, align_cfg_size) != 0)
-	{
+    // step 3: get node size of this onnx model, and traverse each node to get op cfg size
+    int32_t node_cnt, align_cfg_size;
+    if (get_align_cfg_size(graph.node(), node_cnt, align_cfg_size) != 0)
+    {
         LOG_ERR("failed: some op not being implemented temporarily!");
-		return -1;
-	}
+        return -1;
+    }
 
-	// step 3: traverse initializer to get init size (including the values of weights and bias)
-	int32_t init_cnt, align_init_size;
-	get_align_init_size(graph.node(), graph.initializer(), init_cnt, align_init_size);
+    // step 3: traverse initializer to get init size (including the values of weights and bias)
+    int32_t init_cnt, align_init_size;
+    get_align_init_size(graph.node(), graph.initializer(), init_cnt, align_init_size);
 
-	// step 3: get in/output op cnt
-	int32_t io_cfg_cnt = graph.input().size() + graph.output().size();
-	int32_t align_io_cfg_size = io_cfg_cnt * align_buf_size(sizeof(IO_CONFIG_S));
+    // step 3: get in/output op cnt
+    int32_t io_cfg_cnt = graph.input().size() + graph.output().size();
+    int32_t align_io_cfg_size = io_cfg_cnt * align_buf_size(sizeof(IO_CONFIG_S));
 
-	// step 4: malloc space for .one file
-	int align_head_size = align_buf_size(sizeof(ONE_MODEL_DESC_S)); // to store version information and the num of node and init parameters
-	int one_file_size = align_head_size + align_cfg_size + align_init_size + align_io_cfg_size;
-	char *one_file_buf = NULL;
-	one_file_buf = (char *)calloc(one_file_size, sizeof(int8_t));
+    // step 4: malloc space for .one file
+    int align_head_size = align_buf_size(sizeof(ONE_MODEL_DESC_S)); // to store version information and the num of node and init parameters
+    int one_file_size = align_head_size + align_cfg_size + align_init_size + align_io_cfg_size;
+    char *one_file_buf = NULL;
+    one_file_buf = (char *)calloc(one_file_size, sizeof(int8_t));
 
-	if (one_file_buf == NULL)
-	{
+    if (one_file_buf == NULL)
+    {
         LOG_ERR("failed: malloc for one file");
-		return -1;
-	}
+        return -1;
+    }
 
-	// step 5: fill the head information
+    // step 5: fill the head information
     ONE_MODEL_DESC_S *one_model_info_ptr = (ONE_MODEL_DESC_S *)one_file_buf;
     one_model_info_ptr->one_model_magic_num = ONE_MAGIC_NUM;
     one_model_info_ptr->node_cnt = node_cnt;
@@ -1304,13 +1317,13 @@ int main(int argc, char **argv)
     char *init_info_ptr = (char *)(one_file_buf + one_model_info_ptr->init_info_offset);
     fill_init_info(graph.node(), graph.initializer(), init_info_ptr);
 
-	// step 7: fill the node cfg
-	char *node_cfg_ptr = (char *)(one_file_buf + one_model_info_ptr->node_cfg_offset);
-	fill_node_cfg(graph.node(), node_cfg_ptr, init_cnt, init_info_ptr);
+    // step 7: fill the node cfg
+    char *node_cfg_ptr = (char *)(one_file_buf + one_model_info_ptr->node_cfg_offset);
+    fill_node_cfg(graph.node(), node_cfg_ptr, init_cnt, init_info_ptr);
 
-	// step 8: fill the io cfg
-	char *io_cfg_ptr = (char *)(one_file_buf + one_model_info_ptr->io_cfg_offset);
-	fill_io_cfg(graph.input(), graph.output(), io_cfg_ptr);
+    // step 8: fill the io cfg
+    char *io_cfg_ptr = (char *)(one_file_buf + one_model_info_ptr->io_cfg_offset);
+    fill_io_cfg(graph.input(), graph.output(), io_cfg_ptr);
 
     // step 9: fill producer and consumer of each op
     fill_producer_and_consumer(one_file_buf);
@@ -1337,9 +1350,9 @@ int main(int argc, char **argv)
     }
 
     // step 11: dump .one file
-	FILE *file_p = fopen(one_path, "w");
-	fwrite((void *)one_file_buf, 1, one_file_size, file_p);
-	fclose(file_p);
+    FILE *file_p = fopen(one_path, "w");
+    fwrite((void *)one_file_buf, 1, one_file_size, file_p);
+    fclose(file_p);
 
     free(one_file_buf);
     onnx_file.close();
