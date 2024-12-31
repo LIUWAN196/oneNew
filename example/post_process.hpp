@@ -118,6 +118,17 @@ public:
         in_tensor_desc.addr = (int64_t) (&in_tensor[0]);
         params.push_back(in_tensor_desc);
 
+        // 填充输出 tensor 的描述
+        for (int dim_i = 0; dim_i < SHAPE_LEN; ++dim_i) {
+            out_tensor[0].shapes[dim_i] = 1;
+        }
+        out_tensor[0].shapes[1] = cls_num;    // the dim1 is C
+
+        // fill out tensor desc
+        BUFFER_INFO_S out_tensor_desc;
+        out_tensor_desc.addr = (int64_t) (&out_tensor[0]);
+        params.push_back(out_tensor_desc);
+
         return 0;
     }
 
