@@ -12,14 +12,14 @@ __global__ void maxPoolKernel(float *output_feat, float *input_feat,
     float* cur_output_feat = output_feat + out_c_i * out_h * out_w;
 
     // 初始化最大值
-    float max_val = -3276800;
+    float max_val = -3.40282347e+38;
 
-    int stride_h = 2;
-    int stride_w = 2;
-    int k_h = 3;
-    int k_w = 3;
-    int pad_h = 1;
-    int pad_w = 1;
+    int stride_h = cfg->strides[0];
+    int stride_w = cfg->strides[1];
+    int k_h = cfg->kernel_shape[0];
+    int k_w = cfg->kernel_shape[1];
+    int pad_h = cfg->pads[0];
+    int pad_w = cfg->pads[1];
 
     // 遍历池化窗口内的元素
     for (int i = 0; i < k_h; ++i) {
