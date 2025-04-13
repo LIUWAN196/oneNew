@@ -106,7 +106,7 @@ cd /home/oneNew/build/example
 ## 七、新增模型适配步骤
 [七、新增模型适配步骤](docs/七、新增模型适配步骤.md)
 
-## 八、test 工具说明  
+## 八、test 工具说明   
 ### 8.1 多模型集成测试
 功能已支持，在 oneNew/test/model_daily_test 下，运行：
 ```shell {.line-numbers}
@@ -114,21 +114,27 @@ bash ./daily_test.sh
 ```  
 即可对存放到 model_test_yml 的所有模型进行集成测试，该脚本可以在测试完基本模型后，继续对优化之后的模型进行测试。  
 同时，使用 ci_sam_clip 目录下的 ci_clip.sh 和 ci_mobile_sam.sh 两个脚本，可以分别自测 CLIP 和 mobileSAM 模型。  
-具体的使用方法参考请详细查阅代码，希望能做到代码自解释。后续不久也会在此处，详述上述功能的具体使用方法。
+以 model_test_yml/resnet18.yml 为例，内部存放了原始 onnx 模型、转换后 one 模型的路径。通过脚本 daily_test.sh 完成 onnx --> one 的转换和推理执行，将输出文件放到指定的路径下。接着 daily_test.sh 脚本会再执行 python 的 onnx runtime 跑原始的 onnx 模型。并将最终结果和 one 跑出来的结果对比，通过余弦相似度判定 one new 的推理结果是否正确。  
+daily_test.sh 脚本的输出类似如下：
+```
+inception_v3                          daily test SUCCESS                  min cosine similarity of ofmap is: 1.0000001            
+mobilenet_v2                          daily test SUCCESS                  min cosine similarity of ofmap is: 1.0                  
+mobilenet_v3_large                    daily test SUCCESS                  min cosine similarity of ofmap is: 0.9999999
+```  
+同理 ci_clip.sh 和 ci_mobile_sam.sh 脚本也是类似方法来进行测试的。未详尽说明的使用方法参考请详细查阅代码，希望能做到代码自解释。
 ### 8.2 单模型逐层自测
 功能已支持，代码参考 oneNew/test/model_self_test_with_ort  
 该功能是在新增模型适配时，在 oneNew 进行模型推理时，dump 下每一层 layer 的输出数据，在此和 onnx runtime 的结果进行相似度对比，保证每层数据的正确性。  
-后续不久也会在此处，详述上述功能的具体使用方法。
-
+在使用 one new 推理时，需要将 yml 中的配置文件 model_exc_type 设置为 ofmap_dumping，同时配置 ofmap_folder 文件夹路径。在推理后，会将该网络每一层的输出 dump 到 ofmap_folder 中。然后oneNew/test/model_self_test_with_ort/test_model_each_layer.py 这个脚本，接收 onnx_path  ofmap_folder 这两个参数。使用 onnx runtime 去推理 onnx_path 这个原始的 onnx 模型，并且和one 推理得到的每一层数据去做相似度对比。
 ## 九、tools 工具说明  
 ### 9.1 精度测试
 功能已支持，代码参考 oneNew/tools/metrics  
 该功能是对分类模型进行精度测试，看在ImageNet数据集上，精度是否符合预期，特别是在使用模型量化此类优化后。看精度是否有大幅下降。  
-后续不久也会在此处，详述上述功能的具体使用方法。
+使用和测试单个模型比较类似。使用 oneNew/build/tools/metrics/model_metrics，然后入参参考 oneNew/configs/metrics_cfgs/metrics_resnet50.yml 进行配置即可。 yml 内部这里和推理单个模型的差异点在，本处多了 metrics_img_label_txt_path、metrics_img_path、metrics_img_num 这几个参数。其中 metrics_img_num 指的是本次要跑的图片张数。
 ### 9.2 onnx2one  
 #### 9.2.1 使用方式  
 ```shell {.line-numbers}
-cd /home/oneNew/a_rls_build/tools/onnx2one
+cd oneNew/build/tools/onnx2one
 ./onnx2one ../example0.onnx ../example0.one
 ```  
 目的：将 example0.onnx 模型转为 example0.one 模型。   
@@ -156,7 +162,7 @@ CodedInputStream::SetTotalBytesLimit() in google/protobuf/io/coded_stream.h.
 ### 9.3 模型优化  
 具体代码可以参考 oneNew/tools/optimize。该功能的优化包括以下部分：**算子融合**、**模型量化**、**性能自动调优**。   
 该功能是对模型进行优化，包括：对算子进行融合，减少数据搬运以及使得后端更易实现；模型量化：减少权重对内存的占用、降低从 ddr 到 local mem 的带宽瓶颈、更好地利用 int8 等较低 bit 的运算单元；性能自动调优：目前主要是通过网格法搜寻 Conv 和 MatMul 等计算密集型算子的最佳实现，主要是在目标硬件上对 M、N、K 等矩阵的切分参数进行寻优。  
-后续不久也会在此处，详述上述功能的具体使用方法。
+使用 oneNew/build/tools/optimize/optimize 可执行程序，入参参考 oneNew/configs/samples/optimize_sample.yml， yml 内部可以选择的优化选项通过 optimize_type 配置即可。但是要注意，如果选择了 op_fusion，则需要填写包括校正集图片路径、图片预处理参数等信息。 
 
 ### 9.4 runtime 性能分析  
 支持统计每个 layer 的耗时、计算量、硬件利用率等信息。同时给出每类 op 的总计计算量占比和硬件利用率。以 resnet50 模型为例：
@@ -166,5 +172,8 @@ time line 如下：
 pref info 如下：  
 ![pref info](./docs/imgs/pref_info.png)
 
-后续不久也会在此处，详述上述功能的具体使用方法。
+使用和测试单个模型基本一致类似。使用 oneNew/build/example/model_infer，然后入参参考 oneNew/configs/tracing_cfgs/resnet50.yml 进行配置即可。只是这里 yml 内部的 model_exc_type 需要配置为 perf_profiling，并且需要配置
+hw_computing_power (GOPS) 和 tracing_csv_path 等信息。执行结束后，会在 tracing_csv_path 路径下获取到一个 csv 格式的文件。  
+接着在 oneNew/tools/perf_profiling/gen_timeline_json.py 处，修改第 35、36 行代码，将 csv 格式的 profiling 文件转为 json 格式的。  
+最后，使用浏览器打开 chrome://tracing/ 网页，将该 json 文件拖拽到该网页上，即可获取到 time line 和 pref info 信息。（pref info 通过点击网页右上角的 “M” 来获取，这里的 “M” 指的是 metadata for trace）
 
